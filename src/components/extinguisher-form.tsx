@@ -32,12 +32,18 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
 
   const form = useForm<ExtinguisherFormValues>({
     resolver: zodResolver(ExtinguisherFormSchema),
-    defaultValues: isEditMode ? {
-      ...extinguisher,
-      expiryDate: new Date(extinguisher.expiryDate),
-    } : {
-      observations: "",
-    },
+    defaultValues: isEditMode
+      ? {
+          ...extinguisher,
+          expiryDate: new Date(extinguisher.expiryDate),
+        }
+      : {
+          id: "",
+          type: undefined,
+          weight: undefined,
+          expiryDate: undefined,
+          observations: "",
+        },
   });
 
   function onSubmit(data: ExtinguisherFormValues) {

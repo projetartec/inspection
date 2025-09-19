@@ -32,12 +32,20 @@ export function HoseForm({ hose }: HoseFormProps) {
 
   const form = useForm<HoseFormValues>({
     resolver: zodResolver(HoseFormSchema),
-    defaultValues: isEditMode ? {
-      ...hose,
-      expiryDate: new Date(hose.expiryDate),
-    } : {
-      observations: "",
-    },
+    defaultValues: isEditMode
+      ? {
+          ...hose,
+          expiryDate: new Date(hose.expiryDate),
+        }
+      : {
+          id: "",
+          hoseType: undefined,
+          quantity: undefined,
+          keyQuantity: undefined,
+          nozzleQuantity: undefined,
+          expiryDate: undefined,
+          observations: "",
+        },
   });
 
   function onSubmit(data: HoseFormValues) {
