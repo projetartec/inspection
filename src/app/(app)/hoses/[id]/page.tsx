@@ -43,7 +43,7 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
                     {details.map(detail => (
                     <div key={detail.label}>
                         <p className="text-sm font-medium text-muted-foreground">{detail.label}</p>
-                        <p className="text-lg font-semibold">{detail.value}</p>
+                        <div className="text-lg font-semibold">{detail.value}</div>
                     </div>
                     ))}
                 </div>
