@@ -8,6 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { ptBR } from 'date-fns/locale';
 import { QrCodeDisplay } from '@/components/qr-code-display';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Pencil } from 'lucide-react';
 
 export default async function HoseDetailPage({ params }: { params: { id: string } }) {
   const hose = await getHoseById(params.id);
@@ -30,7 +33,14 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Sistema de Mangueira: ${hose.id}`} />
+      <PageHeader title={`Sistema de Mangueira: ${hose.id}`}>
+        <Button asChild variant="outline">
+          <Link href={`/hoses/${hose.id}/edit`}>
+            <Pencil className="mr-2" />
+            Editar
+          </Link>
+        </Button>
+      </PageHeader>
       
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">

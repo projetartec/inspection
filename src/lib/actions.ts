@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addExtinguisher, addHose, addInspection, getExtinguishers, getHoses } from '@/lib/data';
+import { addExtinguisher, addHose, addInspection, getExtinguishers, getHoses, updateExtinguisher, updateHose } from '@/lib/data';
 import type { ExtinguisherFormValues, HoseFormValues } from './schemas';
 import { ExtinguisherFormSchema, HoseFormSchema } from './schemas';
 
@@ -13,12 +13,27 @@ export async function createExtinguisherAction(data: ExtinguisherFormValues) {
     return { message: 'Dados do formulário inválidos.' };
   }
   try {
-    await addExtinguisher(validatedFields.data as any);
-  } catch (e) {
-    return { message: 'Erro de banco de dados: Falha ao criar extintor.' };
+    await addExtinguisher(validatedFields.data);
+  } catch (e: any) {
+    return { message: `Erro de banco de dados: ${e.message}` };
   }
   revalidatePath('/extinguishers');
 }
+
+export async function updateExtinguisherAction(id: string, data: ExtinguisherFormValues) {
+  const validatedFields = ExtinguisherFormSchema.omit({ id: true }).safeParse(data);
+  if (!validatedFields.success) {
+    return { message: 'Dados do formulário inválidos.' };
+  }
+  try {
+    await updateExtinguisher(id, validatedFields.data);
+  } catch (e: any) {
+    return { message: `Erro de banco de dados: ${e.message}` };
+  }
+  revalidatePath('/extinguishers');
+  revalidatePath(`/extinguishers/${id}`);
+}
+
 
 export async function createHoseAction(data: HoseFormValues) {
   const validatedFields = HoseFormSchema.safeParse(data);
@@ -26,12 +41,26 @@ export async function createHoseAction(data: HoseFormValues) {
     return { message: 'Dados do formulário inválidos.' };
   }
   try {
-    await addHose(validatedFields.data as any);
-  } catch (e) {
-    return { message: 'Erro de banco de dados: Falha ao criar sistema de mangueira.' };
+    await addHose(validatedFields.data);
+  } catch (e: any) {
+    return { message: `Erro de banco de dados: ${e.message}` };
   }
   revalidatePath('/hoses');
 }
+
+export async function updateHoseAction(id: string, data: HoseFormValues) {
+    const validatedFields = HoseFormSchema.omit({ id: true }).safeParse(data);
+    if (!validatedFields.success) {
+      return { message: 'Dados do formulário inválidos.' };
+    }
+    try {
+      await updateHose(id, validatedFields.data);
+    } catch (e: any) {
+      return { message: `Erro de banco de dados: ${e.message}` };
+    }
+    revalidatePath('/hoses');
+    revalidatePath(`/hoses/${id}`);
+  }
 
 export async function logInspectionAction(qrCodeValue: string, notes: string, location?: { latitude: number; longitude: number }) {
   try {

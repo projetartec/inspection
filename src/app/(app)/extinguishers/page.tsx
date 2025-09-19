@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusCircle, Flame } from "lucide-react";
+import { PlusCircle, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { getExtinguishers } from "@/lib/data";
@@ -53,9 +53,15 @@ export default async function ExtinguishersPage() {
                                     {isExpired ? 'Vencido' : 'Ativo'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right space-x-2">
                                 <Button asChild variant="ghost" size="sm">
                                     <Link href={`/extinguishers/${ext.id}`}>Ver</Link>
+                                </Button>
+                                <Button asChild variant="ghost" size="sm">
+                                    <Link href={`/extinguishers/${ext.id}/edit`}>
+                                        <Pencil className="h-4 w-4" />
+                                        <span className="sr-only">Editar</span>
+                                    </Link>
                                 </Button>
                             </TableCell>
                         </TableRow>

@@ -14,27 +14,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { createHoseAction } from "@/lib/actions";
+import { createHoseAction, updateHoseAction } from "@/lib/actions";
 import { HoseFormSchema, type HoseFormValues } from "@/lib/schemas";
-import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities } from "@/lib/types";
+import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities, type Hose } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "./ui/input";
 
-export function HoseForm() {
+interface HoseFormProps {
+    hose?: Hose;
+}
+
+export function HoseForm({ hose }: HoseFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
+  const isEditMode = !!hose;
 
   const form = useForm<HoseFormValues>({
     resolver: zodResolver(HoseFormSchema),
-    defaultValues: {
+    defaultValues: isEditMode ? {
+      ...hose,
+      expiryDate: new Date(hose.expiryDate),
+    } : {
       observations: "",
     },
   });
 
   function onSubmit(data: HoseFormValues) {
     startTransition(async () => {
-      const result = await createHoseAction(data);
+      const action = isEditMode
+        ? updateHoseAction(hose.id, data)
+        : createHoseAction(data);
+        
+      const result = await action;
+
       if (result?.message) {
         toast({
           variant: "destructive",
@@ -44,7 +57,7 @@ export function HoseForm() {
       } else {
         toast({
           title: "Sucesso",
-          description: "Sistema de mangueira criado com sucesso.",
+          description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
         router.push("/hoses");
         router.refresh();
@@ -62,10 +75,10 @@ export function HoseForm() {
             <FormItem>
               <FormLabel>ID do Sistema</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: HOSE-SYS-01" {...field} />
+                <Input placeholder="Ex: HOSE-SYS-01" {...field} disabled={isEditMode} />
               </FormControl>
               <FormDescription>
-                Digite um identificador único para este sistema de mangueira.
+                Digite um identificador único para este sistema de mangueira. Não pode ser alterado após a criação.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -164,7 +177,7 @@ export function HoseForm() {
         />
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Criar Sistema de Mangueira
+          {isEditMode ? 'Salvar Alterações' : 'Criar Sistema de Mangueira'}
         </Button>
       </form>
     </Form>

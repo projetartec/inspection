@@ -13,28 +13,41 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { createExtinguisherAction } from "@/lib/actions";
+import { createExtinguisherAction, updateExtinguisherAction } from "@/lib/actions";
 import { ExtinguisherFormSchema, type ExtinguisherFormValues } from "@/lib/schemas";
-import { extinguisherTypes, extinguisherWeights } from "@/lib/types";
+import { extinguisherTypes, extinguisherWeights, type Extinguisher } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
 import { Input } from "@/components/ui/input";
 
-export function ExtinguisherForm() {
+interface ExtinguisherFormProps {
+  extinguisher?: Extinguisher;
+}
+
+export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
+  const isEditMode = !!extinguisher;
 
   const form = useForm<ExtinguisherFormValues>({
     resolver: zodResolver(ExtinguisherFormSchema),
-    defaultValues: {
+    defaultValues: isEditMode ? {
+      ...extinguisher,
+      expiryDate: new Date(extinguisher.expiryDate),
+    } : {
       observations: "",
     },
   });
 
   function onSubmit(data: ExtinguisherFormValues) {
     startTransition(async () => {
-      const result = await createExtinguisherAction(data);
+      const action = isEditMode
+        ? updateExtinguisherAction(extinguisher.id, data)
+        : createExtinguisherAction(data);
+
+      const result = await action;
+      
       if (result?.message) {
         toast({
           variant: "destructive",
@@ -44,10 +57,10 @@ export function ExtinguisherForm() {
       } else {
         toast({
           title: "Sucesso",
-          description: "Extintor criado com sucesso.",
+          description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.refresh();
         router.push("/extinguishers");
+        router.refresh();
       }
     });
   }
@@ -62,10 +75,10 @@ export function ExtinguisherForm() {
             <FormItem>
               <FormLabel>ID do Equipamento</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: EXT-001" {...field} />
+                <Input placeholder="Ex: EXT-001" {...field} disabled={isEditMode} />
               </FormControl>
               <FormDescription>
-                Digite um identificador único para este extintor.
+                Digite um identificador único para este extintor. Não pode ser alterado após a criação.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -186,7 +199,7 @@ export function ExtinguisherForm() {
         
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Criar Extintor
+          {isEditMode ? 'Salvar Alterações' : 'Criar Extintor'}
         </Button>
       </form>
     </Form>

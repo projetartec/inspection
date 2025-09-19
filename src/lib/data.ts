@@ -93,6 +93,31 @@ export async function addHose(data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
     return newHose;
 }
 
+export async function updateExtinguisher(id: string, data: Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>) {
+    const index = extinguishers.findIndex(e => e.id === id);
+    if (index === -1) {
+        throw new Error('Extintor não encontrado.');
+    }
+    extinguishers[index] = {
+        ...extinguishers[index],
+        ...data,
+    };
+    return extinguishers[index];
+}
+
+export async function updateHose(id: string, data: Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>) {
+    const index = hoses.findIndex(h => h.id === id);
+    if (index === -1) {
+        throw new Error('Sistema de mangueira não encontrado.');
+    }
+    hoses[index] = {
+        ...hoses[index],
+        ...data,
+    };
+    return hoses[index];
+}
+
+
 export async function addInspection(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<string | null> {
     const equipment = await findEquipmentByQr(qrCodeValue);
     if (!equipment) return null;
