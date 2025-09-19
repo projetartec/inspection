@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { HoseFormSchema, type HoseFormValues, createHoseAction } from "@/lib/actions";
+import { createHoseAction } from "@/lib/actions";
+import { HoseFormSchema, type HoseFormValues } from "@/lib/schemas";
 import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
