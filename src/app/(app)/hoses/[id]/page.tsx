@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { ptBR } from 'date-fns/locale';
 
 export default async function HoseDetailPage({ params }: { params: { id: string } }) {
   const hose = await getHoseById(params.id);
@@ -17,22 +18,22 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
   const isExpired = new Date(hose.expiryDate) < new Date();
 
   const details = [
-    { label: 'QR Code Value', value: hose.qrCodeValue },
-    { label: 'Hose Type', value: `${hose.hoseType}"` },
-    { label: 'Hose Quantity', value: hose.quantity },
-    { label: 'Key Quantity', value: hose.keyQuantity },
-    { label: 'Nozzle Quantity', value: hose.nozzleQuantity },
-    { label: 'Expiry Date', value: format(new Date(hose.expiryDate), 'MMMM d, yyyy') },
-    { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Expired' : 'Active'}</Badge> },
+    { label: 'Valor do QR Code', value: hose.qrCodeValue },
+    { label: 'Tipo de Mangueira', value: `${hose.hoseType}"` },
+    { label: 'Quantidade de Mangueiras', value: hose.quantity },
+    { label: 'Quantidade de Chaves', value: hose.keyQuantity },
+    { label: 'Quantidade de Bicos', value: hose.nozzleQuantity },
+    { label: 'Data de Validade', value: format(new Date(hose.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) },
+    { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Hose System: ${hose.id}`} />
+      <PageHeader title={`Sistema de Mangueira: ${hose.id}`} />
       
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>Detalhes</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -47,7 +48,7 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
             <>
               <Separator />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Observations</p>
+                <p className="text-sm font-medium text-muted-foreground">Observações</p>
                 <p className="text-base">{hose.observations}</p>
               </div>
             </>
@@ -57,22 +58,22 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
 
       <Card>
         <CardHeader>
-          <CardTitle>Inspection History</CardTitle>
-          <CardDescription>A log of all inspections for this system.</CardDescription>
+          <CardTitle>Histórico de Inspeção</CardTitle>
+          <CardDescription>Um registro de todas as inspeções para este sistema.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Location (Lat, Lon)</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Localização (Lat, Lon)</TableHead>
+                <TableHead>Notas</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {hose.inspections.length > 0 ? hose.inspections.map(insp => (
                 <TableRow key={insp.id}>
-                  <TableCell>{format(new Date(insp.date), 'Pp')}</TableCell>
+                  <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                   <TableCell>
                     {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
                   </TableCell>
@@ -80,7 +81,7 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
                 </TableRow>
               )).reverse() : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center h-24">No inspections recorded.</TableCell>
+                  <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
                 </TableRow>
               )}
             </TableBody>

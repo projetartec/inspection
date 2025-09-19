@@ -8,7 +8,7 @@ export function AppLogo() {
         <span className="font-headline text-lg font-bold leading-none text-foreground">
           FireGuard
         </span>
-        <span className="text-xs text-muted-foreground">Inspector</span>
+        <span className="text-xs text-muted-foreground">Inspetor</span>
       </div>
     </div>
   );

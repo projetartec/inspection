@@ -18,10 +18,10 @@ export function MainNav() {
   const pathname = usePathname();
 
   const menuItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/extinguishers", label: "Extinguishers", icon: Flame },
-    { href: "/hoses", label: "Hoses", icon: Droplets },
-    { href: "/scan", label: "Scan QR Code", icon: ScanLine },
+    { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
+    { href: "/extinguishers", label: "Extintores", icon: Flame },
+    { href: "/hoses", label: "Mangueiras", icon: Droplets },
+    { href: "/scan", label: "Escanear QR Code", icon: ScanLine },
   ];
 
   return (

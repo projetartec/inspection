@@ -26,7 +26,7 @@ export function QrScanner() {
 
     const onScanSuccess = (decodedText: string) => {
       if (scanner.getState() === Html5QrcodeScannerState.SCANNING) {
-        scanner.stop().catch(err => console.error("Failed to stop scanner", err));
+        scanner.stop().catch(err => console.error("Falha ao parar o scanner", err));
       }
       setScanResult(decodedText);
     };
@@ -41,7 +41,7 @@ export function QrScanner() {
                 (errorMessage) => { /* ignore */ }
             );
         } catch (err: any) {
-            setCameraError(err.message || "Could not access camera. Please grant permission in your browser settings.");
+            setCameraError(err.message || "Não foi possível acessar a câmera. Por favor, conceda permissão nas configurações do seu navegador.");
         }
     }
     
@@ -49,7 +49,7 @@ export function QrScanner() {
 
     return () => {
       if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
-        scannerRef.current.stop().catch(err => console.error("Failed to stop scanner on cleanup", err));
+        scannerRef.current.stop().catch(err => console.error("Falha ao parar o scanner na limpeza", err));
       }
     };
   }, []);
@@ -67,10 +67,10 @@ export function QrScanner() {
         const result = await logInspectionAction(scanResult, notes, location);
         
         if (result?.message) {
-          toast({ variant: 'destructive', title: 'Error', description: result.message });
+          toast({ variant: 'destructive', title: 'Erro', description: result.message });
           setIsSubmitting(false);
         } else if (result?.redirectUrl) {
-          toast({ title: 'Success', description: 'Inspection logged successfully!' });
+          toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
           router.push(result.redirectUrl);
         }
       },
@@ -78,14 +78,14 @@ export function QrScanner() {
         // If location fails, log without it but warn the user.
         toast({
           variant: 'destructive',
-          title: 'Location Warning',
-          description: 'Could not get GPS location. Logging inspection without it.'
+          title: 'Aviso de Localização',
+          description: 'Não foi possível obter a localização GPS. Registrando inspeção sem ela.'
         });
         const result = await logInspectionAction(scanResult, notes);
         if (result?.message) {
-          toast({ variant: 'destructive', title: 'Error', description: result.message });
+          toast({ variant: 'destructive', title: 'Erro', description: result.message });
         } else if (result?.redirectUrl) {
-          toast({ title: 'Success', description: 'Inspection logged successfully!' });
+          toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
           router.push(result.redirectUrl);
         }
         setIsSubmitting(false);
@@ -98,7 +98,7 @@ export function QrScanner() {
     return (
       <Alert variant="destructive" className="max-w-md">
         <CameraOff className="h-4 w-4" />
-        <AlertTitle>Camera Error</AlertTitle>
+        <AlertTitle>Erro na Câmera</AlertTitle>
         <AlertDescription>{cameraError}</AlertDescription>
       </Alert>
     );
@@ -108,14 +108,14 @@ export function QrScanner() {
     return (
       <Card className="w-full max-w-md animate-in fade-in">
         <CardHeader>
-          <CardTitle>Log Inspection</CardTitle>
+          <CardTitle>Registrar Inspeção</CardTitle>
           <CardDescription>
-            Scanned Equipment ID: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult}</span>
+            ID do Equipamento Escaneado: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea 
-            placeholder="Add observation notes..."
+            placeholder="Adicionar notas de observação..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
@@ -124,10 +124,10 @@ export function QrScanner() {
         <CardFooter className="flex flex-col gap-2">
           <Button onClick={handleLogInspection} disabled={isSubmitting} className="w-full">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Log Inspection
+            Registrar Inspeção
           </Button>
           <Button variant="outline" onClick={() => { setScanResult(null); router.refresh(); }} className="w-full">
-            Scan Another
+            Escanear Outro
           </Button>
         </CardFooter>
       </Card>

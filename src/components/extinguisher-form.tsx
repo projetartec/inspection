@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -36,13 +37,13 @@ export function ExtinguisherForm() {
       if (result?.message) {
         toast({
           variant: "destructive",
-          title: "Error",
+          title: "Erro",
           description: result.message,
         });
       } else {
         toast({
-          title: "Success",
-          description: "Extinguisher created successfully.",
+          title: "Sucesso",
+          description: "Extintor criado com sucesso.",
         });
         router.push("/extinguishers");
         router.refresh();
@@ -59,11 +60,11 @@ export function ExtinguisherForm() {
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type</FormLabel>
+                <FormLabel>Tipo</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select extinguisher type" />
+                      <SelectValue placeholder="Selecione o tipo de extintor" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -83,11 +84,11 @@ export function ExtinguisherForm() {
             name="weight"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Weight (kg)</FormLabel>
+                <FormLabel>Peso (kg)</FormLabel>
                 <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select weight" />
+                      <SelectValue placeholder="Selecione o peso" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -109,7 +110,7 @@ export function ExtinguisherForm() {
           name="expiryDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Expiry Date</FormLabel>
+              <FormLabel>Data de Validade</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -121,9 +122,9 @@ export function ExtinguisherForm() {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(field.value, "PPP", { locale: ptBR })
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Escolha uma data</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -136,6 +137,7 @@ export function ExtinguisherForm() {
                     onSelect={field.onChange}
                     disabled={(date) => date < new Date("1900-01-01")}
                     initialFocus
+                    locale={ptBR}
                   />
                 </PopoverContent>
               </Popover>
@@ -149,16 +151,16 @@ export function ExtinguisherForm() {
           name="observations"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Observations</FormLabel>
+              <FormLabel>Observações</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="e.g. Located near the main entrance"
+                  placeholder="Ex: Localizado perto da entrada principal"
                   className="resize-none"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                Any relevant notes about the equipment's location or condition.
+                Notas relevantes sobre a localização ou condição do equipamento.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -167,7 +169,7 @@ export function ExtinguisherForm() {
         
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Extinguisher
+          Criar Extintor
         </Button>
       </form>
     </Form>

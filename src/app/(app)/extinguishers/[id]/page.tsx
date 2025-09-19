@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { ptBR } from 'date-fns/locale';
 
 export default async function ExtinguisherDetailPage({ params }: { params: { id: string } }) {
   const extinguisher = await getExtinguisherById(params.id);
@@ -17,20 +18,20 @@ export default async function ExtinguisherDetailPage({ params }: { params: { id:
   const isExpired = new Date(extinguisher.expiryDate) < new Date();
 
   const details = [
-    { label: 'QR Code Value', value: extinguisher.qrCodeValue },
-    { label: 'Type', value: extinguisher.type },
-    { label: 'Weight', value: `${extinguisher.weight} kg` },
-    { label: 'Expiry Date', value: format(new Date(extinguisher.expiryDate), 'MMMM d, yyyy') },
-    { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Expired' : 'Active'}</Badge> },
+    { label: 'Valor do QR Code', value: extinguisher.qrCodeValue },
+    { label: 'Tipo', value: extinguisher.type },
+    { label: 'Peso', value: `${extinguisher.weight} kg` },
+    { label: 'Data de Validade', value: format(new Date(extinguisher.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) },
+    { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Extinguisher: ${extinguisher.id}`} />
+      <PageHeader title={`Extintor: ${extinguisher.id}`} />
       
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>Detalhes</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -45,7 +46,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { id:
             <>
               <Separator />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Observations</p>
+                <p className="text-sm font-medium text-muted-foreground">Observações</p>
                 <p className="text-base">{extinguisher.observations}</p>
               </div>
             </>
@@ -55,22 +56,22 @@ export default async function ExtinguisherDetailPage({ params }: { params: { id:
 
       <Card>
         <CardHeader>
-          <CardTitle>Inspection History</CardTitle>
-          <CardDescription>A log of all inspections for this equipment.</CardDescription>
+          <CardTitle>Histórico de Inspeção</CardTitle>
+          <CardDescription>Um registro de todas as inspeções para este equipamento.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Location (Lat, Lon)</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Localização (Lat, Lon)</TableHead>
+                <TableHead>Notas</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
                 <TableRow key={insp.id}>
-                  <TableCell>{format(new Date(insp.date), 'Pp')}</TableCell>
+                  <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                   <TableCell>
                     {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
                   </TableCell>
@@ -78,7 +79,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { id:
                 </TableRow>
               )).reverse() : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center h-24">No inspections recorded.</TableCell>
+                  <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
                 </TableRow>
               )}
             </TableBody>

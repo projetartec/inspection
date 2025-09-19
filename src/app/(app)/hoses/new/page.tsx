@@ -5,12 +5,12 @@ import { HoseForm } from "@/components/hose-form";
 export default function NewHosePage() {
   return (
     <>
-      <PageHeader title="Add New Hose System" />
+      <PageHeader title="Adicionar Novo Sistema de Mangueira" />
       <Card>
         <CardHeader>
-          <CardTitle>System Details</CardTitle>
+          <CardTitle>Detalhes do Sistema</CardTitle>
           <CardDescription>
-            Fill in the form below to register a new fire hose system.
+            Preencha o formulário abaixo para registrar um novo sistema de mangueira de incêndio.
           </CardDescription>
         </CardHeader>
         <CardContent>

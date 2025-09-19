@@ -17,11 +17,11 @@ export function ReportGenerator() {
       const { extinguishers, hoses } = await getReportDataAction();
       generatePdfReport(extinguishers, hoses);
     } catch (error) {
-      console.error("Failed to generate report:", error);
+      console.error("Falha ao gerar relatório:", error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to generate PDF report.'
+        title: 'Erro',
+        description: 'Falha ao gerar relatório em PDF.'
       });
     } finally {
       setIsLoading(false);
@@ -33,11 +33,11 @@ export function ReportGenerator() {
       onClick={handleGenerateReport}
       disabled={isLoading}
       className="justify-center w-full"
-      tooltip="Generate PDF Report"
+      tooltip="Gerar Relatório PDF"
     >
       {isLoading ? <Loader2 className="animate-spin" /> : <FileText />}
       <span className="group-data-[collapsible=icon]:hidden">
-        {isLoading ? 'Generating...' : 'Generate Report'}
+        {isLoading ? 'Gerando...' : 'Gerar Relatório'}
       </span>
     </SidebarMenuButton>
   );

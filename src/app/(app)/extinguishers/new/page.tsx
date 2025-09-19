@@ -5,12 +5,12 @@ import { ExtinguisherForm } from "@/components/extinguisher-form";
 export default function NewExtinguisherPage() {
   return (
     <>
-      <PageHeader title="Add New Extinguisher" />
+      <PageHeader title="Adicionar Novo Extintor" />
       <Card>
         <CardHeader>
-          <CardTitle>Equipment Details</CardTitle>
+          <CardTitle>Detalhes do Equipamento</CardTitle>
           <CardDescription>
-            Fill in the form below to register a new fire extinguisher.
+            Preencha o formulário abaixo para registrar um novo extintor de incêndio.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -7,8 +7,8 @@ export default function ScanPage() {
     <div className="flex flex-col items-center gap-8">
       <Card className="w-full max-w-md text-center">
         <CardHeader>
-            <CardTitle className="font-headline text-2xl">Scan Equipment QR Code</CardTitle>
-            <CardDescription>Position the QR code within the frame to begin.</CardDescription>
+            <CardTitle className="font-headline text-2xl">Escanear QR Code do Equipamento</CardTitle>
+            <CardDescription>Posicione o QR code dentro do quadro para começar.</CardDescription>
         </CardHeader>
       </Card>
       <QrScanner />

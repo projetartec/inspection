@@ -10,12 +10,12 @@ import { ExtinguisherFormSchema, HoseFormSchema } from './schemas';
 export async function createExtinguisherAction(data: ExtinguisherFormValues) {
   const validatedFields = ExtinguisherFormSchema.safeParse(data);
   if (!validatedFields.success) {
-    return { message: 'Invalid form data.' };
+    return { message: 'Dados do formulário inválidos.' };
   }
   try {
     await addExtinguisher(validatedFields.data as any);
   } catch (e) {
-    return { message: 'Database Error: Failed to create extinguisher.' };
+    return { message: 'Erro de banco de dados: Falha ao criar extintor.' };
   }
   revalidatePath('/extinguishers');
 }
@@ -23,12 +23,12 @@ export async function createExtinguisherAction(data: ExtinguisherFormValues) {
 export async function createHoseAction(data: HoseFormValues) {
   const validatedFields = HoseFormSchema.safeParse(data);
   if (!validatedFields.success) {
-    return { message: 'Invalid form data.' };
+    return { message: 'Dados do formulário inválidos.' };
   }
   try {
     await addHose(validatedFields.data as any);
   } catch (e) {
-    return { message: 'Database Error: Failed to create hose.' };
+    return { message: 'Erro de banco de dados: Falha ao criar sistema de mangueira.' };
   }
   revalidatePath('/hoses');
 }
@@ -37,12 +37,12 @@ export async function logInspectionAction(qrCodeValue: string, notes: string, lo
   try {
     const redirectUrl = await addInspection(qrCodeValue, { date: new Date(), notes, location });
     if (!redirectUrl) {
-      return { message: 'Equipment not found for the scanned QR code.' };
+      return { message: 'Equipamento não encontrado para o QR code escaneado.' };
     }
     revalidatePath(redirectUrl);
     return { redirectUrl };
   } catch(e) {
-    return { message: 'Database Error: Failed to log inspection.' };
+    return { message: 'Erro de banco de dados: Falha ao registrar inspeção.' };
   }
 }
 

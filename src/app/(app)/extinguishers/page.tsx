@@ -7,35 +7,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default async function ExtinguishersPage() {
   const extinguishers = await getExtinguishers();
 
   return (
     <>
-      <PageHeader title="Extinguishers">
+      <PageHeader title="Extintores">
         <Button asChild>
           <Link href="/extinguishers/new">
             <PlusCircle className="mr-2" />
-            Add Extinguisher
+            Adicionar Extintor
           </Link>
         </Button>
       </PageHeader>
       <Card>
         <CardHeader>
-            <CardTitle>Registered Extinguishers</CardTitle>
-            <CardDescription>A list of all fire extinguishers in the system.</CardDescription>
+            <CardTitle>Extintores Registrados</CardTitle>
+            <CardDescription>Uma lista de todos os extintores de incêndio no sistema.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead>ID</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Weight (kg)</TableHead>
-                        <TableHead>Expiry Date</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Peso (kg)</TableHead>
+                        <TableHead>Data de Validade</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead><span className="sr-only">Actions</span></TableHead>
+                        <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -46,15 +47,15 @@ export default async function ExtinguishersPage() {
                             <TableCell className="font-medium">{ext.id}</TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell>{ext.weight}</TableCell>
-                            <TableCell>{format(new Date(ext.expiryDate), 'MM/dd/yyyy')}</TableCell>
+                            <TableCell>{format(new Date(ext.expiryDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
-                                    {isExpired ? 'Expired' : 'Active'}
+                                    {isExpired ? 'Vencido' : 'Ativo'}
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/extinguishers/${ext.id}`}>View</Link>
+                                    <Link href={`/extinguishers/${ext.id}`}>Ver</Link>
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -62,7 +63,7 @@ export default async function ExtinguishersPage() {
                     }) : (
                         <TableRow>
                             <TableCell colSpan={6} className="text-center h-24">
-                                No extinguishers found.
+                                Nenhum extintor encontrado.
                             </TableCell>
                         </TableRow>
                     )}

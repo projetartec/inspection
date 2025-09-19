@@ -14,14 +14,14 @@ export default async function DashboardPage() {
   const expiredHoses = hoses.filter(isExpired).length;
 
   const stats = [
-    { title: "Total Extinguishers", value: extinguishers.length, icon: Flame, color: "text-muted-foreground" },
-    { title: "Total Hoses", value: hoses.length, icon: Droplets, color: "text-muted-foreground" },
-    { title: "Items Expired", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extinguishers, ${expiredHoses} hoses` },
+    { title: "Total de Extintores", value: extinguishers.length, icon: Flame, color: "text-muted-foreground" },
+    { title: "Total de Mangueiras", value: hoses.length, icon: Droplets, color: "text-muted-foreground" },
+    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras` },
   ];
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Dashboard" />
+      <PageHeader title="Painel" />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title}>
@@ -38,12 +38,12 @@ export default async function DashboardPage() {
       </div>
       <Card className="text-center">
         <CardHeader>
-            <CardTitle className="font-headline">Ready for Inspection?</CardTitle>
+            <CardTitle className="font-headline">Pronto para a Inspeção?</CardTitle>
         </CardHeader>
         <CardContent>
-            <p className="text-muted-foreground mb-4">Start a new inspection by scanning a QR code.</p>
+            <p className="text-muted-foreground mb-4">Inicie uma nova inspeção escaneando um código QR.</p>
             <Button asChild size="lg">
-                <Link href="/scan">Start Scan</Link>
+                <Link href="/scan">Iniciar Leitura</Link>
             </Button>
         </CardContent>
       </Card>

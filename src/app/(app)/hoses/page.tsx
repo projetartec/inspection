@@ -7,35 +7,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default async function HosesPage() {
   const hoses = await getHoses();
 
   return (
     <>
-      <PageHeader title="Hoses">
+      <PageHeader title="Mangueiras">
         <Button asChild>
           <Link href="/hoses/new">
             <PlusCircle className="mr-2" />
-            Add Hose System
+            Adicionar Sistema de Mangueira
           </Link>
         </Button>
       </PageHeader>
       <Card>
         <CardHeader>
-            <CardTitle>Registered Hose Systems</CardTitle>
-            <CardDescription>A list of all fire hose systems in the system.</CardDescription>
+            <CardTitle>Sistemas de Mangueira Registrados</CardTitle>
+            <CardDescription>Uma lista de todos os sistemas de mangueira de incêndio no sistema.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
                 <TableHeader>
                     <TableRow>
                         <TableHead>ID</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Expiry Date</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Quantidade</TableHead>
+                        <TableHead>Data de Validade</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead><span className="sr-only">Actions</span></TableHead>
+                        <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -46,15 +47,15 @@ export default async function HosesPage() {
                             <TableCell className="font-medium">{hose.id}</TableCell>
                             <TableCell>{hose.hoseType}</TableCell>
                             <TableCell>{hose.quantity}</TableCell>
-                            <TableCell>{format(new Date(hose.expiryDate), 'MM/dd/yyyy')}</TableCell>
+                            <TableCell>{format(new Date(hose.expiryDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
-                                    {isExpired ? 'Expired' : 'Active'}
+                                    {isExpired ? 'Vencido' : 'Ativo'}
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/hoses/${hose.id}`}>View</Link>
+                                    <Link href={`/hoses/${hose.id}`}>Ver</Link>
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -62,7 +63,7 @@ export default async function HosesPage() {
                     }) : (
                         <TableRow>
                             <TableCell colSpan={6} className="text-center h-24">
-                                No hose systems found.
+                                Nenhum sistema de mangueira encontrado.
                             </TableCell>
                         </TableRow>
                     )}
