@@ -44,6 +44,7 @@ export function ExtinguisherForm() {
           description: "Extinguisher created successfully.",
         });
         router.push("/extinguishers");
+        router.refresh();
       }
     });
   }

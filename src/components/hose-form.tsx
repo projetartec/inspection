@@ -44,6 +44,7 @@ export function HoseForm() {
           description: "Hose system created successfully.",
         });
         router.push("/hoses");
+        router.refresh();
       }
     });
   }
@@ -59,9 +60,7 @@ export function HoseForm() {
               <FormItem>
                 <FormLabel>Hose Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger><SelectValue placeholder="Select hose type" /></SelectTrigger>
-                  </FormControl>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select hose type" /></SelectTrigger></FormControl>
                   <SelectContent>{hoseTypes.map(t => <SelectItem key={t} value={t}>{t}"</SelectItem>)}</SelectContent>
                 </Select>
                 <FormMessage />
