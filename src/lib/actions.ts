@@ -8,7 +8,7 @@ import { extinguisherTypes, extinguisherWeights, hoseQuantities, hoseTypes, keyQ
 // Schemas for validation
 export const ExtinguisherFormSchema = z.object({
   type: z.enum(extinguisherTypes, { invalid_type_error: 'Please select a type.' }),
-  weight: z.coerce.number({ invalid_type_error: 'Please select a valid weight.' }).refine(val => extinguisherWeights.includes(val as any), 'Please select a valid weight.'),
+  weight: z.coerce.number({ invalid_type_error: 'Please select a valid weight.' }),
   expiryDate: z.date({ required_error: 'Expiry date is required.'}),
   observations: z.string().max(500, 'Observations must be 500 characters or less.').optional(),
 });
@@ -16,10 +16,10 @@ export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
 
 
 export const HoseFormSchema = z.object({
-  quantity: z.coerce.number({ invalid_type_error: 'Please select a quantity.' }).refine(val => hoseQuantities.includes(val as any), 'Please select a quantity.'),
+  quantity: z.coerce.number({ invalid_type_error: 'Please select a quantity.' }),
   hoseType: z.enum(hoseTypes, { invalid_type_error: 'Please select a hose type.' }),
-  keyQuantity: z.coerce.number({ invalid_type_error: 'Please select a key quantity.' }).refine(val => keyQuantities.includes(val as any), 'Please select a key quantity.'),
-  nozzleQuantity: z.coerce.number({ invalid_type_error: 'Please select a nozzle quantity.' }).refine(val => nozzleQuantities.includes(val as any), 'Please select a nozzle quantity.'),
+  keyQuantity: z.coerce.number({ invalid_type_error: 'Please select a key quantity.' }),
+  nozzleQuantity: z.coerce.number({ invalid_type_error: 'Please select a nozzle quantity.' }),
   expiryDate: z.date({ required_error: 'Expiry date is required.'}),
   observations: z.string().max(500, 'Observations must be 500 characters or less.').optional(),
 });
@@ -33,7 +33,7 @@ export async function createExtinguisherAction(data: ExtinguisherFormValues) {
     return { message: 'Invalid form data.' };
   }
   try {
-    await addExtinguisher(validatedFields.data);
+    await addExtinguisher(validatedFields.data as any);
   } catch (e) {
     return { message: 'Database Error: Failed to create extinguisher.' };
   }
@@ -46,7 +46,7 @@ export async function createHoseAction(data: HoseFormValues) {
     return { message: 'Invalid form data.' };
   }
   try {
-    await addHose(validatedFields.data);
+    await addHose(validatedFields.data as any);
   } catch (e) {
     return { message: 'Database Error: Failed to create hose.' };
   }
