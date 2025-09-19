@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { ptBR } from 'date-fns/locale';
+import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default async function ExtinguisherDetailPage({ params }: { params: { id: string } }) {
   const extinguisher = await getExtinguisherById(params.id);
@@ -29,63 +30,70 @@ export default async function ExtinguisherDetailPage({ params }: { params: { id:
     <div className="space-y-8">
       <PageHeader title={`Extintor: ${extinguisher.id}`} />
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Detalhes</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {details.map(detail => (
-              <div key={detail.label}>
-                <p className="text-sm font-medium text-muted-foreground">{detail.label}</p>
-                <p className="text-lg font-semibold">{detail.value}</p>
-              </div>
-            ))}
-          </div>
-          {extinguisher.observations && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Observações</p>
-                <p className="text-base">{extinguisher.observations}</p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-8">
+            <Card>
+                <CardHeader>
+                <CardTitle>Detalhes</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {details.map(detail => (
+                    <div key={detail.label}>
+                        <p className="text-sm font-medium text-muted-foreground">{detail.label}</p>
+                        <p className="text-lg font-semibold">{detail.value}</p>
+                    </div>
+                    ))}
+                </div>
+                {extinguisher.observations && (
+                    <>
+                    <Separator />
+                    <div>
+                        <p className="text-sm font-medium text-muted-foreground">Observações</p>
+                        <p className="text-base">{extinguisher.observations}</p>
+                    </div>
+                    </>
+                )}
+                </CardContent>
+            </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Inspeção</CardTitle>
-          <CardDescription>Um registro de todas as inspeções para este equipamento.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Localização (Lat, Lon)</TableHead>
-                <TableHead>Notas</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
-                <TableRow key={insp.id}>
-                  <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
-                  <TableCell>
-                    {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
-                  </TableCell>
-                  <TableCell>{insp.notes}</TableCell>
-                </TableRow>
-              )).reverse() : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>Histórico de Inspeção</CardTitle>
+                <CardDescription>Um registro de todas as inspeções para este equipamento.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Localização (Lat, Lon)</TableHead>
+                        <TableHead>Notas</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
+                        <TableRow key={insp.id}>
+                        <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
+                        <TableCell>
+                            {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
+                        </TableCell>
+                        <TableCell>{insp.notes}</TableCell>
+                        </TableRow>
+                    )).reverse() : (
+                        <TableRow>
+                        <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
+                        </TableRow>
+                    )}
+                    </TableBody>
+                </Table>
+                </CardContent>
+            </Card>
+        </div>
+        <div className="md:col-span-1">
+            <QrCodeDisplay value={extinguisher.qrCodeValue} label={extinguisher.id} />
+        </div>
+      </div>
     </div>
   );
 }
