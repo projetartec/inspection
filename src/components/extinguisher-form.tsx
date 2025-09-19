@@ -45,8 +45,8 @@ export function ExtinguisherForm() {
           title: "Sucesso",
           description: "Extintor criado com sucesso.",
         });
-        router.push("/extinguishers");
         router.refresh();
+        router.push("/extinguishers");
       }
     });
   }
