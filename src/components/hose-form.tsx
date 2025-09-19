@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -18,6 +18,7 @@ import { createHoseAction } from "@/lib/actions";
 import { HoseFormSchema, type HoseFormValues } from "@/lib/schemas";
 import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "./ui/input";
 
 export function HoseForm() {
   const router = useRouter();
@@ -54,6 +55,22 @@ export function HoseForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ID do Sistema</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: HOSE-SYS-01" {...field} />
+              </FormControl>
+              <FormDescription>
+                Digite um identificador único para este sistema de mangueira.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <FormField
             control={form.control}

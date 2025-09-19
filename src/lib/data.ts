@@ -67,24 +67,26 @@ export async function getHoseById(id: string): Promise<Hose | null> {
     return hose ? Promise.resolve(JSON.parse(JSON.stringify(hose))) : null;
 }
 
-export async function addExtinguisher(data: Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>) {
-    const newId = `ext-${extinguishers.length + 1}`;
+export async function addExtinguisher(data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
+    if (extinguishers.some(e => e.id === data.id)) {
+      throw new Error('Já existe um extintor com este ID.');
+    }
     const newExtinguisher: Extinguisher = {
-        id: newId,
-        qrCodeValue: `fireguard-${newId}`,
         ...data,
+        qrCodeValue: `fireguard-${data.id}`,
         inspections: [],
     };
     extinguishers.push(newExtinguisher);
     return newExtinguisher;
 }
 
-export async function addHose(data: Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>) {
-    const newId = `hose-${hoses.length + 1}`;
+export async function addHose(data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
+    if (hoses.some(h => h.id === data.id)) {
+      throw new Error('Já existe um sistema de mangueira com este ID.');
+    }
     const newHose: Hose = {
-        id: newId,
-        qrCodeValue: `fireguard-${newId}`,
         ...data,
+        qrCodeValue: `fireguard-${data.id}`,
         inspections: [],
     };
     hoses.push(newHose);

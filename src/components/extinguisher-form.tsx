@@ -18,6 +18,7 @@ import { ExtinguisherFormSchema, type ExtinguisherFormValues } from "@/lib/schem
 import { extinguisherTypes, extinguisherWeights } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
+import { Input } from "@/components/ui/input";
 
 export function ExtinguisherForm() {
   const router = useRouter();
@@ -54,6 +55,22 @@ export function ExtinguisherForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ID do Equipamento</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: EXT-001" {...field} />
+              </FormControl>
+              <FormDescription>
+                Digite um identificador único para este extintor.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <FormField
             control={form.control}
