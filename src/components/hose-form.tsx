@@ -68,6 +68,7 @@ export function HoseForm({ hose }: HoseFormProps) {
           description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
         router.push("/hoses");
+        router.refresh();
       }
     });
   }
@@ -126,7 +127,7 @@ export function HoseForm({ hose }: HoseFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Quantidade de Chaves</FormLabel>
-                <Select onValuechange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade de chaves" /></SelectTrigger></FormControl>
                   <SelectContent>{keyQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
@@ -140,7 +141,7 @@ export function HoseForm({ hose }: HoseFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Quantidade de Bicos</FormLabel>
-                <Select onValuechange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade de bicos" /></SelectTrigger></FormControl>
                   <SelectContent>{nozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
