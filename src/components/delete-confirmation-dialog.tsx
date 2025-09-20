@@ -12,8 +12,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2 } from "lucide-react";
-import { useFormStatus } from 'react-dom';
 import { Button } from "./ui/button";
 
 interface DeleteConfirmationDialogProps {
@@ -23,23 +21,6 @@ interface DeleteConfirmationDialogProps {
   itemName: string;
   formAction: (formData: FormData) => void;
   children: React.ReactNode;
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <AlertDialogAction asChild>
-        <Button
-          type="submit"
-          disabled={pending}
-          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-        >
-          {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Deletar
-        </Button>
-    </AlertDialogAction>
-  );
 }
 
 export function DeleteConfirmationDialog({
@@ -70,7 +51,14 @@ export function DeleteConfirmationDialog({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <SubmitButton />
+              <AlertDialogAction asChild>
+                <Button
+                  type="submit"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Deletar
+                </Button>
+              </AlertDialogAction>
             </AlertDialogFooter>
           </form>
       </AlertDialogContent>

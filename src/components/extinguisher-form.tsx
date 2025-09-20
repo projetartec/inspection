@@ -50,12 +50,10 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
   function onSubmit(data: ExtinguisherFormValues) {
     startTransition(async () => {
-      const action = isEditMode
+      const result = await (isEditMode
         ? updateExtinguisherAction(clientId, buildingId, extinguisher.id, data)
-        : createExtinguisherAction(clientId, buildingId, data);
+        : createExtinguisherAction(clientId, buildingId, data));
 
-      const result = await action;
-      
       if (result?.message) {
         toast({
           variant: "destructive",
@@ -67,7 +65,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
           title: "Sucesso",
           description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.push(`/clients/${clientId}/${buildingId}/extinguishers`);
+        // The action will handle the redirect
       }
     });
   }

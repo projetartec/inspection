@@ -60,6 +60,7 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     return { message: `Erro de banco de dados: ${e.message}` };
   }
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
+  redirect(`/clients/${clientId}/${buildingId}/extinguishers`);
 }
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, extinguisherId: string, data: ExtinguisherFormValues) {
@@ -74,6 +75,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
   }
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisherId}`);
+  redirect(`/clients/${clientId}/${buildingId}/extinguishers`);
 }
 
 export async function deleteExtinguisherAction(formData: FormData) {
@@ -105,6 +107,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
     return { message: `Erro de banco de dados: ${e.message}` };
   }
   revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
+  redirect(`/clients/${clientId}/${buildingId}/hoses`);
 }
 
 export async function updateHoseAction(clientId: string, buildingId: string, hoseId: string, data: HoseFormValues) {
@@ -119,6 +122,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, hos
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
+    redirect(`/clients/${clientId}/${buildingId}/hoses`);
   }
 
 export async function deleteHoseAction(formData: FormData) {

@@ -52,12 +52,10 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
 
   function onSubmit(data: HoseFormValues) {
     startTransition(async () => {
-      const action = isEditMode
+      const result = await (isEditMode
         ? updateHoseAction(clientId, buildingId, hose.id, data)
-        : createHoseAction(clientId, buildingId, data);
+        : createHoseAction(clientId, buildingId, data));
         
-      const result = await action;
-
       if (result?.message) {
         toast({
           variant: "destructive",
@@ -69,7 +67,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
           title: "Sucesso",
           description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.push(`/clients/${clientId}/${buildingId}/hoses`);
+        // The action will handle the redirect
       }
     });
   }
