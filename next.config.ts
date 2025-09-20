@@ -34,8 +34,8 @@ const nextConfig: NextConfig = {
     // This is to allow cross-origin requests in development.
     // The value is a wildcard to allow any origin, which is safe in this
     // controlled development environment.
-    allowedDevOrigins: ["*"],
   },
+  allowedDevOrigins: ["*"],
 };
 
 export default nextConfig;
