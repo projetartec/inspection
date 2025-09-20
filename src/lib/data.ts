@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import fs from 'fs';
@@ -59,16 +59,30 @@ export async function getClientById(clientId: string): Promise<Client | null> {
     return null;
 }
 
-export async function addClient(name: string): Promise<Client> {
-    const db = readDb();
-    const newClient: Client = {
-        id: `client-${Date.now()}`,
-        name,
-        buildings: [],
-    };
-    db.clients.push(newClient);
-    writeDb(db);
-    return newClient;
+export async function addClient(formData: FormData): Promise<boolean> {
+    const validatedFields = ClientFormSchema.safeParse({
+        name: formData.get('name'),
+    });
+
+    if (!validatedFields.success) {
+        console.error(validatedFields.error.flatten().fieldErrors);
+        return false;
+    }
+
+    try {
+        const db = readDb();
+        const newClient: Client = {
+            id: `client-${Date.now()}`,
+            name: validatedFields.data.name,
+            buildings: [],
+        };
+        db.clients.push(newClient);
+        writeDb(db);
+        return true;
+    } catch (e: any) {
+        console.error(`Database error: ${e.message}`);
+        return false;
+    }
 }
 
 // --- Building Functions ---
@@ -79,21 +93,33 @@ export async function getBuildingById(clientId: string, buildingId: string): Pro
     return building || null;
 }
 
-export async function addBuilding(clientId: string, name: string): Promise<Building> {
-    const db = readDb();
-    const clientIndex = db.clients.findIndex(c => c.id === clientId);
-    if (clientIndex === -1) {
-        throw new Error('Cliente não encontrado.');
+export async function addBuilding(clientId: string, formData: FormData): Promise<boolean> {
+    const validatedFields = BuildingFormSchema.safeParse({
+        name: formData.get('name'),
+    });
+     if (!validatedFields.success) {
+        console.error(validatedFields.error.flatten().fieldErrors);
+        return false;
     }
-    const newBuilding: Building = {
-        id: `bldg-${Date.now()}`,
-        name,
-        extinguishers: [],
-        hoses: [],
-    };
-    db.clients[clientIndex].buildings.push(newBuilding);
-    writeDb(db);
-    return newBuilding;
+    try {
+        const db = readDb();
+        const clientIndex = db.clients.findIndex(c => c.id === clientId);
+        if (clientIndex === -1) {
+            throw new Error('Cliente não encontrado.');
+        }
+        const newBuilding: Building = {
+            id: `bldg-${Date.now()}`,
+            name: validatedFields.data.name,
+            extinguishers: [],
+            hoses: [],
+        };
+        db.clients[clientIndex].buildings.push(newBuilding);
+        writeDb(db);
+        return true;
+    } catch (e: any) {
+        console.error(`Database error: ${e.message}`);
+        return false;
+    }
 }
 
 
