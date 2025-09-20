@@ -10,7 +10,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen container mx-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center">
-      <header className="mb-12">
+      <header className="mb-12 pt-8">
         <AppLogo />
       </header>
 
