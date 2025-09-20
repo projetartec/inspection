@@ -11,23 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React from "react";
-import type { Hose } from "@/lib/types";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { deleteHoseAction } from "@/lib/actions";
-import { useRouter } from "next/navigation";
 
-export default function HosesPage() {
-  const [hoses, setHoses] = React.useState<Hose[]>([]);
-  const router = useRouter();
-
-  React.useEffect(() => {
-    getHoses().then(setHoses);
-  }, []);
-
-  const refreshList = () => {
-    getHoses().then(setHoses);
-    router.refresh();
-  }
+export default async function HosesPage() {
+  const hoses = await getHoses();
 
   return (
     <>
@@ -83,7 +71,6 @@ export default function HosesPage() {
                                   itemId={hose.id}
                                   itemName="Sistema de Mangueira"
                                   deleteAction={deleteHoseAction}
-                                  onSuccess={refreshList}
                                 >
                                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                     <Trash2 className="h-4 w-4" />

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,23 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React from "react";
-import type { Extinguisher } from "@/lib/types";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { deleteExtinguisherAction } from "@/lib/actions";
-import { useRouter } from "next/navigation";
 
-export default function ExtinguishersPage() {
-  const [extinguishers, setExtinguishers] = React.useState<Extinguisher[]>([]);
-  const router = useRouter();
-
-  React.useEffect(() => {
-    getExtinguishers().then(setExtinguishers);
-  }, []);
-
-  const refreshList = () => {
-    getExtinguishers().then(setExtinguishers);
-    router.refresh();
-  }
+export default async function ExtinguishersPage() {
+  const extinguishers = await getExtinguishers();
 
   return (
     <>
@@ -83,7 +69,6 @@ export default function ExtinguishersPage() {
                                   itemId={ext.id}
                                   itemName="Extintor"
                                   deleteAction={deleteExtinguisherAction}
-                                  onSuccess={refreshList}
                                 >
                                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                     <Trash2 className="h-4 w-4" />

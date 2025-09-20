@@ -15,12 +15,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface DeleteConfirmationDialogProps {
   itemId: string;
   itemName: string;
   deleteAction: (id: string) => Promise<{ message: string } | void>;
-  onSuccess: () => void;
   children: React.ReactNode;
 }
 
@@ -28,9 +28,9 @@ export function DeleteConfirmationDialog({
   itemId,
   itemName,
   deleteAction,
-  onSuccess,
   children
 }: DeleteConfirmationDialogProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast();
@@ -49,7 +49,8 @@ export function DeleteConfirmationDialog({
           title: "Sucesso",
           description: `${itemName} deletado com sucesso.`,
         });
-        onSuccess();
+        // RevalidatePath on the server action will handle the update.
+        // We just need to close the dialog.
       }
       setIsOpen(false);
     });
