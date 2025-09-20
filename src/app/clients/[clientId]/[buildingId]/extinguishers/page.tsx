@@ -47,7 +47,6 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                 <TableBody>
                     {extinguishers.length > 0 ? extinguishers.map((ext) => {
                         const isExpired = new Date(ext.expiryDate) < new Date();
-                        const deleteActionWithParams = deleteExtinguisherAction.bind(null, clientId, buildingId, ext.id);
                         return (
                         <TableRow key={ext.id}>
                             <TableCell className="font-medium">
@@ -70,9 +69,11 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                                         </Link>
                                     </Button>
                                     <DeleteConfirmationDialog
-                                    itemId={ext.id}
-                                    itemName="Extintor"
-                                    formAction={deleteActionWithParams}
+                                      itemId={ext.id}
+                                      itemName="Extintor"
+                                      clientId={clientId}
+                                      buildingId={buildingId}
+                                      formAction={deleteExtinguisherAction}
                                     >
                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                         <Trash2 className="h-4 w-4" />

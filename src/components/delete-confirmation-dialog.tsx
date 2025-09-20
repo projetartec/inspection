@@ -18,8 +18,10 @@ import { Button } from "./ui/button";
 
 interface DeleteConfirmationDialogProps {
   itemId: string;
+  clientId: string;
+  buildingId: string;
   itemName: string;
-  formAction: (payload: FormData) => void;
+  formAction: (formData: FormData) => void;
   children: React.ReactNode;
 }
 
@@ -42,6 +44,8 @@ function SubmitButton() {
 
 export function DeleteConfirmationDialog({
   itemId,
+  clientId,
+  buildingId,
   itemName,
   formAction,
   children
@@ -54,6 +58,9 @@ export function DeleteConfirmationDialog({
       </AlertDialogTrigger>
       <AlertDialogContent>
           <form action={formAction}>
+            <input type="hidden" name="id" value={itemId} />
+            <input type="hidden" name="clientId" value={clientId} />
+            <input type="hidden" name="buildingId" value={buildingId} />
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>

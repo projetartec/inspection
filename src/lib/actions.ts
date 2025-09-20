@@ -76,7 +76,15 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisherId}`);
 }
 
-export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
+export async function deleteExtinguisherAction(formData: FormData) {
+    const clientId = formData.get('clientId') as string;
+    const buildingId = formData.get('buildingId') as string;
+    const id = formData.get('id') as string;
+
+    if (!clientId || !buildingId || !id) {
+        return { message: 'IDs ausentes para exclusão.' };
+    }
+
     try {
       await deleteExtinguisher(clientId, buildingId, id);
     } catch (e: any) {
@@ -113,7 +121,15 @@ export async function updateHoseAction(clientId: string, buildingId: string, hos
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
   }
 
-export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
+export async function deleteHoseAction(formData: FormData) {
+    const clientId = formData.get('clientId') as string;
+    const buildingId = formData.get('buildingId') as string;
+    const id = formData.get('id') as string;
+
+    if (!clientId || !buildingId || !id) {
+        return { message: 'IDs ausentes para exclusão.' };
+    }
+
     try {
       await deleteHose(clientId, buildingId, id);
     } catch (e: any) {

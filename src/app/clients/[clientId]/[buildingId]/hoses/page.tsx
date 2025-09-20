@@ -47,7 +47,6 @@ export default async function HosesPage({ params }: { params: { clientId: string
                 <TableBody>
                     {hoses.length > 0 ? hoses.map((hose) => {
                         const isExpired = new Date(hose.expiryDate) < new Date();
-                        const deleteActionWithParams = deleteHoseAction.bind(null, clientId, buildingId, hose.id);
                         return (
                         <TableRow key={hose.id}>
                             <TableCell className="font-medium">
@@ -70,9 +69,11 @@ export default async function HosesPage({ params }: { params: { clientId: string
                                         </Link>
                                     </Button>
                                     <DeleteConfirmationDialog
-                                    itemId={hose.id}
-                                    itemName="Sistema de Mangueira"
-                                    formAction={deleteActionWithParams}
+                                      itemId={hose.id}
+                                      itemName="Sistema de Mangueira"
+                                      clientId={clientId}
+                                      buildingId={buildingId}
+                                      formAction={deleteHoseAction}
                                     >
                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                         <Trash2 className="h-4 w-4" />
