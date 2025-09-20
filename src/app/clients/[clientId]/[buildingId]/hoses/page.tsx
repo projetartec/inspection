@@ -25,6 +25,16 @@ import {
 import { deleteHoseAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 import type { Hose } from '@/lib/types';
+import { useFormStatus } from 'react-dom';
+
+function DeleteButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" variant="destructive" disabled={pending}>
+            {pending ? 'Deletando...' : 'Deletar'}
+        </Button>
+    )
+}
 
 export default function HosesPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
@@ -32,8 +42,12 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setHoses(getHosesByBuilding(clientId, buildingId));
-    setIsLoading(false);
+    async function fetchData() {
+        const data = await getHosesByBuilding(clientId, buildingId);
+        setHoses(data);
+        setIsLoading(false);
+    }
+    fetchData();
   }, [clientId, buildingId]);
 
   if (isLoading) {
@@ -114,7 +128,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                             <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                             <AlertDialogAction asChild>
-                                                <Button type="submit" variant="destructive">Deletar</Button>
+                                                <DeleteButton />
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </form>

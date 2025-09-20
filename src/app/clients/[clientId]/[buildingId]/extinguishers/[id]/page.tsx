@@ -22,8 +22,12 @@ export default function ExtinguisherDetailPage({ params }: { params: { clientId:
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setExtinguisher(getExtinguisherById(clientId, buildingId, id));
-    setIsLoading(false);
+    async function fetchData() {
+      const data = await getExtinguisherById(clientId, buildingId, id);
+      setExtinguisher(data);
+      setIsLoading(false);
+    }
+    fetchData();
   }, [clientId, buildingId, id]);
 
   if (isLoading) {

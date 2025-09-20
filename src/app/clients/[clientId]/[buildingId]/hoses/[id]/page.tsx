@@ -22,8 +22,12 @@ export default function HoseDetailPage({ params }: { params: { clientId: string,
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setHose(getHoseById(clientId, buildingId, id));
-    setIsLoading(false);
+    async function fetchData() {
+        const data = await getHoseById(clientId, buildingId, id);
+        setHose(data);
+        setIsLoading(false);
+    }
+    fetchData();
   }, [clientId, buildingId, id]);
 
   if (isLoading) {

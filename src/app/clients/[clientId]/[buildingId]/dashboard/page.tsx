@@ -19,13 +19,20 @@ export default function DashboardPage({ params }: { params: { clientId: string, 
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const foundBuilding = getBuildingById(clientId, buildingId);
-    if (foundBuilding) {
-      setBuilding(foundBuilding);
-      setExtinguishers(getExtinguishersByBuilding(clientId, buildingId));
-      setHoses(getHosesByBuilding(clientId, buildingId));
+    async function fetchData() {
+      const foundBuilding = await getBuildingById(clientId, buildingId);
+      if (foundBuilding) {
+        setBuilding(foundBuilding);
+        const [extinguisherData, hoseData] = await Promise.all([
+          getExtinguishersByBuilding(clientId, buildingId),
+          getHosesByBuilding(clientId, buildingId),
+        ]);
+        setExtinguishers(extinguisherData);
+        setHoses(hoseData);
+      }
+      setIsLoading(false);
     }
-    setIsLoading(false);
+    fetchData();
   }, [clientId, buildingId]);
 
   if (isLoading) {

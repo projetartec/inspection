@@ -7,15 +7,19 @@ import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
-import { Client } from "@/lib/types";
+import type { Client } from "@/lib/types";
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setClients(getClients());
-    setIsLoading(false);
+    async function fetchClients() {
+      const clientData = await getClients();
+      setClients(clientData);
+      setIsLoading(false);
+    }
+    fetchClients();
   }, []);
 
   if (isLoading) {

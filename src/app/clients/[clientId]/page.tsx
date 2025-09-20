@@ -11,16 +11,19 @@ import { BuildingForm } from "@/components/building-form";
 import { Sidebar, SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
-import { Client } from "@/lib/types";
+import type { Client } from "@/lib/types";
 
 export default function ClientPage({ params }: { params: { clientId: string } }) {
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const foundClient = getClientById(params.clientId);
-    setClient(foundClient);
-    setIsLoading(false);
+    async function fetchClient() {
+      const foundClient = await getClientById(params.clientId);
+      setClient(foundClient);
+      setIsLoading(false);
+    }
+    fetchClient();
   }, [params.clientId]);
 
   if (isLoading) {
