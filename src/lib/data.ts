@@ -1,3 +1,5 @@
+"use server";
+
 import type { Extinguisher, Hose, Inspection } from '@/lib/types';
 import fs from 'fs';
 import path from 'path';
