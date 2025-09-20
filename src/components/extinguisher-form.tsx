@@ -65,7 +65,6 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
           title: "Sucesso",
           description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.refresh();
         router.push("/extinguishers");
       }
     });
