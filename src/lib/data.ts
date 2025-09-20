@@ -10,7 +10,8 @@ import {
     deleteDoc, 
     query, 
     where,
-    Timestamp
+    Timestamp,
+    setDoc
 } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -34,7 +35,8 @@ function convertTimestamps<T>(docData: any): T {
 export async function getClients(): Promise<Client[]> {
     const clientsCol = collection(db, 'clients');
     const clientSnapshot = await getDocs(clientsCol);
-    return clientSnapshot.docs.map(doc => convertTimestamps<Client>({ ...doc.data(), id: doc.id }));
+    const clients = clientSnapshot.docs.map(doc => convertTimestamps<Client>({ ...doc.data(), id: doc.id }));
+    return clients;
 }
 
 export async function getClientById(clientId: string): Promise<Client | null> {
@@ -54,14 +56,20 @@ export async function getClientById(clientId: string): Promise<Client | null> {
 }
 
 
-export async function addClient(data: { name: string }): Promise<Client> {
+export async function addClient(data: { name: string }): Promise<Client | { message: string }> {
+  try {
     const clientsCol = collection(db, 'clients');
     const newDocRef = await addDoc(clientsCol, data);
-    return {
+    const newClient: Client = {
         id: newDocRef.id,
         name: data.name,
         buildings: []
     };
+    return newClient;
+  } catch (error: any) {
+    console.error("Error adding client: ", error);
+    return { message: "Falha ao adicionar cliente no banco de dados." };
+  }
 }
 
 // --- Building Functions ---
@@ -117,24 +125,28 @@ export async function getHoseById(clientId: string, buildingId: string, id: stri
     return null;
 }
 
-export async function addExtinguisher(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections' | 'id'>) {
+export async function addExtinguisher(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
+    const { id, ...rest } = data;
+    const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     const newExtinguisherData = {
-        ...data,
-        qrCodeValue: `fireguard-${data.id || Date.now()}`,
+        ...rest,
+        id: id,
+        qrCodeValue: `fireguard-ext-${id}`,
         inspections: [],
     };
-    const collectionRef = collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`);
-    await addDoc(collectionRef, newExtinguisherData);
+    await setDoc(docRef, newExtinguisherData);
 }
 
-export async function addHose(clientId: string, buildingId: string, data: Omit<Hose, 'qrCodeValue' | 'inspections' | 'id'>) {
+export async function addHose(clientId: string, buildingId: string, data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
+    const { id, ...rest } = data;
+    const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
     const newHoseData = {
-        ...data,
-        qrCodeValue: `fireguard-${data.id || Date.now()}`,
+        ...rest,
+        id: id,
+        qrCodeValue: `fireguard-hose-${id}`,
         inspections: [],
     };
-    const collectionRef = collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`);
-    await addDoc(collectionRef, newHoseData);
+    await setDoc(docRef, newHoseData);
 }
 
 
@@ -199,4 +211,10 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
     }
 
     return null;
+}
+
+export async function getReportDataAction(clientId: string, buildingId: string) {
+  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+  const hoses = await getHosesByBuilding(clientId, buildingId);
+  return { extinguishers, hoses };
 }

@@ -10,13 +10,12 @@ import {
   addInspection, 
   deleteExtinguisher, 
   deleteHose, 
-  getExtinguishersByBuilding, 
-  getHosesByBuilding, 
+  getReportDataAction as getReportData, 
   updateExtinguisher, 
   updateHose 
 } from '@/lib/data';
 import { ExtinguisherFormSchema, HoseFormSchema, ClientFormSchema, BuildingFormSchema } from './schemas';
-import type { Extinguisher, Hose } from './types';
+import type { Extinguisher, Hose, Client, Building } from './types';
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -27,9 +26,12 @@ export async function createClientAction(formData: FormData) {
     return { message: 'Dados do formulário inválidos.' };
   }
   
-  const newClient = await addClient(validatedFields.data);
+  const result = await addClient(validatedFields.data);
+  if ('message' in result) {
+      return result;
+  }
   revalidatePath('/');
-  redirect(`/clients/${newClient.id}`);
+  redirect(`/clients/${result.id}`);
 }
 
 // --- Building Actions ---
@@ -95,11 +97,7 @@ export async function deleteExtinguisherAction(formData: FormData) {
         throw new Error('IDs ausentes para exclusão.');
     }
 
-    try {
-      await deleteExtinguisher(clientId, buildingId, id);
-    } catch (e: any) {
-       throw new Error(`Erro de banco de dados: ${e.message}`);
-    }
+    await deleteExtinguisher(clientId, buildingId, id);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
 }
 
@@ -149,11 +147,7 @@ export async function deleteHoseAction(formData: FormData) {
        throw new Error('IDs ausentes para exclusão.');
     }
 
-    try {
-      await deleteHose(clientId, buildingId, id);
-    } catch (e: any) {
-       throw new Error(`Erro de banco de dados: ${e.message}`);
-    }
+    await deleteHose(clientId, buildingId, id);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
 }
 
@@ -173,7 +167,5 @@ export async function logInspectionAction(qrCodeValue: string, notes: string, lo
 }
 
 export async function getReportDataAction(clientId: string, buildingId: string) {
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-  const hoses = await getHosesByBuilding(clientId, buildingId);
-  return { extinguishers, hoses };
+    return getReportData(clientId, buildingId);
 }
