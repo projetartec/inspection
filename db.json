@@ -1,12 +1,12 @@
 {
   "extinguishers": [
     {
-      "id": "wer",
+      "id": "123",
       "type": "AP",
       "weight": 10,
-      "expiryDate": "2025-09-30T03:00:00.000Z",
+      "expiryDate": "2025-10-04T03:00:00.000Z",
       "observations": "",
-      "qrCodeValue": "fireguard-wer",
+      "qrCodeValue": "fireguard-123",
       "inspections": []
     }
   ],
