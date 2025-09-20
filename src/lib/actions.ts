@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { 
   addClient,
   addBuilding,
@@ -82,6 +83,7 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
       return { message: `Erro de banco de dados: ${e.message}` };
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
+    redirect(`/clients/${clientId}/${buildingId}/extinguishers`);
 }
 
 export async function createHoseAction(clientId: string, buildingId: string, data: HoseFormValues) {
@@ -118,6 +120,7 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
       return { message: `Erro de banco de dados: ${e.message}` };
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
+    redirect(`/clients/${clientId}/${buildingId}/hoses`);
 }
 
 

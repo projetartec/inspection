@@ -61,29 +61,31 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                                     {isExpired ? 'Vencido' : 'Ativo'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right space-x-2 flex items-center justify-end">
-                                <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}/edit`}>
-                                        <Pencil className="h-4 w-4" />
-                                        <span className="sr-only">Editar</span>
-                                    </Link>
-                                </Button>
-                                <DeleteConfirmationDialog
-                                  itemId={ext.id}
-                                  itemName="Extintor"
-                                  deleteAction={deleteActionWithParams}
-                                >
-                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Deletar</span>
-                                  </Button>
-                                </DeleteConfirmationDialog>
-                                <QrCodeDialog value={ext.qrCodeValue} label={ext.id}>
-                                    <Button variant="ghost" size="sm">
-                                        <QrCode className="h-4 w-4" />
-                                        <span className="sr-only">Ver QR Code</span>
+                            <TableCell className="text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                    <Button asChild variant="ghost" size="sm">
+                                        <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}/edit`}>
+                                            <Pencil className="h-4 w-4" />
+                                            <span className="sr-only">Editar</span>
+                                        </Link>
                                     </Button>
-                                </QrCodeDialog>
+                                    <DeleteConfirmationDialog
+                                    itemId={ext.id}
+                                    itemName="Extintor"
+                                    deleteAction={deleteActionWithParams}
+                                    >
+                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Deletar</span>
+                                    </Button>
+                                    </DeleteConfirmationDialog>
+                                    <QrCodeDialog value={ext.qrCodeValue} label={ext.id}>
+                                        <Button variant="ghost" size="sm">
+                                            <QrCode className="h-4 w-4" />
+                                            <span className="sr-only">Ver QR Code</span>
+                                        </Button>
+                                    </QrCodeDialog>
+                                </div>
                             </TableCell>
                         </TableRow>
                         );

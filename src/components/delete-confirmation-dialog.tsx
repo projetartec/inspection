@@ -12,8 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DeleteConfirmationDialogProps {
@@ -42,15 +41,16 @@ export function DeleteConfirmationDialog({
           title: "Erro ao deletar",
           description: result.message,
         });
+        setIsOpen(false);
       } else {
         toast({
           title: "Sucesso",
           description: `${itemName} deletado com sucesso.`,
         });
-        // RevalidatePath on the server action will handle the update.
-        // We just need to close the dialog.
+        // The server action will handle the redirection, so we don't need to do anything here.
+        // We just close the dialog.
+        setIsOpen(false);
       }
-      setIsOpen(false);
     });
   };
 
@@ -70,7 +70,10 @@ export function DeleteConfirmationDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+            }}
             disabled={isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
