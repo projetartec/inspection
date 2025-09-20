@@ -15,10 +15,11 @@ import {
   updateExtinguisher, 
   updateHose 
 } from '@/lib/data';
-import { ExtinguisherFormSchema, HoseFormSchema, ClientFormSchema, BuildingFormSchema, type ExtinguisherFormValues, type HoseFormValues, type ClientFormValues, type BuildingFormValues } from './schemas';
+import { ExtinguisherFormSchema, HoseFormSchema, ClientFormSchema, BuildingFormSchema } from './schemas';
+import type { Extinguisher, Hose } from './types';
 
 // --- Client Actions ---
-export async function createClientAction(data: ClientFormValues) {
+export async function createClientAction(data: { name: string }) {
   const validatedFields = ClientFormSchema.safeParse(data);
   if (!validatedFields.success) {
     return { message: 'Dados do formulário inválidos.' };
@@ -33,7 +34,7 @@ export async function createClientAction(data: ClientFormValues) {
 }
 
 // --- Building Actions ---
-export async function createBuildingAction(clientId: string, data: BuildingFormValues) {
+export async function createBuildingAction(clientId: string, data: { name: string }) {
     const validatedFields = BuildingFormSchema.safeParse(data);
     if (!validatedFields.success) {
       return { message: 'Dados do formulário inválidos.' };
@@ -49,30 +50,41 @@ export async function createBuildingAction(clientId: string, data: BuildingFormV
 
 
 // --- Equipment Actions ---
-export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
-  const validatedFields = ExtinguisherFormSchema.safeParse(data);
+export async function createExtinguisherAction(clientId: string, buildingId: string, formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const validatedFields = ExtinguisherFormSchema.safeParse(rawData);
+  
   if (!validatedFields.success) {
-    return { message: 'Dados do formulário inválidos.' };
+    console.error(validatedFields.error.flatten().fieldErrors);
+    // This redirect is a temporary workaround to show an error.
+    // In a real app, you'd handle this more gracefully.
+    redirect(`/clients/${clientId}/${buildingId}/extinguishers/new?error=validation`);
   }
+  
   try {
-    await addExtinguisher(clientId, buildingId, validatedFields.data);
+    await addExtinguisher(clientId, buildingId, validatedFields.data as Omit<Extinguisher, 'qrCodeValue' | 'inspections'>);
   } catch (e: any) {
-    return { message: `Erro de banco de dados: ${e.message}` };
+     redirect(`/clients/${clientId}/${buildingId}/extinguishers/new?error=database`);
   }
+
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
   redirect(`/clients/${clientId}/${buildingId}/extinguishers`);
 }
 
-export async function updateExtinguisherAction(clientId: string, buildingId: string, extinguisherId: string, data: ExtinguisherFormValues) {
-  const validatedFields = ExtinguisherFormSchema.omit({ id: true }).safeParse(data);
+export async function updateExtinguisherAction(clientId: string, buildingId: string, extinguisherId: string, formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const validatedFields = ExtinguisherFormSchema.omit({ id: true }).safeParse(rawData);
+
   if (!validatedFields.success) {
-    return { message: 'Dados do formulário inválidos.' };
+     redirect(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisherId}/edit?error=validation`);
   }
+
   try {
-    await updateExtinguisher(clientId, buildingId, extinguisherId, validatedFields.data);
+    await updateExtinguisher(clientId, buildingId, extinguisherId, validatedFields.data as Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>);
   } catch (e: any) {
-    return { message: `Erro de banco de dados: ${e.message}` };
+    redirect(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisherId}/edit?error=database`);
   }
+
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
   revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisherId}`);
   redirect(`/clients/${clientId}/${buildingId}/extinguishers`);
@@ -84,41 +96,46 @@ export async function deleteExtinguisherAction(formData: FormData) {
     const id = formData.get('id') as string;
 
     if (!clientId || !buildingId || !id) {
-        return { message: 'IDs ausentes para exclusão.' };
+        throw new Error('IDs ausentes para exclusão.');
     }
 
     try {
       await deleteExtinguisher(clientId, buildingId, id);
     } catch (e: any) {
-      return { message: `Erro de banco de dados: ${e.message}` };
+       throw new Error(`Erro de banco de dados: ${e.message}`);
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     redirect(`/clients/${clientId}/${buildingId}/extinguishers`);
 }
 
-export async function createHoseAction(clientId: string, buildingId: string, data: HoseFormValues) {
-  const validatedFields = HoseFormSchema.safeParse(data);
+export async function createHoseAction(clientId: string, buildingId: string, formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const validatedFields = HoseFormSchema.safeParse(rawData);
+
   if (!validatedFields.success) {
-    return { message: 'Dados do formulário inválidos.' };
+    console.error(validatedFields.error.flatten().fieldErrors);
+    redirect(`/clients/${clientId}/${buildingId}/hoses/new?error=validation`);
   }
+  
   try {
-    await addHose(clientId, buildingId, data);
+    await addHose(clientId, buildingId, validatedFields.data as Omit<Hose, 'qrCodeValue' | 'inspections'>);
   } catch (e: any) {
-    return { message: `Erro de banco de dados: ${e.message}` };
+    redirect(`/clients/${clientId}/${buildingId}/hoses/new?error=database`);
   }
   revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
   redirect(`/clients/${clientId}/${buildingId}/hoses`);
 }
 
-export async function updateHoseAction(clientId: string, buildingId: string, hoseId: string, data: HoseFormValues) {
-    const validatedFields = HoseFormSchema.omit({ id: true }).safeParse(data);
+export async function updateHoseAction(clientId: string, buildingId: string, hoseId: string, formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedFields = HoseFormSchema.omit({ id: true }).safeParse(rawData);
     if (!validatedFields.success) {
-      return { message: 'Dados do formulário inválidos.' };
+      redirect(`/clients/${clientId}/${buildingId}/hoses/${hoseId}/edit?error=validation`);
     }
     try {
-      await updateHose(clientId, buildingId, hoseId, validatedFields.data);
+      await updateHose(clientId, buildingId, hoseId, validatedFields.data as Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>);
     } catch (e: any) {
-      return { message: `Erro de banco de dados: ${e.message}` };
+      redirect(`/clients/${clientId}/${buildingId}/hoses/${hoseId}/edit?error=database`);
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
@@ -131,13 +148,13 @@ export async function deleteHoseAction(formData: FormData) {
     const id = formData.get('id') as string;
 
     if (!clientId || !buildingId || !id) {
-        return { message: 'IDs ausentes para exclusão.' };
+       throw new Error('IDs ausentes para exclusão.');
     }
 
     try {
       await deleteHose(clientId, buildingId, id);
     } catch (e: any) {
-      return { message: `Erro de banco de dados: ${e.message}` };
+       throw new Error(`Erro de banco de dados: ${e.message}`);
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     redirect(`/clients/${clientId}/${buildingId}/hoses`);

@@ -1,24 +1,16 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import React from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { createHoseAction, updateHoseAction } from "@/lib/actions";
-import { HoseFormSchema, type HoseFormValues } from "@/lib/schemas";
 import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities, type Hose } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
 import { Input } from "./ui/input";
+import { SubmitButton } from "./submit-button";
+import { FormLabel } from "./ui/form";
+import { cn } from "@/lib/utils";
+
 
 interface HoseFormProps {
     clientId: string;
@@ -27,167 +19,94 @@ interface HoseFormProps {
 }
 
 export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [isPending, startTransition] = React.useTransition();
   const isEditMode = !!hose;
 
-  const form = useForm<HoseFormValues>({
-    resolver: zodResolver(HoseFormSchema),
-    defaultValues: isEditMode
-      ? {
-          ...hose,
-          expiryDate: new Date(hose.expiryDate),
-        }
-      : {
-          id: "",
-          hoseType: undefined,
-          quantity: undefined,
-          keyQuantity: undefined,
-          nozzleQuantity: undefined,
-          expiryDate: undefined,
-          observations: "",
-        },
-  });
-
-  function onSubmit(data: HoseFormValues) {
-    startTransition(() => {
-      const action = isEditMode
-        ? updateHoseAction(clientId, buildingId, hose.id, data)
-        : createHoseAction(clientId, buildingId, data);
-        
-      action.then(result => {
-        if (result?.message) {
-          toast({
-            variant: "destructive",
-            title: "Erro",
-            description: result.message,
-          });
-        } else {
-          toast({
-            title: "Sucesso",
-            description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
-          });
-        }
-      });
-    });
-  }
+  const action = isEditMode
+    ? updateHoseAction.bind(null, clientId, buildingId, hose.id)
+    : createHoseAction.bind(null, clientId, buildingId);
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>ID do Sistema</FormLabel>
-              <FormControl>
-                <Input placeholder="Ex: HOSE-SYS-01" {...field} disabled={isEditMode} />
-              </FormControl>
-              <FormDescription>
+    <form action={action} className="space-y-8">
+        <div className="space-y-2">
+            <Label htmlFor="id">ID do Sistema</Label>
+            <Input 
+                id="id"
+                name="id"
+                placeholder="Ex: HOSE-SYS-01" 
+                defaultValue={hose?.id}
+                disabled={isEditMode}
+                required
+            />
+            <p className="text-sm text-muted-foreground">
                 Digite um identificador único para este sistema de mangueira. Não pode ser alterado após a criação.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            </p>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <FormField
-            control={form.control}
-            name="hoseType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo de Mangueira</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo de mangueira" /></SelectTrigger></FormControl>
-                  <SelectContent>{hoseTypes.map(t => <SelectItem key={t} value={t}>{t}"</SelectItem>)}</SelectContent>
+            <div className="space-y-2">
+                <Label htmlFor="hoseType">Tipo de Mangueira</Label>
+                <Select name="hoseType" defaultValue={hose?.hoseType} required>
+                    <SelectTrigger id="hoseType"><SelectValue placeholder="Selecione o tipo de mangueira" /></SelectTrigger>
+                    <SelectContent>{hoseTypes.map(t => <SelectItem key={t} value={t}>{t}"</SelectItem>)}</SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="quantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade de Mangueiras</FormLabel>
-                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade" /></SelectTrigger></FormControl>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="quantity">Quantidade de Mangueiras</Label>
+                <Select name="quantity" defaultValue={String(hose?.quantity)} required>
+                  <SelectTrigger id="quantity"><SelectValue placeholder="Selecione a quantidade" /></SelectTrigger>
                   <SelectContent>{hoseQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="keyQuantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade de Chaves</FormLabel>
-                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade de chaves" /></SelectTrigger></FormControl>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="keyQuantity">Quantidade de Chaves</Label>
+                <Select name="keyQuantity" defaultValue={String(hose?.keyQuantity)} required>
+                  <SelectTrigger id="keyQuantity"><SelectValue placeholder="Selecione a quantidade de chaves" /></SelectTrigger>
                   <SelectContent>{keyQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="nozzleQuantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade de Bicos</FormLabel>
-                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade de bicos" /></SelectTrigger></FormControl>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="nozzleQuantity">Quantidade de Bicos</Label>
+                <Select name="nozzleQuantity" defaultValue={String(hose?.nozzleQuantity)} required>
+                  <SelectTrigger id="nozzleQuantity"><SelectValue placeholder="Selecione a quantidade de bicos" /></SelectTrigger>
                   <SelectContent>{nozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            </div>
         </div>
-        <FormField
-          control={form.control}
-          name="expiryDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col"><FormLabel>Data de Validade</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                      {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={d => d < new Date("1900-01-01")} initialFocus locale={ptBR} />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="observations"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações</FormLabel>
-              <FormControl><Textarea placeholder="Ex: Localizado no gabinete da ala leste" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+
+        <div className="space-y-2">
+            <Label htmlFor="expiryDate">Data de Validade</Label>
+            <Input
+                id="expiryDate"
+                name="expiryDate"
+                type="date"
+                defaultValue={hose ? format(new Date(hose.expiryDate), 'yyyy-MM-dd') : ''}
+                required
+            />
+        </div>
+
+        <div className="space-y-2">
+            <Label htmlFor="observations">Observações</Label>
+            <Textarea 
+                id="observations"
+                name="observations"
+                placeholder="Ex: Localizado no gabinete da ala leste" 
+                defaultValue={hose?.observations}
+            />
+        </div>
+        
+        <SubmitButton>
           {isEditMode ? 'Salvar Alterações' : 'Criar Sistema de Mangueira'}
-        </Button>
+        </SubmitButton>
       </form>
-    </Form>
   );
 }
+
+
+// Keeping Label component for compatibility with the new structure
+const Label = React.forwardRef<
+  React.ElementRef<typeof FormLabel>,
+  React.ComponentPropsWithoutRef<typeof FormLabel>
+>(({ className, ...props }, ref) => {
+  return <FormLabel ref={ref} className={cn(className)} {...props} />;
+});
+Label.displayName = "Label";
