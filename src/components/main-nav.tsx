@@ -22,8 +22,8 @@ export function MainNav() {
   const params = useParams() as { clientId?: string, buildingId?: string };
   const { clientId, buildingId } = params;
 
-  if (!clientId || !buildingId) {
-    // If we are not in a building context, render a simpler nav.
+  if (!clientId) {
+    // Root page - Client List
     return (
         <>
             <SidebarHeader>
@@ -40,20 +40,34 @@ export function MainNav() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {clientId && (
-                         <SidebarMenuItem>
-                            <Button variant="ghost" className="w-full justify-start" asChild>
-                                <Link href={`/`}>
-                                    <ChevronLeft />
-                                    <span>Todos os Clientes</span>
-                                </Link>
-                            </Button>
-                        </SidebarMenuItem>
-                    )}
                 </SidebarMenu>
             </SidebarContent>
         </>
     );
+  }
+
+  if (clientId && !buildingId) {
+      // Client Page - Building List
+      return (
+          <>
+              <SidebarHeader>
+                  <AppLogo />
+                  <SidebarTrigger className="hidden md:flex" />
+              </SidebarHeader>
+              <SidebarContent>
+                  <SidebarMenu>
+                      <SidebarMenuItem>
+                          <SidebarMenuButton asChild tooltip="Todos os Clientes">
+                              <Link href="/">
+                                  <ChevronLeft />
+                                  <span>Todos os Clientes</span>
+                              </Link>
+                          </SidebarMenuButton>
+                      </SidebarMenuItem>
+                  </SidebarMenu>
+              </SidebarContent>
+          </>
+      )
   }
 
   const buildingBasePath = `/clients/${clientId}/${buildingId}`;
@@ -77,20 +91,20 @@ export function MainNav() {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Button variant="ghost" className="w-full justify-start" asChild>
+            <SidebarMenuButton asChild tooltip="Todos os Clientes">
                 <Link href={`/`}>
                     <Users />
                     <span>Todos os Clientes</span>
                 </Link>
-            </Button>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Button variant="ghost" className="w-full justify-start" asChild>
+            <SidebarMenuButton asChild tooltip="Todos os Prédios">
                 <Link href={`/clients/${clientId}`}>
                     <ChevronLeft />
                     <span>Todos os Prédios</span>
                 </Link>
-            </Button>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarSeparator />
           {menuItems.map((item) => (

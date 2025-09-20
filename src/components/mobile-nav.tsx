@@ -33,7 +33,7 @@ export function MobileNav() {
                     <ChevronLeft className="h-6 w-6 mb-1" />
                     <span>Todos os Clientes</span>
                 </Link>
-                <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.startsWith(`/clients/${clientId}`) && !pathname.includes('/', `/clients/${clientId}`.length + 1) ? "text-primary" : "text-muted-foreground")}>
+                <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === `/clients/${clientId}` ? "text-primary" : "text-muted-foreground")}>
                     <Users className="h-6 w-6 mb-1" />
                     <span>Prédios</span>
                 </Link>
