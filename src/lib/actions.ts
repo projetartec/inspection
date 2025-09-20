@@ -15,7 +15,7 @@ import {
   updateHose 
 } from '@/lib/data';
 import { ExtinguisherFormSchema, HoseFormSchema, ClientFormSchema, BuildingFormSchema } from './schemas';
-import type { Extinguisher, Hose, Client, Building } from './types';
+import type { Extinguisher, Hose } from './types';
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -26,7 +26,7 @@ export async function createClientAction(formData: FormData) {
     return { message: 'Dados do formulário inválidos.' };
   }
   
-  const newClient = await addClient(validatedFields.data);
+  await addClient(validatedFields.data);
   revalidatePath('/');
   redirect(`/`);
 }

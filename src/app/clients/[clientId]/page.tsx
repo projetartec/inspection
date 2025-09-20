@@ -20,9 +20,7 @@ export default function ClientPage({ params }: { params: { clientId: string } })
   useEffect(() => {
     async function fetchClient() {
       const clientData = await getClientById(params.clientId);
-      if (clientData) {
-        setClient(clientData);
-      }
+      setClient(clientData);
       setIsLoading(false);
     }
     fetchClient();
