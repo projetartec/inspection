@@ -31,7 +31,7 @@ export async function createClientAction(formData: FormData) {
       return result;
   }
   revalidatePath('/');
-  redirect(`/clients/${result.id}`);
+  redirect(`/`);
 }
 
 // --- Building Actions ---

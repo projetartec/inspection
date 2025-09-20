@@ -20,7 +20,7 @@ export default function Home() {
       setIsLoading(false);
     }
     fetchClients();
-  }, [clients]);
+  }, []);
 
   if (isLoading) {
       return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
