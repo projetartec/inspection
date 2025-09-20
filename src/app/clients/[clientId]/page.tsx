@@ -1,8 +1,5 @@
-'use client';
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import React, { useState, useEffect } from "react";
 import { getClientById } from "@/lib/data";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,22 +10,8 @@ import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import type { Client } from "@/lib/types";
 
-export default function ClientPage({ params }: { params: { clientId: string } }) {
-  const [client, setClient] = useState<Client | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchClient() {
-      const foundClient = await getClientById(params.clientId);
-      setClient(foundClient);
-      setIsLoading(false);
-    }
-    fetchClient();
-  }, [params.clientId]);
-
-  if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+export default async function ClientPage({ params }: { params: { clientId: string } }) {
+  const client = await getClientById(params.clientId);
   
   if (!client) {
     notFound();
