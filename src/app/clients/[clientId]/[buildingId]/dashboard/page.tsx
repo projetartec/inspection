@@ -31,7 +31,7 @@ export default async function DashboardPage({ params }: { params: { clientId: st
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title={`Painel (${building.name})`} />
+      <PageHeader title={`Painel: ${building.name}`} />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title}>
