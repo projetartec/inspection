@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
+import { MainNav } from '@/components/main-nav';
+import { MobileNav } from '@/components/mobile-nav';
 
 export const metadata: Metadata = {
   title: 'FireGuard Inspector',
@@ -27,7 +30,18 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-muted/40">
-        {children}
+        <SidebarProvider>
+          <Sidebar>
+            <MainNav />
+          </Sidebar>
+          <SidebarInset>
+            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+              {children}
+            </main>
+            <div className="h-16 md:hidden" /> {/* Spacer for mobile nav */}
+            <MobileNav />
+          </SidebarInset>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>
