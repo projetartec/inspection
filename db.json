@@ -3,7 +3,14 @@
     {
       "id": "client-1758331858862",
       "name": "CPQD",
-      "buildings": []
+      "buildings": [
+        {
+          "id": "bldg-1758332140558",
+          "name": "Prédio 1",
+          "extinguishers": [],
+          "hoses": []
+        }
+      ]
     }
   ]
 }
