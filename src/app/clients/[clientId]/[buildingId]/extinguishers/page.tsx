@@ -9,7 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React from "react";
-import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { deleteExtinguisherAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 
@@ -68,18 +78,36 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                                             <span className="sr-only">Editar</span>
                                         </Link>
                                     </Button>
-                                    <DeleteConfirmationDialog
-                                      itemId={ext.id}
-                                      itemName="Extintor"
-                                      clientId={clientId}
-                                      buildingId={buildingId}
-                                      formAction={deleteExtinguisherAction}
-                                    >
-                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">Deletar</span>
-                                    </Button>
-                                    </DeleteConfirmationDialog>
+
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">Deletar</span>
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <form action={deleteExtinguisherAction}>
+                                            <input type="hidden" name="id" value={ext.id} />
+                                            <input type="hidden" name="clientId" value={clientId} />
+                                            <input type="hidden" name="buildingId" value={buildingId} />
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta ação não pode ser desfeita. Isso irá deletar permanentemente o extintor{' '}
+                                                <span className="font-bold">{ext.id}</span>.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction asChild>
+                                                <Button type="submit" variant="destructive">Deletar</Button>
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </form>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+
                                     <QrCodeDialog value={ext.qrCodeValue} label={ext.id}>
                                         <Button variant="ghost" size="sm">
                                             <QrCode className="h-4 w-4" />
