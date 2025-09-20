@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { getHoses } from "@/lib/data";
@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import React from "react";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { deleteHoseAction } from "@/lib/actions";
+import { QrCodeDialog } from "@/components/qr-code-dialog";
 
 export default async function HosesPage() {
   const hoses = await getHoses();
@@ -77,6 +78,12 @@ export default async function HosesPage() {
                                     <span className="sr-only">Deletar</span>
                                   </Button>
                                 </DeleteConfirmationDialog>
+                                <QrCodeDialog value={hose.qrCodeValue} label={hose.id}>
+                                    <Button variant="ghost" size="sm">
+                                        <QrCode className="h-4 w-4" />
+                                        <span className="sr-only">Ver QR Code</span>
+                                    </Button>
+                                </QrCodeDialog>
                             </TableCell>
                         </TableRow>
                         );
