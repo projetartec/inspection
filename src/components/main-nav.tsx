@@ -15,7 +15,6 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ReportGenerator } from "@/components/report-generator";
-import { Button } from "./ui/button";
 
 export function MainNav() {
   const pathname = usePathname();
@@ -78,10 +77,6 @@ export function MainNav() {
     { href: `${buildingBasePath}/hoses`, label: "Mangueiras", icon: Droplets },
   ];
 
-  const isBuildingDashboard = pathname === `${buildingBasePath}/dashboard`;
-  const isExtinguishersPage = pathname.startsWith(`${buildingBasePath}/extinguishers`);
-  const isHosesPage = pathname.startsWith(`${buildingBasePath}/hoses`);
-
   return (
     <>
       <SidebarHeader className="flex items-center justify-between">
@@ -111,11 +106,7 @@ export function MainNav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={
-                    (item.href === `${buildingBasePath}/dashboard` && isBuildingDashboard) ||
-                    (item.href === `${buildingBasePath}/extinguishers` && isExtinguishersPage) ||
-                    (item.href === `${buildingBasePath}/hoses` && isHosesPage)
-                }
+                isActive={pathname.startsWith(item.href)}
                 tooltip={item.label}
               >
                 <Link href={item.href}>
