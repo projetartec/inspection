@@ -49,24 +49,25 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
   });
 
   function onSubmit(data: ExtinguisherFormValues) {
-    startTransition(async () => {
-      const result = await (isEditMode
+    startTransition(() => {
+      const action = isEditMode
         ? updateExtinguisherAction(clientId, buildingId, extinguisher.id, data)
-        : createExtinguisherAction(clientId, buildingId, data));
+        : createExtinguisherAction(clientId, buildingId, data);
 
-      if (result?.message) {
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: result.message,
-        });
-      } else {
-        toast({
-          title: "Sucesso",
-          description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
-        });
-        // The action will handle the redirect
-      }
+      action.then(result => {
+        if (result?.message) {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: result.message,
+          });
+        } else {
+           toast({
+            title: "Sucesso",
+            description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
+          });
+        }
+      });
     });
   }
 
