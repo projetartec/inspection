@@ -1,41 +1,8 @@
 import type { Extinguisher, Hose, Inspection } from '@/lib/types';
 
-let extinguishers: Extinguisher[] = [
-  {
-    id: 'ext-1',
-    qrCodeValue: 'fireguard-ext-1',
-    type: 'ABC',
-    weight: 10,
-    expiryDate: new Date('2025-12-31'),
-    observations: 'Located near main entrance, first floor.',
-    inspections: [
-      { id: 'insp-ext-1-1', date: new Date('2024-01-15T10:00:00Z'), notes: 'Routine check, all OK.', location: { latitude: 34.0522, longitude: -118.2437 } }
-    ]
-  },
-  {
-    id: 'ext-2',
-    qrCodeValue: 'fireguard-ext-2',
-    type: 'CO2',
-    weight: 6,
-    expiryDate: new Date('2024-05-20'),
-    observations: 'In the server room. Handle with care.',
-    inspections: []
-  },
-];
+let extinguishers: Extinguisher[] = [];
 
-let hoses: Hose[] = [
-  {
-    id: 'hose-1',
-    qrCodeValue: 'fireguard-hose-1',
-    quantity: 2,
-    hoseType: '1 1/2',
-    keyQuantity: 2,
-    nozzleQuantity: 2,
-    expiryDate: new Date('2026-06-30'),
-    observations: 'In the east wing cabinet, second floor.',
-    inspections: []
-  },
-];
+let hoses: Hose[] = [];
 
 // --- Data Access Functions ---
 
