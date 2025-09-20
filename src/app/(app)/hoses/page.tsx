@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getHoses } from "@/lib/data";
+import { getHosesByBuilding } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +13,15 @@ import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialo
 import { deleteHoseAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 
-export default async function HosesPage() {
-  const hoses = await getHoses();
+export default async function HosesPage({ params }: { params: { clientId: string, buildingId: string }}) {
+  const { clientId, buildingId } = params;
+  const hoses = await getHosesByBuilding(clientId, buildingId);
 
   return (
     <>
       <PageHeader title="Mangueiras">
         <Button asChild>
-          <Link href="/hoses/new">
+          <Link href={`/clients/${clientId}/${buildingId}/hoses/new`}>
             <PlusCircle className="mr-2" />
             Adicionar Sistema de Mangueira
           </Link>
@@ -29,7 +30,7 @@ export default async function HosesPage() {
       <Card>
         <CardHeader>
             <CardTitle>Sistemas de Mangueira Registrados</CardTitle>
-            <CardDescription>Uma lista de todos os sistemas de mangueira de incêndio no sistema.</CardDescription>
+            <CardDescription>Uma lista de todos os sistemas de mangueira de incêndio neste local.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
@@ -46,10 +47,11 @@ export default async function HosesPage() {
                 <TableBody>
                     {hoses.length > 0 ? hoses.map((hose) => {
                         const isExpired = new Date(hose.expiryDate) < new Date();
+                        const deleteActionWithParams = deleteHoseAction.bind(null, clientId, buildingId, hose.id);
                         return (
                         <TableRow key={hose.id}>
                             <TableCell className="font-medium">
-                               <Link href={`/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
+                               <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
                             </TableCell>
                             <TableCell>{hose.hoseType}</TableCell>
                             <TableCell>{hose.quantity}</TableCell>
@@ -61,7 +63,7 @@ export default async function HosesPage() {
                             </TableCell>
                             <TableCell className="text-right space-x-2 flex items-center justify-end">
                                 <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/hoses/${hose.id}/edit`}>
+                                    <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}/edit`}>
                                         <Pencil className="h-4 w-4" />
                                         <span className="sr-only">Editar</span>
                                     </Link>
@@ -69,7 +71,7 @@ export default async function HosesPage() {
                                 <DeleteConfirmationDialog
                                   itemId={hose.id}
                                   itemName="Sistema de Mangueira"
-                                  deleteAction={deleteHoseAction}
+                                  deleteAction={deleteActionWithParams}
                                 >
                                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                     <Trash2 className="h-4 w-4" />

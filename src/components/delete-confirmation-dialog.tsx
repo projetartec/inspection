@@ -15,12 +15,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 
 interface DeleteConfirmationDialogProps {
   itemId: string;
   itemName: string;
-  deleteAction: (id: string) => Promise<{ message: string } | void>;
+  deleteAction: () => Promise<{ message: string } | void>;
   children: React.ReactNode;
 }
 
@@ -30,14 +29,13 @@ export function DeleteConfirmationDialog({
   deleteAction,
   children
 }: DeleteConfirmationDialogProps) {
-  const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast();
 
   const handleDelete = () => {
     startTransition(async () => {
-      const result = await deleteAction(itemId);
+      const result = await deleteAction();
       if (result?.message) {
         toast({
           variant: "destructive",

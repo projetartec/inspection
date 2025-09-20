@@ -6,8 +6,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage({ params }: { params: { clientId: string, buildingId: string }}) {
-  const extinguishers = await getExtinguishersByBuilding(params.clientId, params.buildingId);
-  const hoses = await getHosesByBuilding(params.clientId, params.buildingId);
+  const { clientId, buildingId } = params;
+  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+  const hoses = await getHosesByBuilding(clientId, buildingId);
 
   const isExpired = (item: { expiryDate: Date }) => new Date(item.expiryDate) < new Date();
   const expiredExtinguishers = extinguishers.filter(isExpired).length;
@@ -19,9 +20,11 @@ export default async function DashboardPage({ params }: { params: { clientId: st
     { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras` },
   ];
 
+  const scanUrl = `/clients/${clientId}/${buildingId}/scan`;
+
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Painel do Prédio" />
+      <PageHeader title="Painel do Local" />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title}>
@@ -43,7 +46,7 @@ export default async function DashboardPage({ params }: { params: { clientId: st
         <CardContent>
             <p className="text-muted-foreground mb-4">Inicie uma nova inspeção escaneando um código QR.</p>
             <Button asChild size="lg">
-                <Link href={`/clients/${params.clientId}/${params.buildingId}/scan`}>Iniciar Leitura</Link>
+                <Link href={scanUrl}>Iniciar Leitura</Link>
             </Button>
         </CardContent>
       </Card>

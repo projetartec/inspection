@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getExtinguishers } from "@/lib/data";
+import { getExtinguishersByBuilding } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +13,15 @@ import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialo
 import { deleteExtinguisherAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 
-export default async function ExtinguishersPage() {
-  const extinguishers = await getExtinguishers();
+export default async function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
+  const { clientId, buildingId } = params;
+  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
 
   return (
     <>
       <PageHeader title="Extintores">
         <Button asChild>
-          <Link href="/extinguishers/new">
+          <Link href={`/clients/${clientId}/${buildingId}/extinguishers/new`}>
             <PlusCircle className="mr-2" />
             Adicionar Extintor
           </Link>
@@ -29,7 +30,7 @@ export default async function ExtinguishersPage() {
       <Card>
         <CardHeader>
             <CardTitle>Extintores Registrados</CardTitle>
-            <CardDescription>Uma lista de todos os extintores de incêndio no sistema.</CardDescription>
+            <CardDescription>Uma lista de todos os extintores de incêndio neste local.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
@@ -46,10 +47,11 @@ export default async function ExtinguishersPage() {
                 <TableBody>
                     {extinguishers.length > 0 ? extinguishers.map((ext) => {
                         const isExpired = new Date(ext.expiryDate) < new Date();
+                        const deleteActionWithParams = deleteExtinguisherAction.bind(null, clientId, buildingId, ext.id);
                         return (
                         <TableRow key={ext.id}>
                             <TableCell className="font-medium">
-                              <Link href={`/extinguishers/${ext.id}`} className="hover:underline">{ext.id}</Link>
+                              <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}`} className="hover:underline">{ext.id}</Link>
                             </TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell>{ext.weight}</TableCell>
@@ -61,7 +63,7 @@ export default async function ExtinguishersPage() {
                             </TableCell>
                             <TableCell className="text-right space-x-2 flex items-center justify-end">
                                 <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/extinguishers/${ext.id}/edit`}>
+                                    <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}/edit`}>
                                         <Pencil className="h-4 w-4" />
                                         <span className="sr-only">Editar</span>
                                     </Link>
@@ -69,7 +71,7 @@ export default async function ExtinguishersPage() {
                                 <DeleteConfirmationDialog
                                   itemId={ext.id}
                                   itemName="Extintor"
-                                  deleteAction={deleteExtinguisherAction}
+                                  deleteAction={deleteActionWithParams}
                                 >
                                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                     <Trash2 className="h-4 w-4" />

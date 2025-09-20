@@ -7,6 +7,11 @@ export const ClientFormSchema = z.object({
 });
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;
 
+export const BuildingFormSchema = z.object({
+  name: z.string().min(2, 'O nome do local deve ter pelo menos 2 caracteres.'),
+});
+export type BuildingFormValues = z.infer<typeof BuildingFormSchema>;
+
 export const ExtinguisherFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
   type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.', invalid_type_error: 'Por favor, selecione um tipo.' }),

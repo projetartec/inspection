@@ -14,11 +14,23 @@ function readDb(): Db {
   try {
     if (fs.existsSync(dbPath)) {
       const fileContent = fs.readFileSync(dbPath, 'utf-8');
-      return JSON.parse(fileContent);
+      const data = JSON.parse(fileContent);
+      // Ensure buildings, extinguishers, and hoses arrays exist
+      if (data.clients) {
+        data.clients.forEach((client: Client) => {
+          client.buildings = client.buildings || [];
+          client.buildings.forEach((building: Building) => {
+            building.extinguishers = building.extinguishers || [];
+            building.hoses = building.hoses || [];
+          });
+        });
+      }
+      return data;
     }
   } catch (error) {
     console.error("Error reading db.json:", error);
   }
+  // If the file doesn't exist or is empty, return a default structure
   return { clients: [] };
 }
 
@@ -41,11 +53,11 @@ export async function getClientById(clientId: string): Promise<Client | null> {
     const db = readDb();
     const client = db.clients.find(c => c.id === clientId);
     if (client) {
+      client.buildings = client.buildings || [];
       return Promise.resolve(client);
     }
     return null;
 }
-
 
 export async function addClient(name: string): Promise<Client> {
     const db = readDb();
@@ -59,96 +71,158 @@ export async function addClient(name: string): Promise<Client> {
     return newClient;
 }
 
-
-// --- Data Access Functions ---
-
-export async function getExtinguishers(): Promise<Extinguisher[]> {
-  // This function is now deprecated in favor of getExtinguishersByBuilding
-  return Promise.resolve([]);
+// --- Building Functions ---
+export async function getBuildingById(clientId: string, buildingId: string): Promise<Building | null> {
+    const client = await getClientById(clientId);
+    if (!client) return null;
+    const building = client.buildings.find(b => b.id === buildingId);
+    return building || null;
 }
 
-export async function getHoses(): Promise<Hose[]> {
-    // This function is now deprecated in favor of getHosesByBuilding
-  return Promise.resolve([]);
+export async function addBuilding(clientId: string, name: string): Promise<Building> {
+    const db = readDb();
+    const clientIndex = db.clients.findIndex(c => c.id === clientId);
+    if (clientIndex === -1) {
+        throw new Error('Cliente não encontrado.');
+    }
+    const newBuilding: Building = {
+        id: `bldg-${Date.now()}`,
+        name,
+        extinguishers: [],
+        hoses: [],
+    };
+    db.clients[clientIndex].buildings.push(newBuilding);
+    writeDb(db);
+    return newBuilding;
 }
 
-export async function findEquipmentByQr(qrCodeValue: string): Promise<{ type: 'extinguisher' | 'hose'; data: Extinguisher | Hose } | null> {
+
+// --- Equipment Functions ---
+
+export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
+    const building = await getBuildingById(clientId, buildingId);
+    if (!building) return [];
+    return building.extinguishers.map(e => ({...e, expiryDate: new Date(e.expiryDate)}));
+}
+
+export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hose[]> {
+    const building = await getBuildingById(clientId, buildingId);
+    if (!building) return [];
+    return building.hoses.map(h => ({...h, expiryDate: new Date(h.expiryDate)}));
+}
+
+export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
+    const building = await getBuildingById(clientId, buildingId);
+    if (!building) return null;
+
+    const extinguisher = building.extinguishers.find(e => e.id === id);
+    if (extinguisher) {
+      extinguisher.expiryDate = new Date(extinguisher.expiryDate);
+      extinguisher.inspections.forEach(i => i.date = new Date(i.date));
+      return Promise.resolve(extinguisher);
+    }
+    return null;
+}
+
+export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hose | null> {
+    const building = await getBuildingById(clientId, buildingId);
+    if (!building) return null;
+
+    const hose = building.hoses.find(h => h.id === id);
+    if (hose) {
+      hose.expiryDate = new Date(hose.expiryDate);
+      hose.inspections.forEach(i => i.date = new Date(i.date));
+      return Promise.resolve(hose);
+    }
+    return null;
+}
+
+export async function addExtinguisher(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
+    const db = readDb();
+    const client = db.clients.find(c => c.id === clientId);
+    if (!client) throw new Error("Cliente não encontrado.");
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (!building) throw new Error("Prédio não encontrado.");
+
+    const newExtinguisher: Extinguisher = {
+        ...data,
+        qrCodeValue: `fireguard-${data.id}`,
+        inspections: [],
+    };
+
+    building.extinguishers.push(newExtinguisher);
+    writeDb(db);
+}
+
+export async function addHose(clientId: string, buildingId: string, data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
+    const db = readDb();
+    const client = db.clients.find(c => c.id === clientId);
+    if (!client) throw new Error("Cliente não encontrado.");
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (!building) throw new Error("Prédio não encontrado.");
+
+    const newHose: Hose = {
+        ...data,
+        qrCodeValue: `fireguard-${data.id}`,
+        inspections: [],
+    };
+
+    building.hoses.push(newHose);
+    writeDb(db);
+}
+
+export async function updateExtinguisher(clientId: string, buildingId: string, id: string, data: Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>) {
+    const db = readDb();
+    const client = db.clients.find(c => c.id === clientId);
+    if (!client) throw new Error("Cliente não encontrado.");
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (!building) throw new Error("Prédio não encontrado.");
+    
+    const extinguisherIndex = building.extinguishers.findIndex(e => e.id === id);
+    if (extinguisherIndex === -1) throw new Error("Extintor não encontrado.");
+
+    building.extinguishers[extinguisherIndex] = { ...building.extinguishers[extinguisherIndex], ...data };
+    writeDb(db);
+}
+
+export async function updateHose(clientId: string, buildingId: string, id: string, data: Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>) {
+    const db = readDb();
+    const client = db.clients.find(c => c.id === clientId);
+    if (!client) throw new Error("Cliente não encontrado.");
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (!building) throw new Error("Prédio não encontrado.");
+    
+    const hoseIndex = building.hoses.findIndex(h => h.id === id);
+    if (hoseIndex === -1) throw new Error("Sistema de mangueira não encontrado.");
+
+    building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...data };
+    writeDb(db);
+}
+
+export async function deleteExtinguisher(clientId: string, buildingId: string, id: string): Promise<void> {
   const db = readDb();
-  for (const client of db.clients) {
-    for (const building of client.buildings) {
-        const extinguisher = building.extinguishers.find(e => e.qrCodeValue === qrCodeValue);
-        if (extinguisher) {
-            extinguisher.expiryDate = new Date(extinguisher.expiryDate);
-            return { type: 'extinguisher', data: extinguisher };
-        }
+  const client = db.clients.find(c => c.id === clientId);
+  if (!client || !client.buildings) return;
+  const building = client.buildings.find(b => b.id === buildingId);
+  if (!building || !building.extinguishers) return;
 
-        const hose = building.hoses.find(h => h.qrCodeValue === qrCodeValue);
-        if (hose) {
-            hose.expiryDate = new Date(hose.expiryDate);
-            return { type: 'hose', data: hose };
-        }
-    }
-  }
+  building.extinguishers = building.extinguishers.filter(e => e.id !== id);
+  writeDb(db);
+}
+
+export async function deleteHose(clientId: string, buildingId: string, id: string): Promise<void> {
+  const db = readDb();
+  const client = db.clients.find(c => c.id === clientId);
+  if (!client || !client.buildings) return;
+  const building = client.buildings.find(b => b.id === buildingId);
+  if (!building || !building.hoses) return;
   
-  return null;
-}
-
-export async function getExtinguisherById(id: string): Promise<Extinguisher | null> {
-    const db = readDb();
-    for (const client of db.clients) {
-        for (const building of client.buildings) {
-            const extinguisher = building.extinguishers.find(e => e.id === id);
-            if (extinguisher) {
-              extinguisher.expiryDate = new Date(extinguisher.expiryDate);
-              extinguisher.inspections.forEach(i => i.date = new Date(i.date));
-              return Promise.resolve(extinguisher);
-            }
-        }
-    }
-    return null;
-}
-
-export async function getHoseById(id: string): Promise<Hose | null> {
-    const db = readDb();
-    for (const client of db.clients) {
-        for (const building of client.buildings) {
-            const hose = building.hoses.find(h => h.id === id);
-            if (hose) {
-              hose.expiryDate = new Date(hose.expiryDate);
-              hose.inspections.forEach(i => i.date = new Date(i.date));
-              return Promise.resolve(hose);
-            }
-        }
-    }
-    return null;
-}
-
-export async function addExtinguisher(data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
-    const db = readDb();
-    // This is a placeholder, it needs client/building context
-    console.error("addExtinguisher needs to be updated to support buildings");
-}
-
-export async function addHose(data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
-    const db = readDb();
-    // This is a placeholder, it needs client/building context
-    console.error("addHose needs to be updated to support buildings");
-}
-
-export async function updateExtinguisher(id: string, data: Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>) {
-    const db = readDb();
-    // This is a placeholder, it needs client/building context
-    console.error("updateExtinguisher needs to be updated to support buildings");
-}
-
-export async function updateHose(id: string, data: Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>) {
-    const db = readDb();
-    // This is a placeholder, it needs client/building context
-    console.error("updateHose needs to be updated to support buildings");
+  building.hoses = building.hoses.filter(h => h.id !== id);
+  writeDb(db);
 }
 
 
-export async function addInspection(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<string | null> {
+export async function addInspection(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
     const db = readDb();
     const newInspectionId = `insp-${Date.now()}`;
     const newInspection: Inspection = { ...inspectionData, id: newInspectionId };
@@ -157,31 +231,25 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
         for (const building of client.buildings) {
             const extinguisherIndex = building.extinguishers.findIndex(e => e.qrCodeValue === qrCodeValue);
             if (extinguisherIndex !== -1) {
+                if (!building.extinguishers[extinguisherIndex].inspections) {
+                    building.extinguishers[extinguisherIndex].inspections = [];
+                }
                 building.extinguishers[extinguisherIndex].inspections.push(newInspection);
                 writeDb(db);
-                return `/clients/${client.id}/${building.id}/extinguishers/${building.extinguishers[extinguisherIndex].id}`;
+                return { redirectUrl: `/clients/${client.id}/${building.id}/extinguishers/${building.extinguishers[extinguisherIndex].id}` };
             }
 
             const hoseIndex = building.hoses.findIndex(h => h.qrCodeValue === qrCodeValue);
             if (hoseIndex !== -1) {
+                 if (!building.hoses[hoseIndex].inspections) {
+                    building.hoses[hoseIndex].inspections = [];
+                }
                 building.hoses[hoseIndex].inspections.push(newInspection);
                 writeDb(db);
-                return `/clients/${client.id}/${building.id}/hoses/${building.hoses[hoseIndex].id}`;
+                return { redirectUrl: `/clients/${client.id}/${building.id}/hoses/${building.hoses[hoseIndex].id}` };
             }
         }
     }
 
     return null;
-}
-
-export async function deleteExtinguisher(id: string): Promise<void> {
-  const db = readDb();
-  // This is a placeholder, it needs client/building context
-  console.error("deleteExtinguisher needs to be updated to support buildings");
-}
-
-export async function deleteHose(id: string): Promise<void> {
-  const db = readDb();
-  // This is a placeholder, it needs client/building context
-  console.error("deleteHose needs to be updated to support buildings");
 }

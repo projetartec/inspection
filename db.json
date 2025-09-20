@@ -1,3 +1,9 @@
 {
-  "clients": []
+  "clients": [
+    {
+      "id": "client-1758331858862",
+      "name": "CPQD",
+      "buildings": []
+    }
+  ]
 }

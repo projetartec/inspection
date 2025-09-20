@@ -7,14 +7,19 @@ import { getReportDataAction } from '@/lib/actions';
 import { generatePdfReport } from '@/lib/pdf';
 import { SidebarMenuButton } from '@/components/ui/sidebar';
 
-export function ReportGenerator() {
+interface ReportGeneratorProps {
+    clientId: string;
+    buildingId: string;
+}
+
+export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleGenerateReport = async () => {
     setIsLoading(true);
     try {
-      const { extinguishers, hoses } = await getReportDataAction();
+      const { extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       generatePdfReport(extinguishers, hoses);
     } catch (error) {
       console.error("Falha ao gerar relatório:", error);
