@@ -1,12 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
+import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { Flame, Droplets, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { notFound } from "next/navigation";
 
 export default async function DashboardPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
+  
+  const building = await getBuildingById(clientId, buildingId);
+  if (!building) {
+    notFound();
+  }
+
   const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
   const hoses = await getHosesByBuilding(clientId, buildingId);
 
@@ -24,7 +31,7 @@ export default async function DashboardPage({ params }: { params: { clientId: st
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Painel do Local" />
+      <PageHeader title={`Painel (${building.name})`} />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <Card key={stat.title}>
