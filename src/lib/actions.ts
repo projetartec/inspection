@@ -19,9 +19,11 @@ import { ExtinguisherFormSchema, HoseFormSchema, ClientFormSchema, BuildingFormS
 import type { Extinguisher, Hose } from './types';
 
 // --- Client Actions ---
-export async function createClientAction(data: { name: string }) {
-  const validatedFields = ClientFormSchema.safeParse(data);
+export async function createClientAction(formData: FormData) {
+  const rawData = Object.fromEntries(formData.entries());
+  const validatedFields = ClientFormSchema.safeParse(rawData);
   if (!validatedFields.success) {
+    // Melhorar o tratamento de erro no futuro
     return { message: 'Dados do formulário inválidos.' };
   }
   try {
@@ -34,8 +36,9 @@ export async function createClientAction(data: { name: string }) {
 }
 
 // --- Building Actions ---
-export async function createBuildingAction(clientId: string, data: { name: string }) {
-    const validatedFields = BuildingFormSchema.safeParse(data);
+export async function createBuildingAction(clientId: string, formData: FormData) {
+    const rawData = Object.fromEntries(formData.entries());
+    const validatedFields = BuildingFormSchema.safeParse(rawData);
     if (!validatedFields.success) {
       return { message: 'Dados do formulário inválidos.' };
     }
@@ -56,8 +59,8 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
   
   if (!validatedFields.success) {
     console.error(validatedFields.error.flatten().fieldErrors);
-    // This redirect is a temporary workaround to show an error.
-    // In a real app, you'd handle this more gracefully.
+    // Este redirecionamento é uma solução temporária para mostrar um erro.
+    // Em um aplicativo real, você lidaria com isso de forma mais elegante.
     redirect(`/clients/${clientId}/${buildingId}/extinguishers/new?error=validation`);
   }
   

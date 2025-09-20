@@ -1,22 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { createExtinguisherAction, updateExtinguisherAction } from "@/lib/actions";
 import { extinguisherTypes, extinguisherWeights, type Extinguisher } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
-import React from "react";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "./submit-button";
+import { Label } from "./ui/label";
+
 
 interface ExtinguisherFormProps {
   clientId: string;
@@ -112,12 +104,3 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
       </form>
   );
 }
-
-// Keeping Label component for compatibility with the new structure
-const Label = React.forwardRef<
-  React.ElementRef<typeof FormLabel>,
-  React.ComponentPropsWithoutRef<typeof FormLabel>
->(({ className, ...props }, ref) => {
-  return <FormLabel ref={ref} className={cn(className)} {...props} />;
-});
-Label.displayName = "Label";

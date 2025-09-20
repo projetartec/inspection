@@ -8,8 +8,7 @@ import { createHoseAction, updateHoseAction } from "@/lib/actions";
 import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities, type Hose } from "@/lib/types";
 import { Input } from "./ui/input";
 import { SubmitButton } from "./submit-button";
-import { FormLabel } from "./ui/form";
-import { cn } from "@/lib/utils";
+import { Label } from "./ui/label";
 
 
 interface HoseFormProps {
@@ -100,13 +99,3 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
       </form>
   );
 }
-
-
-// Keeping Label component for compatibility with the new structure
-const Label = React.forwardRef<
-  React.ElementRef<typeof FormLabel>,
-  React.ComponentPropsWithoutRef<typeof FormLabel>
->(({ className, ...props }, ref) => {
-  return <FormLabel ref={ref} className={cn(className)} {...props} />;
-});
-Label.displayName = "Label";
