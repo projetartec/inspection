@@ -1,6 +1,6 @@
 export type Inspection = {
   id: string;
-  date: Date;
+  date: string; // Changed to string
   location?: {
     latitude: number;
     longitude: number;
@@ -19,7 +19,7 @@ export type Extinguisher = {
   qrCodeValue: string;
   type: ExtinguisherType;
   weight: ExtinguisherWeight;
-  expiryDate: Date;
+  expiryDate: string; // Changed to string
   observations: string;
   inspections: Inspection[];
 };
@@ -43,7 +43,7 @@ export type Hose = {
   hoseType: HoseType;
   keyQuantity: KeyQuantity;
   nozzleQuantity: NozzleQuantity;
-  expiryDate: Date;
+  expiryDate: string; // Changed to string
   observations: string;
   inspections: Inspection[];
 };

@@ -21,7 +21,8 @@ function convertTimestamps<T>(docData: any): T {
     const data = { ...docData };
     for (const key in data) {
         if (data[key] instanceof Timestamp) {
-            data[key] = data[key].toDate();
+            // Convert to ISO string for serialization
+            data[key] = data[key].toDate().toISOString(); 
         }
         if(key === 'inspections' && Array.isArray(data[key])) {
             data[key] = data[key].map((insp: any) => convertTimestamps(insp));
@@ -130,7 +131,6 @@ export async function addExtinguisher(clientId: string, buildingId: string, data
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     const newExtinguisherData = {
         ...rest,
-        id: id,
         qrCodeValue: `fireguard-ext-${id}`,
         inspections: [],
     };
@@ -142,7 +142,6 @@ export async function addHose(clientId: string, buildingId: string, data: Omit<H
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
     const newHoseData = {
         ...rest,
-        id: id,
         qrCodeValue: `fireguard-hose-${id}`,
         inspections: [],
     };

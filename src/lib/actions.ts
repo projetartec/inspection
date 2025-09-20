@@ -155,7 +155,7 @@ export async function deleteHoseAction(formData: FormData) {
 // --- Inspection & Report Actions ---
 export async function logInspectionAction(qrCodeValue: string, notes: string, location?: { latitude: number; longitude: number }) {
   try {
-    const result = await addInspection(qrCodeValue, { date: new Date(), notes, location });
+    const result = await addInspection(qrCodeValue, { date: new Date().toISOString(), notes, location });
     if (!result) {
       return { message: 'Equipamento não encontrado para o QR code escaneado.' };
     }

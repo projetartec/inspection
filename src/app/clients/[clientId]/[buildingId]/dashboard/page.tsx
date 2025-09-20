@@ -43,7 +43,7 @@ export default function DashboardPage({ params }: { params: { clientId: string, 
     notFound();
   }
 
-  const isExpired = (item: { expiryDate: Date }) => new Date(item.expiryDate) < new Date();
+  const isExpired = (item: { expiryDate: string }) => new Date(item.expiryDate) < new Date();
   const expiredExtinguishers = extinguishers.filter(isExpired).length;
   const expiredHoses = hoses.filter(isExpired).length;
 
