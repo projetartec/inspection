@@ -4,8 +4,8 @@ import { extinguisherTypes, extinguisherWeights, hoseQuantities, hoseTypes, keyQ
 // Schemas for validation
 export const ExtinguisherFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
-  type: z.enum(extinguisherTypes, { invalid_type_error: 'Por favor, selecione um tipo.' }),
-  weight: z.coerce.number({ invalid_type_error: 'Por favor, selecione um peso válido.' }),
+  type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.', invalid_type_error: 'Por favor, selecione um tipo.' }),
+  weight: z.coerce.number({ required_error: 'Por favor, selecione um peso válido.', invalid_type_error: 'Por favor, selecione um peso válido.' }),
   expiryDate: z.date({ required_error: 'A data de validade é obrigatória.'}),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional(),
 });
@@ -14,10 +14,10 @@ export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
 
 export const HoseFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
-  quantity: z.coerce.number({ invalid_type_error: 'Por favor, selecione uma quantidade.' }),
-  hoseType: z.enum(hoseTypes, { invalid_type_error: 'Por favor, selecione um tipo de mangueira.' }),
-  keyQuantity: z.coerce.number({ invalid_type_error: 'Por favor, selecione a quantidade de chaves.' }),
-  nozzleQuantity: z.coerce.number({ invalid_type_error: 'Por favor, selecione a quantidade de bicos.' }),
+  quantity: z.coerce.number({ required_error: 'Por favor, selecione uma quantidade.', invalid_type_error: 'Por favor, selecione uma quantidade.' }),
+  hoseType: z.enum(hoseTypes, { required_error: 'Por favor, selecione um tipo de mangueira.', invalid_type_error: 'Por favor, selecione um tipo de mangueira.' }),
+  keyQuantity: z.coerce.number({ required_error: 'Por favor, selecione a quantidade de chaves.', invalid_type_error: 'Por favor, selecione a quantidade de chaves.' }),
+  nozzleQuantity: z.coerce.number({ required_error: 'Por favor, selecione a quantidade de bicos.', invalid_type_error: 'Por favor, selecione a quantidade de bicos.' }),
   expiryDate: z.date({ required_error: 'A data de validade é obrigatória.'}),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional(),
 });
