@@ -37,7 +37,19 @@
               "inspections": []
             }
           ],
-          "hoses": []
+          "hoses": [
+            {
+              "id": "H21",
+              "quantity": 1,
+              "hoseType": "1 1/2",
+              "keyQuantity": 1,
+              "nozzleQuantity": 1,
+              "expiryDate": "2025-10-01T03:00:00.000Z",
+              "observations": "",
+              "qrCodeValue": "fireguard-H21",
+              "inspections": []
+            }
+          ]
         },
         {
           "id": "bldg-1758332823582",
