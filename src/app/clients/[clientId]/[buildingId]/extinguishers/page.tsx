@@ -72,7 +72,7 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                                     <DeleteConfirmationDialog
                                     itemId={ext.id}
                                     itemName="Extintor"
-                                    deleteAction={deleteActionWithParams}
+                                    formAction={deleteActionWithParams}
                                     >
                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                         <Trash2 className="h-4 w-4" />

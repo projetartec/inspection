@@ -72,7 +72,7 @@ export default async function HosesPage({ params }: { params: { clientId: string
                                     <DeleteConfirmationDialog
                                     itemId={hose.id}
                                     itemName="Sistema de Mangueira"
-                                    deleteAction={deleteActionWithParams}
+                                    formAction={deleteActionWithParams}
                                     >
                                     <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                         <Trash2 className="h-4 w-4" />

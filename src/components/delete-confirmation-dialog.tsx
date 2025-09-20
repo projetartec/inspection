@@ -13,74 +13,59 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useFormStatus } from 'react-dom';
+import { Button } from "./ui/button";
 
 interface DeleteConfirmationDialogProps {
   itemId: string;
   itemName: string;
-  deleteAction: () => Promise<{ message: string } | void>;
+  formAction: (payload: FormData) => void;
   children: React.ReactNode;
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <AlertDialogAction asChild>
+        <Button
+          type="submit"
+          disabled={pending}
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        >
+          {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Deletar
+        </Button>
+    </AlertDialogAction>
+  );
 }
 
 export function DeleteConfirmationDialog({
   itemId,
   itemName,
-  deleteAction,
+  formAction,
   children
 }: DeleteConfirmationDialogProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [isPending, startTransition] = React.useTransition();
-  const { toast } = useToast();
-
-  const handleDelete = () => {
-    startTransition(async () => {
-      const result = await deleteAction();
-      if (result?.message) {
-        toast({
-          variant: "destructive",
-          title: "Erro ao deletar",
-          description: result.message,
-        });
-        setIsOpen(false);
-      } else {
-        toast({
-          title: "Sucesso",
-          description: `${itemName} deletado com sucesso.`,
-        });
-        // The server action will handle the redirection, so we don't need to do anything here.
-        // We just close the dialog.
-        setIsOpen(false);
-      }
-    });
-  };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+    <AlertDialog>
       <AlertDialogTrigger asChild>
         {children}
       </AlertDialogTrigger>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Esta ação não pode ser desfeita. Isso irá deletar permanentemente o item
-            <span className="font-bold"> {itemId}</span>.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-            }}
-            disabled={isPending}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Deletar
-          </AlertDialogAction>
-        </AlertDialogFooter>
+          <form action={formAction}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso irá deletar permanentemente o item
+                <span className="font-bold"> {itemId}</span>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <SubmitButton />
+            </AlertDialogFooter>
+          </form>
       </AlertDialogContent>
     </AlertDialog>
   );
