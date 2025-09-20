@@ -1,4 +1,7 @@
+'use client';
+
 import Link from "next/link";
+import React, { useState, useEffect } from 'react';
 import { notFound } from "next/navigation";
 import { getClientById } from "@/lib/data";
 import { PageHeader } from "@/components/page-header";
@@ -10,8 +13,24 @@ import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import type { Client } from "@/lib/types";
 
-export default async function ClientPage({ params }: { params: { clientId: string } }) {
-  const client = await getClientById(params.clientId);
+export default function ClientPage({ params }: { params: { clientId: string } }) {
+  const [client, setClient] = useState<Client | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchClient() {
+      const clientData = await getClientById(params.clientId);
+      if (clientData) {
+        setClient(clientData);
+      }
+      setIsLoading(false);
+    }
+    fetchClient();
+  }, [params.clientId]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full min-h-screen">Carregando...</div>;
+  }
   
   if (!client) {
     notFound();

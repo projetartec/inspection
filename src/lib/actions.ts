@@ -26,10 +26,7 @@ export async function createClientAction(formData: FormData) {
     return { message: 'Dados do formulário inválidos.' };
   }
   
-  const result = await addClient(validatedFields.data);
-  if ('message' in result) {
-      return result;
-  }
+  const newClient = await addClient(validatedFields.data);
   revalidatePath('/');
   redirect(`/`);
 }
