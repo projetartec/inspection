@@ -1,13 +1,27 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { getExtinguisherById } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExtinguisherForm } from '@/components/extinguisher-form';
 import { QrCodeDisplay } from '@/components/qr-code-display';
+import type { Extinguisher } from '@/lib/types';
 
-export default async function EditExtinguisherPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
+export default function EditExtinguisherPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const extinguisher = await getExtinguisherById(clientId, buildingId, id);
+  const [extinguisher, setExtinguisher] = useState<Extinguisher | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setExtinguisher(getExtinguisherById(clientId, buildingId, id));
+    setIsLoading(false);
+  }, [clientId, buildingId, id]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Carregando...</div>;
+  }
 
   if (!extinguisher) {
     notFound();

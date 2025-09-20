@@ -26,7 +26,7 @@ export async function createClientAction(data: { name: string }) {
     return { message: 'Dados do formulário inválidos.' };
   }
   
-  const result = await addClient(validatedFields.data);
+  const result = addClient(validatedFields.data);
   
   if (result.client) {
     revalidatePath('/');
@@ -43,13 +43,15 @@ export async function createBuildingAction(clientId: string, data: { name: strin
       console.error(validatedFields.error.flatten().fieldErrors);
       return { message: 'Dados do formulário inválidos.' };
     }
-    try {
-      await addBuilding(clientId, validatedFields.data.name);
+    
+    const success = addBuilding(clientId, validatedFields.data.name);
+    
+    if (success) {
       revalidatePath(`/clients/${clientId}`);
       return { success: true, message: null };
-    } catch (e: any) {
-      return { success: false, message: `Erro de banco de dados: ${e.message}` };
     }
+    
+    return { success: false, message: `Erro de banco de dados.` };
 }
 
 
@@ -64,7 +66,7 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
   }
   
   try {
-    await addExtinguisher(clientId, buildingId, validatedFields.data as Omit<Extinguisher, 'qrCodeValue' | 'inspections'>);
+    addExtinguisher(clientId, buildingId, validatedFields.data as Omit<Extinguisher, 'qrCodeValue' | 'inspections'>);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     return true;
   } catch (e: any) {
@@ -83,7 +85,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
   }
 
   try {
-    await updateExtinguisher(clientId, buildingId, extinguisherId, validatedFields.data as Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>);
+    updateExtinguisher(clientId, buildingId, extinguisherId, validatedFields.data as Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisherId}`);
     return true;
@@ -103,7 +105,7 @@ export async function deleteExtinguisherAction(formData: FormData) {
     }
 
     try {
-      await deleteExtinguisher(clientId, buildingId, id);
+      deleteExtinguisher(clientId, buildingId, id);
     } catch (e: any) {
        throw new Error(`Erro de banco de dados: ${e.message}`);
     }
@@ -121,7 +123,7 @@ export async function createHoseAction(clientId: string, buildingId: string, for
   }
   
   try {
-    await addHose(clientId, buildingId, validatedFields.data as Omit<Hose, 'qrCodeValue' | 'inspections'>);
+    addHose(clientId, buildingId, validatedFields.data as Omit<Hose, 'qrCodeValue' | 'inspections'>);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     return true;
   } catch (e: any) {
@@ -138,7 +140,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, hos
       return false;
     }
     try {
-      await updateHose(clientId, buildingId, hoseId, validatedFields.data as Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>);
+      updateHose(clientId, buildingId, hoseId, validatedFields.data as Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>);
       revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
       revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
       return true;
@@ -158,7 +160,7 @@ export async function deleteHoseAction(formData: FormData) {
     }
 
     try {
-      await deleteHose(clientId, buildingId, id);
+      deleteHose(clientId, buildingId, id);
     } catch (e: any) {
        throw new Error(`Erro de banco de dados: ${e.message}`);
     }
@@ -170,7 +172,7 @@ export async function deleteHoseAction(formData: FormData) {
 // --- Inspection & Report Actions ---
 export async function logInspectionAction(qrCodeValue: string, notes: string, location?: { latitude: number; longitude: number }) {
   try {
-    const result = await addInspection(qrCodeValue, { date: new Date(), notes, location });
+    const result = addInspection(qrCodeValue, { date: new Date(), notes, location });
     if (!result) {
       return { message: 'Equipamento não encontrado para o QR code escaneado.' };
     }
@@ -182,7 +184,7 @@ export async function logInspectionAction(qrCodeValue: string, notes: string, lo
 }
 
 export async function getReportDataAction(clientId: string, buildingId: string) {
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-  const hoses = await getHosesByBuilding(clientId, buildingId);
+  const extinguishers = getExtinguishersByBuilding(clientId, buildingId);
+  const hoses = getHosesByBuilding(clientId, buildingId);
   return { extinguishers, hoses };
 }

@@ -1,22 +1,18 @@
-'use server';
+'use client';
 
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
-import fs from 'fs';
-import path from 'path';
 
-const dbPath = path.join(process.cwd(), 'db.json');
+const DB_KEY = 'fireguard_db';
 
-type Db = {
-  clients: Client[];
-};
-
-function readDb(): Db {
+function readDb(): { clients: Client[] } {
+  if (typeof window === 'undefined') {
+    return { clients: [] };
+  }
   try {
-    if (fs.existsSync(dbPath)) {
-      const fileContent = fs.readFileSync(dbPath, 'utf-8');
-      const data = JSON.parse(fileContent);
-      // Ensure buildings, extinguishers, and hoses arrays exist
-      if (data.clients) {
+    const dbString = window.localStorage.getItem(DB_KEY);
+    if (dbString) {
+      const data = JSON.parse(dbString);
+       if (data.clients) {
         data.clients.forEach((client: Client) => {
           client.buildings = client.buildings || [];
           client.buildings.forEach((building: Building) => {
@@ -28,38 +24,63 @@ function readDb(): Db {
       return data;
     }
   } catch (error) {
-    console.error("Error reading db.json:", error);
+    console.error("Error reading from localStorage:", error);
   }
-  // If the file doesn't exist or is empty, return a default structure
-  return { clients: [] };
+  
+  // Initialize with default data if empty or error
+  const initialDb = {
+    clients: [
+      {
+        "id": "client-1758331858862",
+        "name": "CPQD",
+        "buildings": [
+          {
+            "id": "bldg-1758332140558",
+            "name": "Prédio 1",
+            "extinguishers": [],
+            "hoses": []
+          },
+          {
+            "id": "bldg-1758332823582",
+            "name": "Prédio 2",
+            "extinguishers": [],
+            "hoses": []
+          }
+        ]
+      }
+    ]
+  };
+  writeDb(initialDb);
+  return initialDb;
 }
 
-function writeDb(data: Db) {
-  try {
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (error) {
-    console.error("Error writing to db.json:", error);
-  }
+function writeDb(data: { clients: Client[] }) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(DB_KEY, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error("Error writing to localStorage:", error);
+    }
 }
 
 // --- Client Functions ---
 
-export async function getClients(): Promise<Client[]> {
+export function getClients(): Client[] {
   const db = readDb();
-  return Promise.resolve(db.clients);
+  return db.clients;
 }
 
-export async function getClientById(clientId: string): Promise<Client | null> {
+export function getClientById(clientId: string): Client | null {
     const db = readDb();
     const client = db.clients.find(c => c.id === clientId);
     if (client) {
       client.buildings = client.buildings || [];
-      return Promise.resolve(client);
+      return client;
     }
     return null;
 }
 
-export async function addClient(data: { name: string }): Promise<{ client?: Client; message: string }> {
+export function addClient(data: { name: string }): { client?: Client; message: string } {
     try {
         const db = readDb();
         const newClient: Client = {
@@ -71,19 +92,19 @@ export async function addClient(data: { name: string }): Promise<{ client?: Clie
         writeDb(db);
         return { client: newClient, message: 'Sucesso' };
     } catch (e: any) {
-        return { message: `Erro de banco de dados: ${e.message}` };
+        return { message: `Erro ao adicionar cliente: ${e.message}` };
     }
 }
 
 // --- Building Functions ---
-export async function getBuildingById(clientId: string, buildingId: string): Promise<Building | null> {
-    const client = await getClientById(clientId);
+export function getBuildingById(clientId: string, buildingId: string): Building | null {
+    const client = getClientById(clientId);
     if (!client) return null;
     const building = client.buildings.find(b => b.id === buildingId);
     return building || null;
 }
 
-export async function addBuilding(clientId: string, name: string): Promise<boolean> {
+export function addBuilding(clientId: string, name: string): boolean {
     try {
         const db = readDb();
         const clientIndex = db.clients.findIndex(c => c.id === clientId);
@@ -100,7 +121,7 @@ export async function addBuilding(clientId: string, name: string): Promise<boole
         writeDb(db);
         return true;
     } catch (e: any) {
-        console.error(`Database error: ${e.message}`);
+        console.error(`Erro ao adicionar prédio: ${e.message}`);
         return false;
     }
 }
@@ -108,45 +129,45 @@ export async function addBuilding(clientId: string, name: string): Promise<boole
 
 // --- Equipment Functions ---
 
-export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
-    const building = await getBuildingById(clientId, buildingId);
+export function getExtinguishersByBuilding(clientId: string, buildingId: string): Extinguisher[] {
+    const building = getBuildingById(clientId, buildingId);
     if (!building) return [];
     return building.extinguishers.map(e => ({...e, expiryDate: new Date(e.expiryDate)}));
 }
 
-export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hose[]> {
-    const building = await getBuildingById(clientId, buildingId);
+export function getHosesByBuilding(clientId: string, buildingId: string): Hose[] {
+    const building = getBuildingById(clientId, buildingId);
     if (!building) return [];
     return building.hoses.map(h => ({...h, expiryDate: new Date(h.expiryDate)}));
 }
 
-export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
-    const building = await getBuildingById(clientId, buildingId);
+export function getExtinguisherById(clientId: string, buildingId: string, id: string): Extinguisher | null {
+    const building = getBuildingById(clientId, buildingId);
     if (!building) return null;
 
     const extinguisher = building.extinguishers.find(e => e.id === id);
     if (extinguisher) {
       extinguisher.expiryDate = new Date(extinguisher.expiryDate);
       extinguisher.inspections.forEach(i => i.date = new Date(i.date));
-      return Promise.resolve(extinguisher);
+      return extinguisher;
     }
     return null;
 }
 
-export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hose | null> {
-    const building = await getBuildingById(clientId, buildingId);
+export function getHoseById(clientId: string, buildingId: string, id: string): Hose | null {
+    const building = getBuildingById(clientId, buildingId);
     if (!building) return null;
 
     const hose = building.hoses.find(h => h.id === id);
     if (hose) {
       hose.expiryDate = new Date(hose.expiryDate);
       hose.inspections.forEach(i => i.date = new Date(i.date));
-      return Promise.resolve(hose);
+      return hose;
     }
     return null;
 }
 
-export async function addExtinguisher(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
+export function addExtinguisher(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
     const db = readDb();
     const client = db.clients.find(c => c.id === clientId);
     if (!client) throw new Error("Cliente não encontrado.");
@@ -163,7 +184,7 @@ export async function addExtinguisher(clientId: string, buildingId: string, data
     writeDb(db);
 }
 
-export async function addHose(clientId: string, buildingId: string, data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
+export function addHose(clientId: string, buildingId: string, data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
     const db = readDb();
     const client = db.clients.find(c => c.id === clientId);
     if (!client) throw new Error("Cliente não encontrado.");
@@ -180,7 +201,7 @@ export async function addHose(clientId: string, buildingId: string, data: Omit<H
     writeDb(db);
 }
 
-export async function updateExtinguisher(clientId: string, buildingId: string, id: string, data: Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>) {
+export function updateExtinguisher(clientId: string, buildingId: string, id: string, data: Omit<Extinguisher, 'id' | 'qrCodeValue' | 'inspections'>) {
     const db = readDb();
     const client = db.clients.find(c => c.id === clientId);
     if (!client) throw new Error("Cliente não encontrado.");
@@ -194,7 +215,7 @@ export async function updateExtinguisher(clientId: string, buildingId: string, i
     writeDb(db);
 }
 
-export async function updateHose(clientId: string, buildingId: string, id: string, data: Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>) {
+export function updateHose(clientId: string, buildingId: string, id: string, data: Omit<Hose, 'id' | 'qrCodeValue' | 'inspections'>) {
     const db = readDb();
     const client = db.clients.find(c => c.id === clientId);
     if (!client) throw new Error("Cliente não encontrado.");
@@ -208,7 +229,7 @@ export async function updateHose(clientId: string, buildingId: string, id: strin
     writeDb(db);
 }
 
-export async function deleteExtinguisher(clientId: string, buildingId: string, id: string): Promise<void> {
+export function deleteExtinguisher(clientId: string, buildingId: string, id: string) {
   const db = readDb();
   const client = db.clients.find(c => c.id === clientId);
   if (!client || !client.buildings) return;
@@ -219,7 +240,7 @@ export async function deleteExtinguisher(clientId: string, buildingId: string, i
   writeDb(db);
 }
 
-export async function deleteHose(clientId: string, buildingId: string, id: string): Promise<void> {
+export function deleteHose(clientId: string, buildingId: string, id: string) {
   const db = readDb();
   const client = db.clients.find(c => c.id === clientId);
   if (!client || !client.buildings) return;
@@ -231,7 +252,7 @@ export async function deleteHose(clientId: string, buildingId: string, id: strin
 }
 
 
-export async function addInspection(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
+export function addInspection(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): { redirectUrl: string } | null {
     const db = readDb();
     const newInspectionId = `insp-${Date.now()}`;
     const newInspection: Inspection = { ...inspectionData, id: newInspectionId };

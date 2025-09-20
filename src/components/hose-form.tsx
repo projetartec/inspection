@@ -36,7 +36,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
         title: "Sucesso!",
         description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
       });
-      router.refresh(); // Crucial: Invalida o cache do cliente
+      router.refresh();
       router.push(`/clients/${clientId}/${buildingId}/hoses`);
     } else {
       toast({

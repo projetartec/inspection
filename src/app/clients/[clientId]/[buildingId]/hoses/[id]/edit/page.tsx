@@ -1,13 +1,27 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { getHoseById } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { HoseForm } from '@/components/hose-form';
 import { QrCodeDisplay } from '@/components/qr-code-display';
+import type { Hose } from '@/lib/types';
 
-export default async function EditHosePage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
+export default function EditHosePage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hose = await getHoseById(clientId, buildingId, id);
+  const [hose, setHose] = useState<Hose | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setHose(getHoseById(clientId, buildingId, id));
+    setIsLoading(false);
+  }, [clientId, buildingId, id]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Carregando...</div>;
+  }
 
   if (!hose) {
     notFound();

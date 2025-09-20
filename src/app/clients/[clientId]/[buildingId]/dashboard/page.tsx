@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { Flame, Droplets, AlertTriangle } from "lucide-react";
@@ -5,17 +8,33 @@ import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
+import type { Building, Extinguisher, Hose } from '@/lib/types';
 
-export default async function DashboardPage({ params }: { params: { clientId: string, buildingId: string }}) {
+export default function DashboardPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
   
-  const building = await getBuildingById(clientId, buildingId);
+  const [building, setBuilding] = useState<Building | null>(null);
+  const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
+  const [hoses, setHoses] = useState<Hose[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const foundBuilding = getBuildingById(clientId, buildingId);
+    if (foundBuilding) {
+      setBuilding(foundBuilding);
+      setExtinguishers(getExtinguishersByBuilding(clientId, buildingId));
+      setHoses(getHosesByBuilding(clientId, buildingId));
+    }
+    setIsLoading(false);
+  }, [clientId, buildingId]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Carregando...</div>;
+  }
+
   if (!building) {
     notFound();
   }
-
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-  const hoses = await getHosesByBuilding(clientId, buildingId);
 
   const isExpired = (item: { expiryDate: Date }) => new Date(item.expiryDate) < new Date();
   const expiredExtinguishers = extinguishers.filter(isExpired).length;

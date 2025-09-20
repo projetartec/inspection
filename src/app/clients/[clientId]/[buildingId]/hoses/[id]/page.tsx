@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { getHoseById } from '@/lib/data';
@@ -11,10 +14,21 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
+import type { Hose } from '@/lib/types';
 
-export default async function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
+export default function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hose = await getHoseById(clientId, buildingId, id);
+  const [hose, setHose] = useState<Hose | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setHose(getHoseById(clientId, buildingId, id));
+    setIsLoading(false);
+  }, [clientId, buildingId, id]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Carregando...</div>;
+  }
 
   if (!hose) {
     notFound();

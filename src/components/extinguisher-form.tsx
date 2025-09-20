@@ -35,7 +35,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
         title: "Sucesso!",
         description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
       });
-      router.refresh(); // Crucial: Invalida o cache do cliente
+      router.refresh();
       router.push(`/clients/${clientId}/${buildingId}/extinguishers`);
     } else {
       toast({

@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import React from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,10 +24,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteExtinguisherAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
+import type { Extinguisher } from '@/lib/types';
 
-export default async function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
+export default function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+  const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setExtinguishers(getExtinguishersByBuilding(clientId, buildingId));
+    setIsLoading(false);
+  }, [clientId, buildingId]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Carregando...</div>;
+  }
 
   return (
     <>

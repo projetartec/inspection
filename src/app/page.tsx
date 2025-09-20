@@ -1,12 +1,26 @@
+'use client';
+
 import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { getClients } from "@/lib/data";
 import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
+import { Client } from "@/lib/types";
 
-export default async function Home() {
-  const clients = await getClients();
+export default function Home() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setClients(getClients());
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
+      return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  }
 
   return (
     <div className="min-h-screen container mx-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center">
