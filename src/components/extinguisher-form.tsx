@@ -47,12 +47,13 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
   });
 
   function onSubmit(data: ExtinguisherFormValues) {
+    let result: { message: string; } | undefined;
     startTransition(async () => {
       const action = isEditMode
         ? updateExtinguisherAction(extinguisher.id, data)
         : createExtinguisherAction(data);
 
-      const result = await action;
+      result = await action;
       
       if (result?.message) {
         toast({

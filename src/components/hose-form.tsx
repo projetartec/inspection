@@ -49,12 +49,13 @@ export function HoseForm({ hose }: HoseFormProps) {
   });
 
   function onSubmit(data: HoseFormValues) {
+    let result: { message: string; } | undefined;
     startTransition(async () => {
       const action = isEditMode
         ? updateHoseAction(hose.id, data)
         : createHoseAction(data);
         
-      const result = await action;
+      result = await action;
 
       if (result?.message) {
         toast({
