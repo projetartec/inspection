@@ -140,3 +140,21 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
     }
     return null;
 }
+
+export async function deleteExtinguisher(id: string): Promise<void> {
+  const index = extinguishers.findIndex(e => e.id === id);
+  if (index === -1) {
+    throw new Error('Extintor não encontrado.');
+  }
+  extinguishers.splice(index, 1);
+  return Promise.resolve();
+}
+
+export async function deleteHose(id: string): Promise<void> {
+  const index = hoses.findIndex(h => h.id === id);
+  if (index === -1) {
+    throw new Error('Sistema de mangueira não encontrado.');
+  }
+  hoses.splice(index, 1);
+  return Promise.resolve();
+}

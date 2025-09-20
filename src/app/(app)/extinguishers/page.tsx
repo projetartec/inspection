@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { PlusCircle, Pencil } from "lucide-react";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { getExtinguishers } from "@/lib/data";
@@ -8,9 +10,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import React from "react";
+import type { Extinguisher } from "@/lib/types";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { deleteExtinguisherAction } from "@/lib/actions";
+import { useRouter } from "next/navigation";
 
-export default async function ExtinguishersPage() {
-  const extinguishers = await getExtinguishers();
+export default function ExtinguishersPage() {
+  const [extinguishers, setExtinguishers] = React.useState<Extinguisher[]>([]);
+  const router = useRouter();
+
+  React.useEffect(() => {
+    getExtinguishers().then(setExtinguishers);
+  }, []);
+
+  const refreshList = () => {
+    getExtinguishers().then(setExtinguishers);
+    router.refresh();
+  }
 
   return (
     <>
@@ -44,7 +61,9 @@ export default async function ExtinguishersPage() {
                         const isExpired = new Date(ext.expiryDate) < new Date();
                         return (
                         <TableRow key={ext.id}>
-                            <TableCell className="font-medium">{ext.id}</TableCell>
+                            <TableCell className="font-medium">
+                              <Link href={`/extinguishers/${ext.id}`} className="hover:underline">{ext.id}</Link>
+                            </TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell>{ext.weight}</TableCell>
                             <TableCell>{format(new Date(ext.expiryDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
@@ -53,16 +72,24 @@ export default async function ExtinguishersPage() {
                                     {isExpired ? 'Vencido' : 'Ativo'}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-right space-x-2">
-                                <Button asChild variant="ghost" size="sm">
-                                    <Link href={`/extinguishers/${ext.id}`}>Ver</Link>
-                                </Button>
+                            <TableCell className="text-right space-x-2 flex items-center justify-end">
                                 <Button asChild variant="ghost" size="sm">
                                     <Link href={`/extinguishers/${ext.id}/edit`}>
                                         <Pencil className="h-4 w-4" />
                                         <span className="sr-only">Editar</span>
                                     </Link>
                                 </Button>
+                                <DeleteConfirmationDialog
+                                  itemId={ext.id}
+                                  itemName="Extintor"
+                                  deleteAction={deleteExtinguisherAction}
+                                  onSuccess={refreshList}
+                                >
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Deletar</span>
+                                  </Button>
+                                </DeleteConfirmationDialog>
                             </TableCell>
                         </TableRow>
                         );

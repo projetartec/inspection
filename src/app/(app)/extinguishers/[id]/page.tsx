@@ -50,7 +50,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { id:
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {details.map(detail => (
                     <div key={detail.label}>
-                        <p className="text-sm font-medium text-muted-foreground">{detail.label}</p>
+                        <div className="text-sm font-medium text-muted-foreground">{detail.label}</div>
                         <div className="text-lg font-semibold">{detail.value}</div>
                     </div>
                     ))}

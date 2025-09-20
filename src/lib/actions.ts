@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addExtinguisher, addHose, addInspection, getExtinguishers, getHoses, updateExtinguisher, updateHose } from '@/lib/data';
+import { addExtinguisher, addHose, addInspection, deleteExtinguisher, deleteHose, getExtinguishers, getHoses, updateExtinguisher, updateHose } from '@/lib/data';
 import type { ExtinguisherFormValues, HoseFormValues } from './schemas';
 import { ExtinguisherFormSchema, HoseFormSchema } from './schemas';
 
@@ -79,4 +79,22 @@ export async function getReportDataAction() {
   const extinguishers = await getExtinguishers();
   const hoses = await getHoses();
   return { extinguishers, hoses };
+}
+
+export async function deleteExtinguisherAction(id: string) {
+  try {
+    await deleteExtinguisher(id);
+  } catch (e: any) {
+    return { message: `Erro de banco de dados: ${e.message}` };
+  }
+  revalidatePath('/extinguishers');
+}
+
+export async function deleteHoseAction(id: string) {
+  try {
+    await deleteHose(id);
+  } catch (e: any) {
+    return { message: `Erro de banco de dados: ${e.message}` };
+  }
+  revalidatePath('/hoses');
 }
