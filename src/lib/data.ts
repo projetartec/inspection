@@ -59,29 +59,19 @@ export async function getClientById(clientId: string): Promise<Client | null> {
     return null;
 }
 
-export async function addClient(formData: FormData): Promise<boolean> {
-    const validatedFields = ClientFormSchema.safeParse({
-        name: formData.get('name'),
-    });
-
-    if (!validatedFields.success) {
-        console.error(validatedFields.error.flatten().fieldErrors);
-        return false;
-    }
-
+export async function addClient(data: { name: string }): Promise<{ client?: Client; message: string }> {
     try {
         const db = readDb();
         const newClient: Client = {
             id: `client-${Date.now()}`,
-            name: validatedFields.data.name,
+            name: data.name,
             buildings: [],
         };
         db.clients.push(newClient);
         writeDb(db);
-        return true;
+        return { client: newClient, message: 'Sucesso' };
     } catch (e: any) {
-        console.error(`Database error: ${e.message}`);
-        return false;
+        return { message: `Erro de banco de dados: ${e.message}` };
     }
 }
 
@@ -93,14 +83,7 @@ export async function getBuildingById(clientId: string, buildingId: string): Pro
     return building || null;
 }
 
-export async function addBuilding(clientId: string, formData: FormData): Promise<boolean> {
-    const validatedFields = BuildingFormSchema.safeParse({
-        name: formData.get('name'),
-    });
-     if (!validatedFields.success) {
-        console.error(validatedFields.error.flatten().fieldErrors);
-        return false;
-    }
+export async function addBuilding(clientId: string, name: string): Promise<boolean> {
     try {
         const db = readDb();
         const clientIndex = db.clients.findIndex(c => c.id === clientId);
@@ -109,7 +92,7 @@ export async function addBuilding(clientId: string, formData: FormData): Promise
         }
         const newBuilding: Building = {
             id: `bldg-${Date.now()}`,
-            name: validatedFields.data.name,
+            name: name,
             extinguishers: [],
             hoses: [],
         };

@@ -25,13 +25,15 @@ export async function createClientAction(data: { name: string }) {
     console.error(validatedFields.error.flatten().fieldErrors);
     return { message: 'Dados do formulário inválidos.' };
   }
-  try {
-    const newClient = await addClient(validatedFields.data.name);
+  
+  const result = await addClient(validatedFields.data);
+  
+  if (result.client) {
     revalidatePath('/');
-    return { client: newClient, message: null };
-  } catch (e: any) {
-    return { message: `Erro de banco de dados: ${e.message}` };
+    return { client: result.client, message: null };
   }
+  
+  return { message: result.message };
 }
 
 // --- Building Actions ---
