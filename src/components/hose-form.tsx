@@ -142,7 +142,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Quantidade de Bicos</FormLabel>
-                <Select onValuechange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade de bicos" /></SelectTrigger></FormControl>
                   <SelectContent>{nozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
