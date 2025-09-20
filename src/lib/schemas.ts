@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { extinguisherTypes, extinguisherWeights, hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities } from '@/lib/types';
 
 // Schemas for validation
+export const ClientFormSchema = z.object({
+  name: z.string().min(2, 'O nome do cliente deve ter pelo menos 2 caracteres.'),
+});
+export type ClientFormValues = z.infer<typeof ClientFormSchema>;
+
 export const ExtinguisherFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
   type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.', invalid_type_error: 'Por favor, selecione um tipo.' }),

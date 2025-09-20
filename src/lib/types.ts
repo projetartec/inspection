@@ -47,3 +47,16 @@ export type Hose = {
   observations: string;
   inspections: Inspection[];
 };
+
+export type Building = {
+  id: string;
+  name: string;
+  extinguishers: Extinguisher[];
+  hoses: Hose[];
+};
+
+export type Client = {
+  id: string;
+  name: string;
+  buildings: Building[];
+};

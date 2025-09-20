@@ -1,12 +1,36 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { addExtinguisher, addHose, addInspection, deleteExtinguisher, deleteHose, getExtinguishers, getHoses, updateExtinguisher, updateHose } from '@/lib/data';
-import type { ExtinguisherFormValues, HoseFormValues } from './schemas';
-import { ExtinguisherFormSchema, HoseFormSchema } from './schemas';
+import { 
+  addClient,
+  addExtinguisher, 
+  addHose, 
+  addInspection, 
+  deleteExtinguisher, 
+  deleteHose, 
+  getExtinguishers, 
+  getHoses, 
+  updateExtinguisher, 
+  updateHose 
+} from '@/lib/data';
+import { ExtinguisherFormSchema, HoseFormSchema, ClientFormSchema, type ExtinguisherFormValues, type HoseFormValues, type ClientFormValues } from './schemas';
 
+// --- Client Actions ---
+export async function createClientAction(data: ClientFormValues) {
+  const validatedFields = ClientFormSchema.safeParse(data);
+  if (!validatedFields.success) {
+    return { message: 'Dados do formulário inválidos.' };
+  }
+  try {
+    const newClient = await addClient(validatedFields.data.name);
+    revalidatePath('/');
+    return { client: newClient };
+  } catch (e: any) {
+    return { message: `Erro de banco de dados: ${e.message}` };
+  }
+}
 
-// Server Actions
+// --- Equipment Actions (to be refactored) ---
 export async function createExtinguisherAction(data: ExtinguisherFormValues) {
   const validatedFields = ExtinguisherFormSchema.safeParse(data);
   if (!validatedFields.success) {
@@ -17,6 +41,7 @@ export async function createExtinguisherAction(data: ExtinguisherFormValues) {
   } catch (e: any) {
     return { message: `Erro de banco de dados: ${e.message}` };
   }
+  // This path will need to be dynamic based on the client/building
   revalidatePath('/extinguishers');
 }
 
@@ -30,6 +55,7 @@ export async function updateExtinguisherAction(id: string, data: ExtinguisherFor
   } catch (e: any) {
     return { message: `Erro de banco de dados: ${e.message}` };
   }
+  // These paths will need to be dynamic
   revalidatePath('/extinguishers');
   revalidatePath(`/extinguishers/${id}`);
 }
@@ -45,6 +71,7 @@ export async function createHoseAction(data: HoseFormValues) {
   } catch (e: any) {
     return { message: `Erro de banco de dados: ${e.message}` };
   }
+  // This path will need to be dynamic
   revalidatePath('/hoses');
 }
 
@@ -58,6 +85,7 @@ export async function updateHoseAction(id: string, data: HoseFormValues) {
     } catch (e: any) {
       return { message: `Erro de banco de dados: ${e.message}` };
     }
+    // These paths will need to be dynamic
     revalidatePath('/hoses');
     revalidatePath(`/hoses/${id}`);
   }
@@ -76,6 +104,7 @@ export async function logInspectionAction(qrCodeValue: string, notes: string, lo
 }
 
 export async function getReportDataAction() {
+  // This will need to be updated to get data for a specific building
   const extinguishers = await getExtinguishers();
   const hoses = await getHoses();
   return { extinguishers, hoses };
@@ -87,6 +116,7 @@ export async function deleteExtinguisherAction(id: string) {
   } catch (e: any) {
     return { message: `Erro de banco de dados: ${e.message}` };
   }
+  // This path will need to be dynamic
   revalidatePath('/extinguishers');
 }
 
@@ -96,5 +126,6 @@ export async function deleteHoseAction(id: string) {
   } catch (e: any) {
     return { message: `Erro de banco de dados: ${e.message}` };
   }
+  // This path will need to be dynamic
   revalidatePath('/hoses');
 }
