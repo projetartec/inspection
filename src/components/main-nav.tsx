@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, ScanLine, PanelLeft } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import {
   SidebarHeader,
@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ReportGenerator } from "@/components/report-generator";
 
@@ -21,13 +22,13 @@ export function MainNav() {
     { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
     { href: "/extinguishers", label: "Extintores", icon: Flame },
     { href: "/hoses", label: "Mangueiras", icon: Droplets },
-    { href: "/scan", label: "Escanear QR Code", icon: ScanLine },
   ];
 
   return (
     <>
-      <SidebarHeader>
+      <SidebarHeader className="flex items-center justify-between">
         <AppLogo />
+        <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>

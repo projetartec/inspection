@@ -8,6 +8,15 @@
       "observations": "",
       "qrCodeValue": "fireguard-123",
       "inspections": []
+    },
+    {
+      "id": "458",
+      "type": "AP",
+      "weight": 10,
+      "expiryDate": "2025-10-04T03:00:00.000Z",
+      "observations": "próximo a sala 1",
+      "qrCodeValue": "fireguard-458",
+      "inspections": []
     }
   ],
   "hoses": []
