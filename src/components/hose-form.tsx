@@ -21,10 +21,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "./ui/input";
 
 interface HoseFormProps {
+    clientId: string;
+    buildingId: string;
     hose?: Hose;
 }
 
-export function HoseForm({ hose }: HoseFormProps) {
+export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
@@ -51,8 +53,8 @@ export function HoseForm({ hose }: HoseFormProps) {
   function onSubmit(data: HoseFormValues) {
     startTransition(async () => {
       const action = isEditMode
-        ? updateHoseAction(hose.id, data)
-        : createHoseAction(data);
+        ? updateHoseAction(clientId, buildingId, hose.id, data)
+        : createHoseAction(clientId, buildingId, data);
         
       const result = await action;
 
@@ -67,7 +69,7 @@ export function HoseForm({ hose }: HoseFormProps) {
           title: "Sucesso",
           description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.push("/hoses");
+        router.push(`/clients/${clientId}/${buildingId}/hoses`);
       }
     });
   }
@@ -140,7 +142,7 @@ export function HoseForm({ hose }: HoseFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Quantidade de Bicos</FormLabel>
-                <Select onValueChange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
+                <Select onValuechange={v => field.onChange(Number(v))} defaultValue={String(field.value)}>
                   <FormControl><SelectTrigger><SelectValue placeholder="Selecione a quantidade de bicos" /></SelectTrigger></FormControl>
                   <SelectContent>{nozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>

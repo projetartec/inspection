@@ -21,10 +21,12 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 
 interface ExtinguisherFormProps {
+  clientId: string;
+  buildingId: string;
   extinguisher?: Extinguisher;
 }
 
-export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
+export function ExtinguisherForm({ clientId, buildingId, extinguisher }: ExtinguisherFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = React.useTransition();
@@ -49,8 +51,8 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
   function onSubmit(data: ExtinguisherFormValues) {
     startTransition(async () => {
       const action = isEditMode
-        ? updateExtinguisherAction(extinguisher.id, data)
-        : createExtinguisherAction(data);
+        ? updateExtinguisherAction(clientId, buildingId, extinguisher.id, data)
+        : createExtinguisherAction(clientId, buildingId, data);
 
       const result = await action;
       
@@ -65,7 +67,7 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
           title: "Sucesso",
           description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.push("/extinguishers");
+        router.push(`/clients/${clientId}/${buildingId}/extinguishers`);
       }
     });
   }

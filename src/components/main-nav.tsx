@@ -23,16 +23,41 @@ export function MainNav() {
   const { clientId, buildingId } = params;
 
   if (!clientId || !buildingId) {
-    return null; // Don't render nav if we are not in a building context
+    // If we are not in a building context, render a simpler nav,
+    // maybe just the logo and a link to home.
+    return (
+        <>
+            <SidebarHeader>
+                <AppLogo />
+                <SidebarTrigger className="hidden md:flex" />
+            </SidebarHeader>
+            <SidebarContent>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Todos os Clientes">
+                            <Link href="/">
+                                <Users />
+                                <span>Todos os Clientes</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarContent>
+        </>
+    );
   }
 
-  const basePath = `/clients/${clientId}/${buildingId}`;
+  const buildingBasePath = `/clients/${clientId}/${buildingId}`;
 
   const menuItems = [
-    { href: `${basePath}/dashboard`, label: "Painel", icon: LayoutDashboard },
-    { href: `${basePath}/extinguishers`, label: "Extintores", icon: Flame },
-    { href: `${basePath}/hoses`, label: "Mangueiras", icon: Droplets },
+    { href: `${buildingBasePath}/dashboard`, label: "Painel do Prédio", icon: LayoutDashboard },
+    { href: `${buildingBasePath}/extinguishers`, label: "Extintores", icon: Flame },
+    { href: `${buildingBasePath}/hoses`, label: "Mangueiras", icon: Droplets },
   ];
+
+  const isBuildingDashboard = pathname === `${buildingBasePath}/dashboard`;
+  const isExtinguishersPage = pathname.startsWith(`${buildingBasePath}/extinguishers`);
+  const isHosesPage = pathname.startsWith(`${buildingBasePath}/hoses`);
 
   return (
     <>
@@ -63,7 +88,11 @@ export function MainNav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname.startsWith(item.href) && (item.href === `${basePath}/dashboard` ? pathname === item.href : true)}
+                isActive={
+                    (item.href === `${buildingBasePath}/dashboard` && isBuildingDashboard) ||
+                    (item.href === `${buildingBasePath}/extinguishers` && isExtinguishersPage) ||
+                    (item.href === `${buildingBasePath}/hoses` && isHosesPage)
+                }
                 tooltip={item.label}
               >
                 <Link href={item.href}>
