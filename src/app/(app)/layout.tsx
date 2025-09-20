@@ -17,7 +17,6 @@ export default function AppLayout({
                     {children}
                 </main>
                 <div className="h-16 md:hidden" />
-                <MobileNav />
             </SidebarInset>
         </SidebarProvider>
     );

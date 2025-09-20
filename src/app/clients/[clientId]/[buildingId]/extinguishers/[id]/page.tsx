@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
-import { getHoseById } from '@/lib/data';
+import { getExtinguisherById } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,30 +12,29 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 
-export default async function HoseDetailPage({ params }: { params: { id: string } }) {
-  const hose = await getHoseById(params.id);
+export default async function ExtinguisherDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
+  const { clientId, buildingId, id } = params;
+  const extinguisher = await getExtinguisherById(clientId, buildingId, id);
 
-  if (!hose) {
+  if (!extinguisher) {
     notFound();
   }
 
-  const isExpired = new Date(hose.expiryDate) < new Date();
+  const isExpired = new Date(extinguisher.expiryDate) < new Date();
 
   const details = [
-    { label: 'Valor do QR Code', value: hose.qrCodeValue },
-    { label: 'Tipo de Mangueira', value: `${hose.hoseType}"` },
-    { label: 'Quantidade de Mangueiras', value: hose.quantity },
-    { label: 'Quantidade de Chaves', value: hose.keyQuantity },
-    { label: 'Quantidade de Bicos', value: hose.nozzleQuantity },
-    { label: 'Data de Validade', value: format(new Date(hose.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) },
+    { label: 'Valor do QR Code', value: extinguisher.qrCodeValue },
+    { label: 'Tipo', value: extinguisher.type },
+    { label: 'Peso', value: `${extinguisher.weight} kg` },
+    { label: 'Data de Validade', value: format(new Date(extinguisher.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) },
     { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Sistema de Mangueira: ${hose.id}`}>
+      <PageHeader title={`Extintor: ${extinguisher.id}`}>
         <Button asChild variant="outline">
-          <Link href={`/hoses/${hose.id}/edit`}>
+          <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}/edit`}>
             <Pencil className="mr-2" />
             Editar
           </Link>
@@ -57,12 +56,12 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
                     </div>
                     ))}
                 </div>
-                {hose.observations && (
+                {extinguisher.observations && (
                     <>
                     <Separator />
                     <div>
                         <p className="text-sm font-medium text-muted-foreground">Observações</p>
-                        <p className="text-base">{hose.observations}</p>
+                        <p className="text-base">{extinguisher.observations}</p>
                     </div>
                     </>
                 )}
@@ -72,7 +71,7 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
             <Card>
                 <CardHeader>
                 <CardTitle>Histórico de Inspeção</CardTitle>
-                <CardDescription>Um registro de todas as inspeções para este sistema.</CardDescription>
+                <CardDescription>Um registro de todas as inspeções para este equipamento.</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Table>
@@ -84,7 +83,7 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {hose.inspections.length > 0 ? hose.inspections.map(insp => (
+                    {extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
                         <TableRow key={insp.id}>
                         <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                         <TableCell>
@@ -103,7 +102,7 @@ export default async function HoseDetailPage({ params }: { params: { id: string 
             </Card>
         </div>
         <div className="md:col-span-1">
-            <QrCodeDisplay value={hose.qrCodeValue} label={hose.id} />
+            <QrCodeDisplay value={extinguisher.qrCodeValue} label={extinguisher.id} />
         </div>
       </div>
     </div>
