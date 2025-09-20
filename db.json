@@ -15,6 +15,25 @@
               "expiryDate": "2025-09-19T03:00:00.000Z",
               "observations": "próximo a sala 1",
               "qrCodeValue": "fireguard-123",
+              "inspections": [
+                {
+                  "date": "2025-09-20T01:54:21.670Z",
+                  "notes": "Ok",
+                  "location": {
+                    "latitude": -22.8188322,
+                    "longitude": -47.285263
+                  },
+                  "id": "insp-1758333261670"
+                }
+              ]
+            },
+            {
+              "id": "143",
+              "type": "CO2",
+              "weight": 6,
+              "expiryDate": "2025-10-31T03:00:00.000Z",
+              "observations": "sala 2",
+              "qrCodeValue": "fireguard-143",
               "inspections": []
             }
           ],
