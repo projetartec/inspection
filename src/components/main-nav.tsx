@@ -19,12 +19,11 @@ import { Button } from "./ui/button";
 
 export function MainNav() {
   const pathname = usePathname();
-  const params = useParams() as { clientId: string, buildingId: string };
+  const params = useParams() as { clientId?: string, buildingId?: string };
   const { clientId, buildingId } = params;
 
   if (!clientId || !buildingId) {
-    // If we are not in a building context, render a simpler nav,
-    // maybe just the logo and a link to home.
+    // If we are not in a building context, render a simpler nav.
     return (
         <>
             <SidebarHeader>
@@ -41,6 +40,16 @@ export function MainNav() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    {clientId && (
+                         <SidebarMenuItem>
+                            <Button variant="ghost" className="w-full justify-start" asChild>
+                                <Link href={`/`}>
+                                    <ChevronLeft />
+                                    <span>Todos os Clientes</span>
+                                </Link>
+                            </Button>
+                        </SidebarMenuItem>
+                    )}
                 </SidebarMenu>
             </SidebarContent>
         </>

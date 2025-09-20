@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine, Users } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
@@ -10,8 +10,8 @@ export function MobileNav() {
   const params = useParams() as { clientId?: string, buildingId?: string };
   const { clientId, buildingId } = params;
 
-  if (!clientId || !buildingId) {
-    // Show a simplified nav for client and building selection pages
+  if (!clientId) {
+    // Root page (client list)
     return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
             <nav className="flex items-center justify-around h-full">
@@ -23,6 +23,25 @@ export function MobileNav() {
         </div>
     )
   }
+
+  if (clientId && !buildingId) {
+    // Building list page for a client
+     return (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
+            <nav className="flex items-center justify-around h-full">
+                 <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
+                    <ChevronLeft className="h-6 w-6 mb-1" />
+                    <span>Todos os Clientes</span>
+                </Link>
+                <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.startsWith(`/clients/${clientId}`) && !pathname.includes('/', `/clients/${clientId}`.length + 1) ? "text-primary" : "text-muted-foreground")}>
+                    <Users className="h-6 w-6 mb-1" />
+                    <span>Prédios</span>
+                </Link>
+            </nav>
+        </div>
+    )
+  }
+
 
   const buildingBasePath = `/clients/${clientId}/${buildingId}`;
 
@@ -37,7 +56,7 @@ export function MobileNav() {
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
       <nav className="flex items-center justify-around h-full">
         {menuItems.map((item) => {
-          const isActive = pathname.startsWith(item.href) && (item.href.endsWith('/dashboard') ? pathname === item.href : true);
+          const isActive = pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
