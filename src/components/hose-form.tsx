@@ -49,13 +49,12 @@ export function HoseForm({ hose }: HoseFormProps) {
   });
 
   function onSubmit(data: HoseFormValues) {
-    let result: { message: string; } | undefined;
     startTransition(async () => {
       const action = isEditMode
         ? updateHoseAction(hose.id, data)
         : createHoseAction(data);
         
-      result = await action;
+      const result = await action;
 
       if (result?.message) {
         toast({
@@ -68,7 +67,7 @@ export function HoseForm({ hose }: HoseFormProps) {
           title: "Sucesso",
           description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        window.location.href = "/hoses";
+        router.push("/hoses");
       }
     });
   }

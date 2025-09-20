@@ -47,13 +47,12 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
   });
 
   function onSubmit(data: ExtinguisherFormValues) {
-    let result: { message: string; } | undefined;
     startTransition(async () => {
       const action = isEditMode
         ? updateExtinguisherAction(extinguisher.id, data)
         : createExtinguisherAction(data);
 
-      result = await action;
+      const result = await action;
       
       if (result?.message) {
         toast({
@@ -66,7 +65,7 @@ export function ExtinguisherForm({ extinguisher }: ExtinguisherFormProps) {
           title: "Sucesso",
           description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        window.location.href = "/extinguishers";
+        router.push("/extinguishers");
       }
     });
   }
