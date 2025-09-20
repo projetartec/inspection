@@ -67,7 +67,7 @@ export function HoseForm({ hose }: HoseFormProps) {
           title: "Sucesso",
           description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
-        router.push("/hoses");
+        window.location.href = "/hoses";
       }
     });
   }
