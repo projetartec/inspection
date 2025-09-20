@@ -6,7 +6,8 @@ import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/typ
 // --- Helper Functions to manage localStorage ---
 function getDb() {
   if (typeof window === 'undefined') {
-    return initialDb;
+    // Return a deep copy to avoid modifying the original object in memory during server-side rendering
+    return JSON.parse(JSON.stringify(initialDb));
   }
   const dbString = localStorage.getItem('fireguard_db');
   if (dbString) {
@@ -22,8 +23,9 @@ function getDb() {
     }
   }
   // If no valid DB in localStorage, initialize it
-  localStorage.setItem('fireguard_db', JSON.stringify(initialDb));
-  return initialDb;
+  const initialDbCopy = JSON.parse(JSON.stringify(initialDb));
+  localStorage.setItem('fireguard_db', JSON.stringify(initialDbCopy));
+  return initialDbCopy;
 }
 
 function saveDb(db: any) {
@@ -48,6 +50,10 @@ export async function getClientById(clientId: string): Promise<Client | null> {
 
 export async function addClient(data: { name: string }): Promise<Client> {
   const db = getDb();
+  const existingClient = db.clients.find((c: Client) => c.name.toLowerCase() === data.name.toLowerCase());
+  if (existingClient) {
+    throw new Error('Um cliente com este nome já existe.');
+  }
   const newClient: Client = {
     id: `client-${Date.now()}`,
     name: data.name,
@@ -70,8 +76,13 @@ export async function addBuilding(clientId: string, name: string): Promise<Build
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
     if (clientIndex === -1) {
-        throw new Error('Client not found');
+        throw new Error('Cliente não encontrado.');
     }
+    const client = db.clients[clientIndex];
+    if (client.buildings.find(b => b.name.toLowerCase() === name.toLowerCase())) {
+        throw new Error('Um local com este nome já existe para este cliente.');
+    }
+
     const newBuilding: Building = {
         id: `bldg-${Date.now()}`,
         name: name,
@@ -112,34 +123,48 @@ export async function getHoseById(clientId: string, buildingId: string, id: stri
 export async function addExtinguisher(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
-    if (clientIndex === -1) throw new Error("Client not found");
-    const buildingIndex = db.clients[clientIndex].buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex === -1) throw new Error("Building not found");
+    if (clientIndex === -1) throw new Error("Cliente não encontrado.");
+    
+    const buildingIndex = db.clients[clientIndex].buildings.findIndex((b: Building) => b.id === buildingId);
+    if (buildingIndex === -1) throw new Error("Local não encontrado.");
+
+    const building = db.clients[clientIndex].buildings[buildingIndex];
+
+    if (building.extinguishers.some((e: Extinguisher) => e.id === data.id)) {
+        throw new Error("ID do extintor já existe neste local.");
+    }
 
     const newExtinguisher: Extinguisher = {
         ...data,
         qrCodeValue: `fireguard-ext-${data.id}`,
         inspections: [],
     };
-    if (!db.clients[clientIndex].buildings[buildingIndex].extinguishers) db.clients[clientIndex].buildings[buildingIndex].extinguishers = [];
-    db.clients[clientIndex].buildings[buildingIndex].extinguishers.push(newExtinguisher);
+    
+    building.extinguishers.push(newExtinguisher);
     saveDb(db);
 }
 
 export async function addHose(clientId: string, buildingId: string, data: Omit<Hose, 'qrCodeValue' | 'inspections'>) {
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
-    if (clientIndex === -1) throw new Error("Client not found");
-    const buildingIndex = db.clients[clientIndex].buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex === -1) throw new Error("Building not found");
+    if (clientIndex === -1) throw new Error("Cliente não encontrado.");
+    
+    const buildingIndex = db.clients[clientIndex].buildings.findIndex((b: Building) => b.id === buildingId);
+    if (buildingIndex === -1) throw new Error("Local não encontrado.");
 
+    const building = db.clients[clientIndex].buildings[buildingIndex];
+
+    if (building.hoses.some((h: Hose) => h.id === data.id)) {
+        throw new Error("ID do sistema de mangueira já existe neste local.");
+    }
+    
     const newHose: Hose = {
         ...data,
         qrCodeValue: `fireguard-hose-${data.id}`,
         inspections: [],
     };
-    if (!db.clients[clientIndex].buildings[buildingIndex].hoses) db.clients[clientIndex].buildings[buildingIndex].hoses = [];
-    db.clients[clientIndex].buildings[buildingIndex].hoses.push(newHose);
+    
+    building.hoses.push(newHose);
     saveDb(db);
 }
 
@@ -147,11 +172,11 @@ export async function addHose(clientId: string, buildingId: string, data: Omit<H
 export async function updateExtinguisher(clientId: string, buildingId: string, id: string, data: Partial<Omit<Extinguisher, 'id'>>) {
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
-    if (clientIndex === -1) throw new Error("Client not found");
-    const buildingIndex = db.clients[clientIndex].buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex === -1) throw new Error("Building not found");
-    const extIndex = db.clients[clientIndex].buildings[buildingIndex].extinguishers.findIndex(e => e.id === id);
-    if (extIndex === -1) throw new Error("Extinguisher not found");
+    if (clientIndex === -1) throw new Error("Cliente não encontrado");
+    const buildingIndex = db.clients[clientIndex].buildings.findIndex((b: Building) => b.id === buildingId);
+    if (buildingIndex === -1) throw new Error("Local não encontrado");
+    const extIndex = db.clients[clientIndex].buildings[buildingIndex].extinguishers.findIndex((e: Extinguisher) => e.id === id);
+    if (extIndex === -1) throw new Error("Extintor não encontrado");
     
     db.clients[clientIndex].buildings[buildingIndex].extinguishers[extIndex] = { ...db.clients[clientIndex].buildings[buildingIndex].extinguishers[extIndex], ...data };
     saveDb(db);
@@ -160,11 +185,11 @@ export async function updateExtinguisher(clientId: string, buildingId: string, i
 export async function updateHose(clientId: string, buildingId: string, id: string, data: Partial<Omit<Hose, 'id'>>) {
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
-    if (clientIndex === -1) throw new Error("Client not found");
-    const buildingIndex = db.clients[clientIndex].buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex === -1) throw new Error("Building not found");
-    const hoseIndex = db.clients[clientIndex].buildings[buildingIndex].hoses.findIndex(h => h.id === id);
-    if (hoseIndex === -1) throw new Error("Hose not found");
+    if (clientIndex === -1) throw new Error("Cliente não encontrado");
+    const buildingIndex = db.clients[clientIndex].buildings.findIndex((b: Building) => b.id === buildingId);
+    if (buildingIndex === -1) throw new Error("Local não encontrado");
+    const hoseIndex = db.clients[clientIndex].buildings[buildingIndex].hoses.findIndex((h: Hose) => h.id === id);
+    if (hoseIndex === -1) throw new Error("Sistema de mangueira não encontrado");
     
     db.clients[clientIndex].buildings[buildingIndex].hoses[hoseIndex] = { ...db.clients[clientIndex].buildings[buildingIndex].hoses[hoseIndex], ...data };
     saveDb(db);
@@ -174,22 +199,22 @@ export async function updateHose(clientId: string, buildingId: string, id: strin
 export async function deleteExtinguisher(clientId: string, buildingId: string, id: string) {
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
-    if (clientIndex === -1) throw new Error("Client not found");
-    const buildingIndex = db.clients[clientIndex].buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex === -1) throw new Error("Building not found");
+    if (clientIndex === -1) throw new Error("Cliente não encontrado");
+    const buildingIndex = db.clients[clientIndex].buildings.findIndex((b: Building) => b.id === buildingId);
+    if (buildingIndex === -1) throw new Error("Local não encontrado");
     
-    db.clients[clientIndex].buildings[buildingIndex].extinguishers = db.clients[clientIndex].buildings[buildingIndex].extinguishers.filter(e => e.id !== id);
+    db.clients[clientIndex].buildings[buildingIndex].extinguishers = db.clients[clientIndex].buildings[buildingIndex].extinguishers.filter((e: Extinguisher) => e.id !== id);
     saveDb(db);
 }
 
 export async function deleteHose(clientId: string, buildingId: string, id: string) {
     const db = getDb();
     const clientIndex = db.clients.findIndex((c: Client) => c.id === clientId);
-    if (clientIndex === -1) throw new Error("Client not found");
-    const buildingIndex = db.clients[clientIndex].buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex === -1) throw new Error("Building not found");
+    if (clientIndex === -1) throw new Error("Cliente não encontrado");
+    const buildingIndex = db.clients[clientIndex].buildings.findIndex((b: Building) => b.id === buildingId);
+    if (buildingIndex === -1) throw new Error("Local não encontrado");
     
-    db.clients[clientIndex].buildings[buildingIndex].hoses = db.clients[clientIndex].buildings[buildingIndex].hoses.filter(h => h.id !== id);
+    db.clients[clientIndex].buildings[buildingIndex].hoses = db.clients[clientIndex].buildings[buildingIndex].hoses.filter((h: Hose) => h.id !== id);
     saveDb(db);
 }
 
@@ -199,21 +224,32 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
 
     for (let i = 0; i < db.clients.length; i++) {
         const client = db.clients[i];
+        if (!client.buildings) continue;
         for (let j = 0; j < client.buildings.length; j++) {
             const building = client.buildings[j];
             
-            const extIndex = building.extinguishers.findIndex(e => e.qrCodeValue === qrCodeValue);
-            if (extIndex !== -1) {
-                db.clients[i].buildings[j].extinguishers[extIndex].inspections.push(newInspection);
-                saveDb(db);
-                return { redirectUrl: `/clients/${client.id}/${building.id}/extinguishers/${building.extinguishers[extIndex].id}` };
+            if (building.extinguishers) {
+                const extIndex = building.extinguishers.findIndex((e: Extinguisher) => e.qrCodeValue === qrCodeValue);
+                if (extIndex !== -1) {
+                    if (!db.clients[i].buildings[j].extinguishers[extIndex].inspections) {
+                        db.clients[i].buildings[j].extinguishers[extIndex].inspections = [];
+                    }
+                    db.clients[i].buildings[j].extinguishers[extIndex].inspections.push(newInspection);
+                    saveDb(db);
+                    return { redirectUrl: `/clients/${client.id}/${building.id}/extinguishers/${building.extinguishers[extIndex].id}` };
+                }
             }
 
-            const hoseIndex = building.hoses.findIndex(h => h.qrCodeValue === qrCodeValue);
-            if (hoseIndex !== -1) {
-                db.clients[i].buildings[j].hoses[hoseIndex].inspections.push(newInspection);
-                saveDb(db);
-                return { redirectUrl: `/clients/${client.id}/${building.id}/hoses/${building.hoses[hoseIndex].id}` };
+            if (building.hoses) {
+                const hoseIndex = building.hoses.findIndex((h: Hose) => h.qrCodeValue === qrCodeValue);
+                if (hoseIndex !== -1) {
+                     if (!db.clients[i].buildings[j].hoses[hoseIndex].inspections) {
+                        db.clients[i].buildings[j].hoses[hoseIndex].inspections = [];
+                    }
+                    db.clients[i].buildings[j].hoses[hoseIndex].inspections.push(newInspection);
+                    saveDb(db);
+                    return { redirectUrl: `/clients/${client.id}/${building.id}/hoses/${building.hoses[hoseIndex].id}` };
+                }
             }
         }
     }
