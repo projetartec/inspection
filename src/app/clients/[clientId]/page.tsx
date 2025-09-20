@@ -15,7 +15,7 @@ export default async function ClientPage({ params }: { params: { clientId: strin
 
   return (
     <div className="space-y-8">
-      <PageHeader title={`Cliente: ${client.name}`} />
+      <PageHeader title={`Cliente: ${client.name}`} href="/" />
       
       <main className="w-full max-w-2xl mx-auto">
         {client.buildings.length > 0 ? (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine, PanelLeft, Building, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import {
   SidebarHeader,
@@ -42,6 +42,14 @@ export function MainNav() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+                <Link href={`/`}>
+                    <Users />
+                    <span>Todos os Clientes</span>
+                </Link>
+            </Button>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link href={`/clients/${clientId}`}>
