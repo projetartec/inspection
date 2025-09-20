@@ -2,6 +2,8 @@
 
 import React from "react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createHoseAction, updateHoseAction } from "@/lib/actions";
@@ -18,14 +20,36 @@ interface HoseFormProps {
 }
 
 export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const isEditMode = !!hose;
 
-  const action = isEditMode
-    ? updateHoseAction.bind(null, clientId, buildingId, hose.id)
-    : createHoseAction.bind(null, clientId, buildingId);
+  const formAction = async (formData: FormData) => {
+    const action = isEditMode
+      ? updateHoseAction.bind(null, clientId, buildingId, hose.id)
+      : createHoseAction.bind(null, clientId, buildingId);
+      
+    const success = await action(formData);
+
+    if (success) {
+      toast({
+        title: "Sucesso!",
+        description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
+      });
+      router.refresh(); // Crucial: Invalida o cache do cliente
+      router.push(`/clients/${clientId}/${buildingId}/hoses`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o sistema de mangueira.`,
+      });
+    }
+  };
+
 
   return (
-    <form action={action} className="space-y-8">
+    <form action={formAction} className="space-y-8">
         <div className="space-y-2">
             <Label htmlFor="id">ID do Sistema</Label>
             <Input 

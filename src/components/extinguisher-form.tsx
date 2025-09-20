@@ -1,6 +1,8 @@
 "use client";
 
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createExtinguisherAction, updateExtinguisherAction } from "@/lib/actions";
@@ -17,14 +19,35 @@ interface ExtinguisherFormProps {
 }
 
 export function ExtinguisherForm({ clientId, buildingId, extinguisher }: ExtinguisherFormProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const isEditMode = !!extinguisher;
 
-  const action = isEditMode
-    ? updateExtinguisherAction.bind(null, clientId, buildingId, extinguisher.id)
-    : createExtinguisherAction.bind(null, clientId, buildingId);
+  const formAction = async (formData: FormData) => {
+    const action = isEditMode
+      ? updateExtinguisherAction.bind(null, clientId, buildingId, extinguisher.id)
+      : createExtinguisherAction.bind(null, clientId, buildingId);
+      
+    const success = await action(formData);
+
+    if (success) {
+      toast({
+        title: "Sucesso!",
+        description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
+      });
+      router.refresh(); // Crucial: Invalida o cache do cliente
+      router.push(`/clients/${clientId}/${buildingId}/extinguishers`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o extintor.`,
+      });
+    }
+  };
 
   return (
-      <form action={action} className="space-y-8">
+      <form action={formAction} className="space-y-8">
         <div className="space-y-2">
             <Label htmlFor="id">ID do Equipamento</Label>
             <Input 
