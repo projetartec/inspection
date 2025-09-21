@@ -15,8 +15,8 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   doc.text('Relatório de Inspeção', page_width / 2, 20, { align: 'center' });
   
   doc.setFontSize(12);
-  doc.text(`Cliente: ${client.name}`, 14, 35);
-  doc.text(`Local: ${building.name}`, 14, 42);
+  doc.text(`Cliente: ${client.name || ''}`, 14, 35);
+  doc.text(`Local: ${building.name || ''}`, 14, 42);
 
   doc.setFontSize(10);
   doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, page_width - 14, 42, { align: 'right' });
@@ -29,14 +29,11 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
     body: extinguishers.map(e => {
-      const dateValue = e.expiryDate ? new Date(e.expiryDate) : null;
-      const formattedDate = dateValue && !isNaN(dateValue.getTime()) ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
-      
       return [
         e.id || '',
         e.type || '',
         e.weight || '',
-        formattedDate,
+        format(new Date(e.expiryDate), 'dd/MM/yyyy', { locale: ptBR }),
         e.observations || ''
       ]
     }),
@@ -53,16 +50,13 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
     body: hoses.map(h => {
-       const dateValue = h.expiryDate ? new Date(h.expiryDate) : null;
-       const formattedDate = dateValue && !isNaN(dateValue.getTime()) ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
-
       return [
         h.id || '',
         h.quantity || '',
         h.hoseType || '',
         h.keyQuantity || '',
         h.nozzleQuantity || '',
-        formattedDate,
+        format(new Date(h.expiryDate), 'dd/MM/yyyy', { locale: ptBR }),
         h.observations || ''
       ]
     }),
@@ -70,5 +64,5 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });
 
-  doc.save(`Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`);
+  doc.save(`Relatorio_${(client.name || 'Cliente').replace(/ /g, '_')}_${(building.name || 'Local').replace(/ /g, '_')}.pdf`);
 }
