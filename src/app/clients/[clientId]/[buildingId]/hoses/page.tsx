@@ -9,7 +9,7 @@ import { getHosesByBuilding } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   AlertDialog,
@@ -102,7 +102,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                      {isLoading ? (
                         <TableSkeleton />
                     ) : hoses.length > 0 ? hoses.map((hose) => {
-                        const dateValue = hose.expiryDate ? new Date(hose.expiryDate) : null;
+                        const dateValue = hose.expiryDate ? parseISO(hose.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         const isExpired = isValidDate ? dateValue < new Date() : false;
                         

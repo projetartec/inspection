@@ -20,7 +20,16 @@ export default async function DashboardPage({ params }: { params: { clientId: st
     getHosesByBuilding(clientId, buildingId),
   ]);
 
-  const isExpired = (item: { expiryDate: string }) => new Date(item.expiryDate) < new Date();
+  const isExpired = (item: { expiryDate: string }) => {
+    if (!item.expiryDate) return false;
+    try {
+      // Dates are stored as 'YYYY-MM-DD' strings, parseISO handles this.
+      const date = new Date(item.expiryDate.split('T')[0] + 'T00:00:00');
+      return date < new Date();
+    } catch {
+      return false;
+    }
+  };
   const expiredExtinguishers = extinguishers.filter(isExpired).length;
   const expiredHoses = hoses.filter(isExpired).length;
 

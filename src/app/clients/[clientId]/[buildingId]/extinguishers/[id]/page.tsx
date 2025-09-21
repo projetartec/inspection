@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { getExtinguisherById } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
     notFound();
   }
   
-  const dateValue = extinguisher.expiryDate ? new Date(extinguisher.expiryDate) : null;
+  const dateValue = extinguisher.expiryDate ? parseISO(extinguisher.expiryDate) : null;
   const isValidDate = dateValue && !isNaN(dateValue.getTime());
   const isExpired = isValidDate ? dateValue < new Date() : false;
 
@@ -88,7 +88,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
                     <TableBody>
                     {extinguisher.inspections && extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
                         <TableRow key={insp.id}>
-                        <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
+                        <TableCell>{format(parseISO(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                         <TableCell>
                             {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
                         </TableCell>

@@ -1,6 +1,6 @@
 export type Inspection = {
   id: string;
-  date: string; // Changed to string
+  date: string;
   location?: {
     latitude: number;
     longitude: number;

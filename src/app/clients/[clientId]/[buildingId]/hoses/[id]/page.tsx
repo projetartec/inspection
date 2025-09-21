@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { getHoseById } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
     notFound();
   }
 
-  const dateValue = hose.expiryDate ? new Date(hose.expiryDate) : null;
+  const dateValue = hose.expiryDate ? parseISO(hose.expiryDate) : null;
   const isValidDate = dateValue && !isNaN(dateValue.getTime());
   const isExpired = isValidDate ? dateValue < new Date() : false;
 
@@ -90,7 +90,7 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
                     <TableBody>
                     {hose.inspections && hose.inspections.length > 0 ? hose.inspections.map(insp => (
                         <TableRow key={insp.id}>
-                        <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
+                        <TableCell>{format(parseISO(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                         <TableCell>
                             {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
                         </TableCell>

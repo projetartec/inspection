@@ -160,8 +160,6 @@ export async function addInspectionAction(clientId: string, buildingId: string, 
 
 // --- Report Action ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
-    // IMPORTANT: This function now passes raw data to the PDF generator.
-    // The date formatting logic is handled within the PDF generator itself.
     const { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
     
     const [client, building, extinguishers, hoses] = await Promise.all([

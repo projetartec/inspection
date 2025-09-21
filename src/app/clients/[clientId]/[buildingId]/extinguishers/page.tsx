@@ -9,7 +9,7 @@ import { getExtinguishersByBuilding } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   AlertDialog,
@@ -101,7 +101,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                     {isLoading ? (
                         <TableSkeleton />
                     ) : extinguishers.length > 0 ? extinguishers.map((ext) => {
-                        const dateValue = ext.expiryDate ? new Date(ext.expiryDate) : null;
+                        const dateValue = ext.expiryDate ? parseISO(ext.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         const isExpired = isValidDate ? dateValue < new Date() : false;
                         
