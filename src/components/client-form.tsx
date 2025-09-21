@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from "react";
 import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -83,10 +82,8 @@ export function ClientForm({ client, onSuccess }: ClientFormProps) {
     <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="new-client" className="border-none">
             <div className="flex justify-center">
-                <AccordionTrigger asChild className={cn(buttonVariants({ variant: "default" }), "no-underline")}>
-                    <div className="flex items-center">
-                        <PlusCircle className="mr-2" /> Adicionar Novo Cliente
-                    </div>
+                <AccordionTrigger className={cn(buttonVariants({ variant: "default" }), "no-underline")}>
+                    <PlusCircle className="mr-2" /> Adicionar Novo Cliente
                 </AccordionTrigger>
             </div>
             <AccordionContent>

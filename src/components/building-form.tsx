@@ -2,7 +2,6 @@
 
 import React, { useRef, useState } from "react";
 import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
@@ -88,10 +87,8 @@ export function BuildingForm({ clientId, building, onSuccess }: BuildingFormProp
     <Accordion type="single" collapsible className="w-full" defaultValue={isEditMode ? "edit-building" : undefined}>
         <AccordionItem value="new-building" className="border-none">
             <div className="flex justify-center">
-                <AccordionTrigger asChild className={cn(buttonVariants({ variant: "default" }), "no-underline")}>
-                    <div className="flex items-center">
-                        <PlusCircle className="mr-2" /> Adicionar Novo Local
-                    </div>
+                <AccordionTrigger className={cn(buttonVariants({ variant: "default" }), "no-underline")}>
+                    <PlusCircle className="mr-2" /> Adicionar Novo Local
                 </AccordionTrigger>
             </div>
             <AccordionContent>
