@@ -8,7 +8,7 @@ export function AppLogo() {
         <span className="font-headline text-lg font-bold leading-none text-foreground">
           Brazil Extintores
         </span>
-        <span className="text-xs text-muted-foreground">Inspetor</span>
+        <span className="text-xs text-muted-foreground">Inspeção</span>
       </div>
     </div>
   );
