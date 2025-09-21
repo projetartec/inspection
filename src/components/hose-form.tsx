@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,9 +67,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
     }
   };
 
-  const defaultExpiryDate = hose?.expiryDate
-    ? format(new Date(hose.expiryDate), 'yyyy-MM-dd')
-    : '';
+  const defaultExpiryDate = hose?.expiryDate || '';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">

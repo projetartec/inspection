@@ -1,6 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,9 +67,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
     }
   };
   
-  const defaultExpiryDate = extinguisher?.expiryDate 
-    ? format(new Date(extinguisher.expiryDate), 'yyyy-MM-dd')
-    : '';
+  const defaultExpiryDate = extinguisher?.expiryDate || '';
 
   return (
       <form onSubmit={handleSubmit} className="space-y-8">
