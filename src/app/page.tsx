@@ -32,7 +32,7 @@ export default function Home() {
       }
     }
     fetchClients();
-  }, []); // A dependência vazia garante que isso rode apenas uma vez no carregamento
+  }, [toast]); // A dependência vazia garante que isso rode apenas uma vez no carregamento
 
   return (
     <div className="min-h-screen container mx-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center">
