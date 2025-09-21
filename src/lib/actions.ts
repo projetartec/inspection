@@ -2,9 +2,9 @@
 
 import { db } from '@/lib/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
-import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { getExtinguishersByBuilding, getHosesByBuilding } from './data';
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -23,11 +23,9 @@ export async function createClientAction(formData: FormData) {
 
   const newClient = {
     name,
-    buildings: [],
   };
-  const docRef = await addDoc(clientsRef, newClient);
+  await addDoc(clientsRef, newClient);
   revalidatePath('/');
-  redirect(`/clients/${docRef.id}`);
 }
 
 
@@ -48,8 +46,6 @@ export async function createBuildingAction(clientId: string, formData: FormData)
 
     const newBuilding = {
         name,
-        extinguishers: [],
-        hoses: [],
     };
     await addDoc(buildingsRef, newBuilding);
     revalidatePath(`/clients/${clientId}`);
@@ -58,15 +54,16 @@ export async function createBuildingAction(clientId: string, formData: FormData)
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
     const extinguishersRef = collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`);
-    const docRef = doc(extinguishersRef, data.id); // Use provided ID
+    const docRef = doc(extinguishersRef, data.id);
     
-    const newExtinguisher: Extinguisher = {
+    const newExtinguisher: Omit<Extinguisher, 'id'> = {
         ...data,
         qrCodeValue: `fireguard-ext-${data.id}`,
         inspections: [],
     };
-    await updateDoc(docRef, newExtinguisher, { merge: true }); // Use updateDoc with merge to act like add
+    await updateDoc(docRef, newExtinguisher, { merge: true }); 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<Omit<Extinguisher, 'id'>>) {
@@ -74,6 +71,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
     await updateDoc(docRef, data);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
@@ -88,13 +86,14 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
     const hosesRef = collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`);
     const docRef = doc(hosesRef, data.id);
 
-    const newHose: Hose = {
+    const newHose: Omit<Hose, 'id'> = {
         ...data,
         qrCodeValue: `fireguard-hose-${data.id}`,
         inspections: [],
     };
     await updateDoc(docRef, newHose, { merge: true });
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<Omit<Hose, 'id'>>) {
@@ -102,6 +101,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, id:
     await updateDoc(docRef, data);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${id}`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
@@ -109,6 +109,49 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
     await deleteDoc(docRef);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+}
+
+// --- Inspection Action ---
+export async function addInspectionAction(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
+    const clients = await getDocs(collection(db, 'clients'));
+    const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
+
+    for (const clientDoc of clients.docs) {
+        const clientId = clientDoc.id;
+        const buildings = await getDocs(collection(db, `clients/${clientId}/buildings`));
+        for (const buildingDoc of buildings.docs) {
+            const buildingId = buildingDoc.id;
+
+            // Check extinguishers
+            const extQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
+            const extSnapshot = await getDocs(extQuery);
+            if (!extSnapshot.empty) {
+                const extDoc = extSnapshot.docs[0];
+                const extinguisher = { id: extDoc.id, ...extDoc.data() } as Extinguisher;
+                const inspections = extinguisher.inspections || [];
+                inspections.push(newInspection);
+                await updateDoc(extDoc.ref, { inspections });
+                const path = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
+                revalidatePath(path);
+                return { redirectUrl: path };
+            }
+
+            // Check hoses
+            const hoseQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
+            const hoseSnapshot = await getDocs(hoseQuery);
+            if (!hoseSnapshot.empty) {
+                const hoseDoc = hoseSnapshot.docs[0];
+                const hose = { id: hoseDoc.id, ...hoseDoc.data() } as Hose;
+                const inspections = hose.inspections || [];
+                inspections.push(newInspection);
+                await updateDoc(hoseDoc.ref, { inspections });
+                const path = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
+                revalidatePath(path);
+                return { redirectUrl: path };
+            }
+        }
+    }
+    return null; // Equipment not found
 }
 
 // --- Report Action ---
