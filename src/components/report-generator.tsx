@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getReportDataAction } from '@/lib/actions';
-import { generatePdfReport } from '@/lib/pdf';
+import { generateCsvReport } from '@/lib/csv';
 import { SidebarMenuButton } from '@/components/ui/sidebar';
 
 interface ReportGeneratorProps {
@@ -21,7 +21,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     try {
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
-        generatePdfReport(client, building, extinguishers, hoses);
+        generateCsvReport(client, building, extinguishers, hoses);
       } else {
         throw new Error("Cliente ou prédio não encontrado.");
       }
@@ -30,7 +30,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: 'Falha ao gerar relatório em PDF.'
+        description: 'Falha ao gerar relatório em CSV.'
       });
     } finally {
       setIsLoading(false);
@@ -42,7 +42,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
       onClick={handleGenerateReport}
       disabled={isLoading}
       className="justify-center w-full"
-      tooltip="Gerar Relatório PDF"
+      tooltip="Gerar Relatório CSV"
     >
       {isLoading ? <Loader2 className="animate-spin" /> : <FileText />}
       <span className="group-data-[collapsible=icon]:hidden">
