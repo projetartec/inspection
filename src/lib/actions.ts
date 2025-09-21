@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { getExtinguishersByBuilding, getHosesByBuilding } from './data';
@@ -21,10 +21,12 @@ export async function createClientAction(formData: FormData) {
       throw new Error('Um cliente com este nome já existe.');
   }
 
+  const newClientRef = doc(clientsRef);
   const newClient = {
+    id: newClientRef.id,
     name,
   };
-  await addDoc(clientsRef, newClient);
+  await setDoc(newClientRef, { name });
   revalidatePath('/');
 }
 
@@ -61,7 +63,7 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
         qrCodeValue: `fireguard-ext-${data.id}`,
         inspections: [],
     };
-    await updateDoc(docRef, newExtinguisher, { merge: true }); 
+    await setDoc(docRef, newExtinguisher); 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
@@ -91,7 +93,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
         qrCodeValue: `fireguard-hose-${data.id}`,
         inspections: [],
     };
-    await updateDoc(docRef, newHose, { merge: true });
+    await setDoc(docRef, newHose);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
@@ -113,17 +115,20 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
 
 // --- Inspection Action ---
 export async function addInspectionAction(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
-    const clients = await getDocs(collection(db, 'clients'));
+    const clientsCollection = collection(db, 'clients');
+    const clientsSnapshot = await getDocs(clientsCollection);
+    const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
     const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
 
-    for (const clientDoc of clients.docs) {
-        const clientId = clientDoc.id;
-        const buildings = await getDocs(collection(db, `clients/${clientId}/buildings`));
-        for (const buildingDoc of buildings.docs) {
-            const buildingId = buildingDoc.id;
+    for (const client of clients) {
+        const buildingsCollection = collection(db, `clients/${client.id}/buildings`);
+        const buildingsSnapshot = await getDocs(buildingsCollection);
+        const buildings = buildingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<Building, 'id'> }));
+
+        for (const building of buildings) {
 
             // Check extinguishers
-            const extQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
+            const extQuery = query(collection(db, `clients/${client.id}/buildings/${building.id}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
             const extSnapshot = await getDocs(extQuery);
             if (!extSnapshot.empty) {
                 const extDoc = extSnapshot.docs[0];
@@ -131,13 +136,14 @@ export async function addInspectionAction(qrCodeValue: string, inspectionData: O
                 const inspections = extinguisher.inspections || [];
                 inspections.push(newInspection);
                 await updateDoc(extDoc.ref, { inspections });
-                const path = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
+                const path = `/clients/${client.id}/${building.id}/extinguishers/${extinguisher.id}`;
                 revalidatePath(path);
+                revalidatePath(`/clients/${client.id}/${building.id}/dashboard`);
                 return { redirectUrl: path };
             }
 
             // Check hoses
-            const hoseQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
+            const hoseQuery = query(collection(db, `clients/${client.id}/buildings/${building.id}/hoses`), where('qrCodeValue', '==', qrCodeValue));
             const hoseSnapshot = await getDocs(hoseQuery);
             if (!hoseSnapshot.empty) {
                 const hoseDoc = hoseSnapshot.docs[0];
@@ -145,18 +151,12 @@ export async function addInspectionAction(qrCodeValue: string, inspectionData: O
                 const inspections = hose.inspections || [];
                 inspections.push(newInspection);
                 await updateDoc(hoseDoc.ref, { inspections });
-                const path = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
+                const path = `/clients/${client.id}/${building.id}/hoses/${hose.id}`;
                 revalidatePath(path);
+                revalidatePath(`/clients/${client.id}/${building.id}/dashboard`);
                 return { redirectUrl: path };
             }
         }
     }
     return null; // Equipment not found
-}
-
-// --- Report Action ---
-export async function getReportDataAction(clientId: string, buildingId: string) {
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-  const hoses = await getHosesByBuilding(clientId, buildingId);
-  return { extinguishers, hoses };
 }

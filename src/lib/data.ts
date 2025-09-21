@@ -1,16 +1,63 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, query, where, setDoc } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import initialDb from '../../db.json';
+
+
+async function initializeDb() {
+    const clientsRef = collection(db, 'clients');
+    const snapshot = await getDocs(clientsRef);
+    if (snapshot.empty) {
+        console.log('Database is empty, initializing with data from db.json...');
+        const batch = writeBatch(db);
+        initialDb.clients.forEach(client => {
+            const clientDocRef = doc(db, 'clients', client.id);
+            const { buildings, ...clientData } = client;
+            batch.set(clientDocRef, clientData);
+
+            client.buildings.forEach(building => {
+                const buildingDocRef = doc(db, `clients/${client.id}/buildings`, building.id);
+                const { extinguishers, hoses, ...buildingData } = building;
+                batch.set(buildingDocRef, buildingData);
+
+                building.extinguishers.forEach(extinguisher => {
+                    const extDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/extinguishers`, extinguisher.id);
+                    batch.set(extDocRef, extinguisher);
+                });
+
+                building.hoses.forEach(hose => {
+                    const hoseDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/hoses`, hose.id);
+                    batch.set(hoseDocRef, hose);
+                });
+            });
+        });
+        await batch.commit();
+        console.log('Database initialized successfully.');
+    } else {
+        console.log('Database already contains data.');
+    }
+}
+
 
 // --- Client Functions ---
 export async function getClients(): Promise<Client[]> {
-  const clientsCol = collection(db, 'clients');
-  const clientSnapshot = await getDocs(clientsCol);
-  const clientList = clientSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
-  return clientList;
+  try {
+    await initializeDb();
+    const clientsCol = collection(db, 'clients');
+    const clientSnapshot = await getDocs(clientsCol);
+    if (clientSnapshot.empty) {
+      return [];
+    }
+    const clientList = clientSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+    return clientList;
+  } catch (error) {
+    console.error("Error fetching clients:", error);
+    // Return an empty array or handle as per app's error policy
+    return [];
+  }
 }
 
 export async function getClientById(clientId: string): Promise<Client | null> {
@@ -21,6 +68,7 @@ export async function getClientById(clientId: string): Promise<Client | null> {
   }
   return { id: clientDoc.id, ...clientDoc.data() } as Client;
 }
+
 
 // --- Building Functions ---
 export async function getBuildingById(clientId: string, buildingId: string): Promise<Building | null> {
@@ -96,4 +144,10 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
         }
     }
     return null; // Equipment not found
+}
+
+export async function getReportDataAction(clientId: string, buildingId: string) {
+  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+  const hoses = await getHosesByBuilding(clientId, buildingId);
+  return { extinguishers, hoses };
 }
