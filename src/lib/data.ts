@@ -11,41 +11,61 @@ import { format } from 'date-fns';
 async function initializeDb() {
     const clientsRef = collection(db, 'clients');
     const snapshot = await getDocs(clientsRef);
-    if (snapshot.empty) {
-        console.log('Database is empty, initializing with data from db.json...');
-        const batch = writeBatch(db);
-        initialDb.clients.forEach(client => {
-            const clientDocRef = doc(db, 'clients', client.id);
-            const { buildings, ...clientData } = client;
-            batch.set(clientDocRef, clientData);
 
-            if (client.buildings) {
-                client.buildings.forEach(building => {
-                    const buildingDocRef = doc(db, `clients/${client.id}/buildings`, building.id);
-                    const { extinguishers, hoses, ...buildingData } = building;
-                    batch.set(buildingDocRef, buildingData);
+    console.log('Forcing database re-initialization...');
 
-                    if (building.extinguishers) {
-                        building.extinguishers.forEach(extinguisher => {
-                            const extDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/extinguishers`, extinguisher.id);
-                            batch.set(extDocRef, extinguisher);
-                        });
-                    }
+    // Clear existing data
+    const deleteBatch = writeBatch(db);
+    for (const clientDoc of snapshot.docs) {
+      const buildingsRef = collection(db, `clients/${clientDoc.id}/buildings`);
+      const buildingsSnapshot = await getDocs(buildingsRef);
+      for (const buildingDoc of buildingsSnapshot.docs) {
+        const extinguishersRef = collection(db, `clients/${clientDoc.id}/buildings/${buildingDoc.id}/extinguishers`);
+        const extinguishersSnapshot = await getDocs(extinguishersRef);
+        extinguishersSnapshot.forEach(doc => deleteBatch.delete(doc.ref));
+        
+        const hosesRef = collection(db, `clients/${clientDoc.id}/buildings/${buildingDoc.id}/hoses`);
+        const hosesSnapshot = await getDocs(hosesRef);
+        hosesSnapshot.forEach(doc => deleteBatch.delete(doc.ref));
 
-                    if (building.hoses) {
-                        building.hoses.forEach(hose => {
-                            const hoseDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/hoses`, hose.id);
-                            batch.set(hoseDocRef, hose);
-                        });
-                    }
-                });
-            }
-        });
-        await batch.commit();
-        console.log('Database initialized successfully.');
-    } else {
-        console.log('Database already contains data.');
+        deleteBatch.delete(buildingDoc.ref);
+      }
+      deleteBatch.delete(clientDoc.ref);
     }
+    await deleteBatch.commit();
+    console.log('Existing data cleared.');
+
+    // Initialize with new data
+    const addBatch = writeBatch(db);
+    initialDb.clients.forEach(client => {
+        const clientDocRef = doc(db, 'clients', client.id);
+        const { buildings, ...clientData } = client;
+        addBatch.set(clientDocRef, clientData);
+
+        if (client.buildings) {
+            client.buildings.forEach(building => {
+                const buildingDocRef = doc(db, `clients/${client.id}/buildings`, building.id);
+                const { extinguishers, hoses, ...buildingData } = building;
+                addBatch.set(buildingDocRef, buildingData);
+
+                if (building.extinguishers) {
+                    building.extinguishers.forEach(extinguisher => {
+                        const extDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/extinguishers`, extinguisher.id);
+                        addBatch.set(extDocRef, extinguisher);
+                    });
+                }
+
+                if (building.hoses) {
+                    building.hoses.forEach(hose => {
+                        const hoseDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/hoses`, hose.id);
+                        addBatch.set(hoseDocRef, hose);
+                    });
+                }
+            });
+        }
+    });
+    await addBatch.commit();
+    console.log('Database initialized successfully with new data.');
 }
 
 
@@ -94,8 +114,11 @@ function toISODateString(date: any): string {
     if (!date) return '';
     if (typeof date === 'string') {
         // If it's already a string in 'YYYY-MM-DD' format, return it.
-        if (/\d{4}-\d{2}-\d{2}/.test(date)) {
-            return date.split('T')[0]; // Ensure no time part
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return date;
+        }
+         if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/.test(date)) {
+            return date.split('T')[0];
         }
         // If it's another string format, try parsing
         const parsedDate = new Date(date);
