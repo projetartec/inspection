@@ -18,9 +18,10 @@ export type Extinguisher = {
   id: string;
   qrCodeValue: string;
   type: ExtinguisherType;
-  weight: ExtinguisherWeight;
-  expiryDate: string; 
-  observations: string;
+  weight: ExtinguisherWeight; // Corresponds to CAPACIDADE
+  expiryDate: string; // Corresponds to RECARGA
+  hydrostaticTestYear: number; // Corresponds to TEST. HIDROSTATICO
+  observations: string; // Corresponds to LOCALIZAÇÃO
   inspections: Inspection[];
 };
 

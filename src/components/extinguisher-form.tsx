@@ -104,10 +104,10 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
                 </Select>
             </div>
             <div className="space-y-2">
-                <Label htmlFor="weight">Peso (kg)</Label>
+                <Label htmlFor="weight">Capacidade (kg)</Label>
                 <Select name="weight" defaultValue={String(extinguisher?.weight)} required>
                     <SelectTrigger id="weight">
-                      <SelectValue placeholder="Selecione o peso" />
+                      <SelectValue placeholder="Selecione a capacidade" />
                     </SelectTrigger>
                   <SelectContent>
                     {extinguisherWeights.map((weight) => (
@@ -120,23 +120,43 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
             </div>
         </div>
         
-        <div className="space-y-2">
-            <Label htmlFor="expiryDate">Data de Validade</Label>
-            <Input 
-                id="expiryDate"
-                name="expiryDate"
-                type="date"
-                defaultValue={defaultExpiryDate}
-                required
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+                <Label htmlFor="expiryDate">Recarga</Label>
+                <Input 
+                    id="expiryDate"
+                    name="expiryDate"
+                    type="date"
+                    defaultValue={defaultExpiryDate}
+                    required
+                />
+                 <p className="text-sm text-muted-foreground">
+                    Data da próxima recarga.
+                 </p>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="hydrostaticTestYear">Teste Hidrostático (Ano)</Label>
+                <Input 
+                    id="hydrostaticTestYear"
+                    name="hydrostaticTestYear"
+                    type="number"
+                    placeholder="Ex: 2028"
+                    defaultValue={extinguisher?.hydrostaticTestYear}
+                    required
+                />
+                 <p className="text-sm text-muted-foreground">
+                    Ano do próximo teste hidrostático.
+                 </p>
+            </div>
         </div>
+
         
         <div className="space-y-2">
-            <Label htmlFor="observations">Observações</Label>
+            <Label htmlFor="observations">Localização</Label>
             <Textarea
                 id="observations"
                 name="observations"
-                placeholder="Ex: Localizado perto da entrada principal"
+                placeholder="Ex: Corredor do 2º andar, ao lado do elevador"
                 className="resize-none"
                 defaultValue={extinguisher?.observations}
             />

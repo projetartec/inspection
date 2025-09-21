@@ -37,7 +37,8 @@ function TableSkeleton() {
         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-10" /></TableCell>
         <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
-        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-24 hidden md:table-cell" /></TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end space-x-1 md:space-x-2">
             <Skeleton className="h-8 w-8 rounded-md" />
@@ -101,9 +102,10 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                     <TableRow>
                         <TableHead>ID</TableHead>
                         <TableHead>Tipo</TableHead>
-                        <TableHead className="hidden md:table-cell">Peso (kg)</TableHead>
-                        <TableHead className="hidden md:table-cell">Validade</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="hidden md:table-cell">Capacidade (kg)</TableHead>
+                        <TableHead>Recarga</TableHead>
+                        <TableHead className="hidden md:table-cell">Test. Hidrostático</TableHead>
+                        <TableHead className="hidden md:table-cell">Localização</TableHead>
                         <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -113,7 +115,6 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                     ) : extinguishers.length > 0 ? extinguishers.map((ext) => {
                         const dateValue = ext.expiryDate ? parseISO(ext.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
-                        const isExpired = isValidDate ? dateValue < new Date() : false;
                         
                         return (
                         <TableRow key={ext.id}>
@@ -122,12 +123,9 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                             </TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell className="hidden md:table-cell">{ext.weight}</TableCell>
-                            <TableCell className="hidden md:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
-                            <TableCell>
-                                <Badge variant={isExpired ? 'destructive' : 'secondary'}>
-                                    {isExpired ? 'Vencido' : 'Ativo'}
-                                </Badge>
-                            </TableCell>
+                            <TableCell>{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
+                            <TableCell className="hidden md:table-cell">{ext.hydrostaticTestYear}</TableCell>
+                            <TableCell className="hidden md:table-cell truncate max-w-xs">{ext.observations}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end space-x-1 md:space-x-2">
                                     <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
@@ -145,10 +143,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
-                                        <form action={deleteExtinguisherAction}>
-                                            <input type="hidden" name="clientId" value={clientId} />
-                                            <input type="hidden" name="buildingId" value={buildingId} />
-                                            <input type="hidden" name="id" value={ext.id} />
+                                        <form>
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                             <AlertDialogDescription>
@@ -159,7 +154,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                             <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                             <AlertDialogAction asChild>
-                                                <DeleteButton onSuccess={() => handleDeleteSuccess(ext.id)} />
+                                                <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.id)} onSuccess={() => handleDeleteSuccess(ext.id)} />
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </form>
@@ -178,7 +173,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                         );
                     }) : (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center h-24">
+                            <TableCell colSpan={7} className="text-center h-24">
                                 Nenhum extintor encontrado.
                             </TableCell>
                         </TableRow>

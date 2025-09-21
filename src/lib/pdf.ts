@@ -38,12 +38,13 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     if (extinguishers.length > 0) {
         doc.autoTable({
             startY: 50,
-            head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
+            head: [['ID', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Localização']],
             body: extinguishers.map(e => [
                 e.id,
                 e.type,
                 e.weight,
                 formatDate(e.expiryDate),
+                e.hydrostaticTestYear,
                 e.observations || '',
             ]),
             theme: 'striped',

@@ -24,14 +24,22 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
   const dateValue = extinguisher.expiryDate ? parseISO(extinguisher.expiryDate) : null;
   const isValidDate = dateValue && !isNaN(dateValue.getTime());
   const isExpired = isValidDate ? dateValue < new Date() : false;
+  const lastInspection = extinguisher.inspections?.slice(-1)[0];
 
   const details = [
-    { label: 'Valor do QR Code', value: extinguisher.qrCodeValue },
     { label: 'Tipo', value: extinguisher.type },
-    { label: 'Peso', value: `${extinguisher.weight} kg` },
-    { label: 'Data de Validade', value: isValidDate ? format(dateValue, 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) : 'Data inválida' },
+    { label: 'Capacidade', value: `${extinguisher.weight} kg` },
+    { label: 'Recarga', value: isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida' },
+    { label: 'Teste Hidrostático', value: extinguisher.hydrostaticTestYear },
+    { label: 'Localização', value: extinguisher.observations || 'N/A' },
     { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
+
+  const lastInspectionDetails = lastInspection ? [
+      { label: 'Data da Última Inspeção', value: format(parseISO(lastInspection.date), 'dd/MM/yyyy', { locale: ptBR }) },
+      { label: 'Horário da Última Inspeção', value: format(parseISO(lastInspection.date), 'HH:mm:ss', { locale: ptBR }) },
+      { label: 'Localização (GPS)', value: lastInspection.location ? `${lastInspection.location.latitude.toFixed(4)}, ${lastInspection.location.longitude.toFixed(4)}` : 'N/A' },
+  ] : [];
 
   return (
     <div className="space-y-8">
@@ -48,10 +56,10 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
         <div className="md:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
-                <CardTitle>Detalhes</CardTitle>
+                <CardTitle>Detalhes do Equipamento</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
                     {details.map(detail => (
                     <div key={detail.label}>
                         <div className="text-sm font-medium text-muted-foreground">{detail.label}</div>
@@ -59,34 +67,45 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
                     </div>
                     ))}
                 </div>
-                {extinguisher.observations && (
-                    <>
-                    <Separator />
-                    <div>
-                        <p className="text-sm font-medium text-muted-foreground">Observações</p>
-                        <p className="text-base">{extinguisher.observations}</p>
-                    </div>
-                    </>
-                )}
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                <CardTitle>Histórico de Inspeção</CardTitle>
+                <CardTitle>Última Inspeção</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {lastInspection ? (
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-6">
+                      {lastInspectionDetails.map(detail => (
+                        <div key={detail.label}>
+                            <div className="text-sm font-medium text-muted-foreground">{detail.label}</div>
+                            <div className="text-lg font-semibold">{detail.value}</div>
+                        </div>
+                      ))}
+                     </div>
+                  ) : (
+                    <p className="text-muted-foreground">Nenhuma inspeção registrada para este equipamento.</p>
+                  )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                <CardTitle>Histórico de Inspeção Completo</CardTitle>
                 <CardDescription>Um registro de todas as inspeções para este equipamento.</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Data</TableHead>
+                        <TableHead>Data e Hora</TableHead>
                         <TableHead>Localização (Lat, Lon)</TableHead>
                         <TableHead>Notas</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {extinguisher.inspections && extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
+                    {extinguisher.inspections && extinguisher.inspections.length > 0 ? [...extinguisher.inspections].reverse().map(insp => (
                         <TableRow key={insp.id}>
                         <TableCell>{format(parseISO(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                         <TableCell>
@@ -94,7 +113,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
                         </TableCell>
                         <TableCell>{insp.notes}</TableCell>
                         </TableRow>
-                    )).reverse() : (
+                    )) : (
                         <TableRow>
                         <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
                         </TableRow>

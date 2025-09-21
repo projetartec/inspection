@@ -5,6 +5,7 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, s
 import type { Extinguisher, Hose, Inspection } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { ExtinguisherFormValues } from './schemas';
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -43,8 +44,7 @@ export async function updateClientAction(id: string, formData: FormData) {
   redirect('/');
 }
 
-export async function deleteClientAction(formData: FormData) {
-  const id = formData.get('id') as string;
+export async function deleteClientAction(id: string) {
   const clientDocRef = doc(db, 'clients', id);
 
   // Recursively delete subcollections
@@ -133,13 +133,12 @@ export async function deleteBuildingAction(clientId: string, buildingId: string)
 }
 
 // --- Extinguisher Actions ---
-export async function createExtinguisherAction(clientId: string, buildingId: string, data: Omit<Extinguisher, 'qrCodeValue' | 'inspections'>) {
+export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
     const extinguishersRef = collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`);
     const docRef = doc(extinguishersRef, data.id);
     
     const newExtinguisher: Omit<Extinguisher, 'id'> = {
         ...data,
-        expiryDate: data.expiryDate,
         qrCodeValue: `fireguard-ext-${data.id}`,
         inspections: [],
     };
@@ -148,22 +147,17 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<Omit<Extinguisher, 'id'>>) {
+export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<ExtinguisherFormValues>) {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     await updateDoc(docRef, {
         ...data,
-        expiryDate: data.expiryDate,
     });
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function deleteExtinguisherAction(formData: FormData) {
-    const clientId = formData.get('clientId') as string;
-    const buildingId = formData.get('buildingId') as string;
-    const id = formData.get('id') as string;
-    
+export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     await deleteDoc(docRef);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
@@ -197,11 +191,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, id:
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function deleteHoseAction(formData: FormData) {
-    const clientId = formData.get('clientId') as string;
-    const buildingId = formData.get('buildingId') as string;
-    const id = formData.get('id') as string;
-
+export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
     await deleteDoc(docRef);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);

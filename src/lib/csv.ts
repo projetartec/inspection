@@ -36,7 +36,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
 
     // --- Extinguishers ---
     csvContent += `"Extintores"\n`;
-    const extHeader = ['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações'];
+    const extHeader = ['ID', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Localização'];
     csvContent += extHeader.join(',') + '\n';
     extinguishers.forEach(e => {
         const row = [
@@ -44,6 +44,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
             escapeCsvCell(e.type),
             escapeCsvCell(e.weight),
             escapeCsvCell(formatDate(e.expiryDate)),
+            escapeCsvCell(e.hydrostaticTestYear),
             escapeCsvCell(e.observations),
         ];
         csvContent += row.join(',') + '\n';
