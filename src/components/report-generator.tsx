@@ -19,8 +19,12 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
   const handleGenerateReport = async () => {
     setIsLoading(true);
     try {
-      const { extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
-      generatePdfReport(extinguishers, hoses);
+      const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
+      if (client && building) {
+        generatePdfReport(client, building, extinguishers, hoses);
+      } else {
+        throw new Error("Cliente ou prédio não encontrado.");
+      }
     } catch (error) {
       console.error("Falha ao gerar relatório:", error);
       toast({

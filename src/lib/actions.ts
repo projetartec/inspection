@@ -158,8 +158,14 @@ export async function addInspectionAction(clientId: string, buildingId: string, 
 
 // --- Report Action ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
-    const { getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
-    const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-    const hoses = await getHosesByBuilding(clientId, buildingId);
-    return { extinguishers, hoses };
+    const { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
+    
+    const [client, building, extinguishers, hoses] = await Promise.all([
+        getClientById(clientId),
+        getBuildingById(clientId, buildingId),
+        getExtinguishersByBuilding(clientId, buildingId),
+        getHosesByBuilding(clientId, buildingId)
+    ]);
+
+    return { client, building, extinguishers, hoses };
 }

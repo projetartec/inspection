@@ -2,7 +2,7 @@
 
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import type { Extinguisher, Hose } from '@/lib/types';
+import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -10,38 +10,44 @@ interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
 
-export function generatePdfReport(extinguishers: Extinguisher[], hoses: Hose[]) {
+export function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {
   const doc = new jsPDF() as jsPDFWithAutoTable;
   const page_width = doc.internal.pageSize.getWidth();
 
-  doc.setFont('helvetica', 'bold');
+  // Cabeçalho
   doc.setFontSize(20);
-  doc.text('Relatório de Inspeção FireGuard', page_width / 2, 20, { align: 'center' });
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}`, page_width / 2, 25, { align: 'center' });
+  doc.text('Relatório de Inspeção', page_width / 2, 20, { align: 'center' });
+  
+  doc.setFontSize(12);
+  doc.text(`Cliente: ${client.name}`, 14, 35);
+  doc.text(`Local: ${building.name}`, 14, 42);
 
+  doc.setFontSize(10);
+  doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, page_width - 14, 42, { align: 'right' });
+
+
+  // Tabela de Extintores
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Extintores', 14, 40);
+  doc.text('Extintores', 14, 60);
   doc.autoTable({
-    startY: 45,
+    startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
     body: extinguishers.map(e => [
       e.id,
       e.type,
       e.weight,
-      format(new Date(e.expiryDate), 'dd/MM/yyyy', { locale: ptBR }),
-      e.observations
+      e.expiryDate ? format(new Date(e.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+      e.observations || ''
     ]),
     theme: 'striped',
     headStyles: { fillColor: '#B71C1C' }
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 40;
+
+  // Tabela de Mangueiras
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Mangueiras', 14, finalY + 15);
+  doc.text('Sistemas de Mangueira', 14, finalY + 15);
   doc.autoTable({
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
@@ -51,12 +57,12 @@ export function generatePdfReport(extinguishers: Extinguisher[], hoses: Hose[]) 
       h.hoseType,
       h.keyQuantity,
       h.nozzleQuantity,
-      format(new Date(h.expiryDate), 'dd/MM/yyyy', { locale: ptBR }),
-      h.observations,
+      h.expiryDate ? format(new Date(h.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+      h.observations || ''
     ]),
     theme: 'striped',
     headStyles: { fillColor: '#B71C1C' }
   });
 
-  doc.save('FireGuard-Relatorio.pdf');
+  doc.save(`Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`);
 }
