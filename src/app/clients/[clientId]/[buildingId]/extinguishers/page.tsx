@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getExtinguishersByBuilding } from "@/lib/data";
+import { getExtinguishersByBuilding, deleteExtinguisher } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -22,25 +22,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteExtinguisherAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 import type { Extinguisher } from '@/lib/types';
-import { useFormStatus } from 'react-dom';
-
-function DeleteButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" variant="destructive" disabled={pending}>
-            {pending ? 'Deletando...' : 'Deletar'}
-        </Button>
-    )
-}
-
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
   const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchData() {
@@ -50,6 +42,24 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
     }
     fetchData();
   }, [clientId, buildingId]);
+
+  const handleDelete = async (id: string) => {
+    try {
+        await deleteExtinguisher(clientId, buildingId, id);
+        toast({
+            title: "Sucesso",
+            description: "Extintor deletado com sucesso."
+        });
+        setExtinguishers(extinguishers.filter(ext => ext.id !== id));
+        router.refresh();
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Falha ao deletar o extintor."
+        })
+    }
+  }
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-full">Carregando...</div>;
@@ -115,10 +125,6 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
-                                        <form action={deleteExtinguisherAction}>
-                                            <input type="hidden" name="id" value={ext.id} />
-                                            <input type="hidden" name="clientId" value={clientId} />
-                                            <input type="hidden" name="buildingId" value={buildingId} />
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                             <AlertDialogDescription>
@@ -128,11 +134,10 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction asChild>
-                                                <DeleteButton />
+                                            <AlertDialogAction onClick={() => handleDelete(ext.id)}>
+                                                Deletar
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
-                                        </form>
                                       </AlertDialogContent>
                                     </AlertDialog>
 
