@@ -1,20 +1,13 @@
 "use client";
 
 import jsPDF from 'jspdf';
-import applyPlugin from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-// Aplica o plugin ao jsPDF
-applyPlugin(jsPDF);
-
-interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: any) => jsPDF;
-}
-
 export function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {
-  const doc = new jsPDF() as jsPDFWithAutoTable;
+  const doc = new jsPDF();
   const page_width = doc.internal.pageSize.getWidth();
 
   // Cabeçalho
@@ -32,7 +25,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   // Tabela de Extintores
   doc.setFontSize(16);
   doc.text('Extintores', 14, 60);
-  doc.autoTable({
+  autoTable(doc, {
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
     body: extinguishers.map(e => [
@@ -51,7 +44,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   // Tabela de Mangueiras
   doc.setFontSize(16);
   doc.text('Sistemas de Mangueira', 14, finalY + 15);
-  doc.autoTable({
+  autoTable(doc, {
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
     body: hoses.map(h => [
