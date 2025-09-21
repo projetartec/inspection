@@ -29,12 +29,14 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
     body: extinguishers.map(e => {
-      const dateValue = new Date(e.expiryDate);
+      const dateValue = e.expiryDate ? new Date(e.expiryDate) : null;
+      const formattedDate = dateValue && !isNaN(dateValue.getTime()) ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
+      
       return [
-        e.id,
-        e.type,
-        e.weight,
-        format(dateValue, 'dd/MM/yyyy', { locale: ptBR }),
+        e.id || '',
+        e.type || '',
+        e.weight || '',
+        formattedDate,
         e.observations || ''
       ]
     }),
@@ -51,14 +53,16 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
     body: hoses.map(h => {
-       const dateValue = new Date(h.expiryDate);
+       const dateValue = h.expiryDate ? new Date(h.expiryDate) : null;
+       const formattedDate = dateValue && !isNaN(dateValue.getTime()) ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
+
       return [
-        h.id,
-        h.quantity,
-        h.hoseType,
-        h.keyQuantity,
-        h.nozzleQuantity,
-        format(dateValue, 'dd/MM/yyyy', { locale: ptBR }),
+        h.id || '',
+        h.quantity || '',
+        h.hoseType || '',
+        h.keyQuantity || '',
+        h.nozzleQuantity || '',
+        formattedDate,
         h.observations || ''
       ]
     }),
