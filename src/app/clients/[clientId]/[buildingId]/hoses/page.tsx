@@ -27,6 +27,7 @@ import { QrCodeDialog } from "@/components/qr-code-dialog";
 import type { Hose } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 
 function TableSkeleton() {
@@ -55,6 +56,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
   const { clientId, buildingId } = params;
   const [hoses, setHoses] = useState<Hose[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchData() {
@@ -70,6 +72,14 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
     }
     fetchData();
   }, [clientId, buildingId]);
+
+  const handleDeleteSuccess = (deletedId: string) => {
+    setHoses(prev => prev.filter(hose => hose.id !== deletedId));
+    toast({
+        title: "Sucesso!",
+        description: "Sistema de mangueira deletado com sucesso."
+    });
+  };
 
   return (
     <>
@@ -150,7 +160,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                             <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                             <AlertDialogAction asChild>
-                                                <DeleteButton />
+                                                <DeleteButton onSuccess={() => handleDeleteSuccess(hose.id)} />
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </form>

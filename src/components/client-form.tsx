@@ -14,9 +14,10 @@ import type { Client } from "@/lib/types";
 
 interface ClientFormProps {
   client?: Client;
+  onSuccess?: () => void;
 }
 
-export function ClientForm({ client }: ClientFormProps) {
+export function ClientForm({ client, onSuccess }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -42,6 +43,7 @@ export function ClientForm({ client }: ClientFormProps) {
         });
         formRef.current?.reset();
       }
+      onSuccess?.();
     } catch (error: any) {
       toast({
         variant: "destructive",

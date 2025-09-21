@@ -27,6 +27,7 @@ import { QrCodeDialog } from "@/components/qr-code-dialog";
 import type { Extinguisher } from '@/lib/types';
 import { DeleteButton } from '@/components/delete-button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 function TableSkeleton() {
   return (
@@ -54,6 +55,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
   const { clientId, buildingId } = params;
   const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchData() {
@@ -69,6 +71,14 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
     }
     fetchData();
   }, [clientId, buildingId]);
+
+  const handleDeleteSuccess = (deletedId: string) => {
+    setExtinguishers(prev => prev.filter(ext => ext.id !== deletedId));
+    toast({
+        title: "Sucesso!",
+        description: "Extintor deletado com sucesso."
+    });
+  };
 
   return (
     <>
@@ -149,7 +159,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                             <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                             <AlertDialogAction asChild>
-                                                <DeleteButton />
+                                                <DeleteButton onSuccess={() => handleDeleteSuccess(ext.id)} />
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </form>
