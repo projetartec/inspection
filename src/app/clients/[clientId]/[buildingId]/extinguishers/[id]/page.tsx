@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { getExtinguisherById } from '@/lib/data';
@@ -19,14 +20,15 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
   if (!extinguisher) {
     notFound();
   }
-
-  const isExpired = new Date(extinguisher.expiryDate) < new Date();
+  
+  const isValidDate = extinguisher.expiryDate && !isNaN(new Date(extinguisher.expiryDate).getTime());
+  const isExpired = isValidDate ? new Date(extinguisher.expiryDate) < new Date() : false;
 
   const details = [
     { label: 'Valor do QR Code', value: extinguisher.qrCodeValue },
     { label: 'Tipo', value: extinguisher.type },
     { label: 'Peso', value: `${extinguisher.weight} kg` },
-    { label: 'Data de Validade', value: format(new Date(extinguisher.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) },
+    { label: 'Data de Validade', value: isValidDate ? format(new Date(extinguisher.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) : 'Data inválida' },
     { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
 

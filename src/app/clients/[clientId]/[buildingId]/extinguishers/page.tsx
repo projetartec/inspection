@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,8 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                 </TableHeader>
                 <TableBody>
                     {extinguishers.length > 0 ? extinguishers.map((ext) => {
-                        const isExpired = new Date(ext.expiryDate) < new Date();
+                        const isValidDate = ext.expiryDate && !isNaN(new Date(ext.expiryDate).getTime());
+                        const isExpired = isValidDate ? new Date(ext.expiryDate) < new Date() : false;
                         const deleteAction = deleteExtinguisherAction.bind(null, clientId, buildingId, ext.id);
                         return (
                         <TableRow key={ext.id}>
@@ -66,7 +68,7 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                             </TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell>{ext.weight}</TableCell>
-                            <TableCell>{format(new Date(ext.expiryDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                            <TableCell>{isValidDate ? format(new Date(ext.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
                                     {isExpired ? 'Vencido' : 'Ativo'}

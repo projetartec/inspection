@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,8 @@ export default async function HosesPage({ params }: { params: { clientId: string
                 </TableHeader>
                 <TableBody>
                     {hoses.length > 0 ? hoses.map((hose) => {
-                        const isExpired = new Date(hose.expiryDate) < new Date();
+                        const isValidDate = hose.expiryDate && !isNaN(new Date(hose.expiryDate).getTime());
+                        const isExpired = isValidDate ? new Date(hose.expiryDate) < new Date() : false;
                         const deleteAction = deleteHoseAction.bind(null, clientId, buildingId, hose.id);
                         return (
                         <TableRow key={hose.id}>
@@ -66,7 +68,7 @@ export default async function HosesPage({ params }: { params: { clientId: string
                             </TableCell>
                             <TableCell>{hose.hoseType}"</TableCell>
                             <TableCell>{hose.quantity}</TableCell>
-                            <TableCell>{format(new Date(hose.expiryDate), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                            <TableCell>{isValidDate ? format(new Date(hose.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
                                     {isExpired ? 'Vencido' : 'Ativo'}
