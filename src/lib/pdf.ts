@@ -6,7 +6,8 @@ import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {
+// This function now expects the expiryDate to be a pre-formatted string.
+export function generatePdfReport(client: Client, building: Building, extinguishers: any[], hoses: any[]) {
   const doc = new jsPDF();
   const page_width = doc.internal.pageSize.getWidth();
 
@@ -28,17 +29,13 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   autoTable(doc, {
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
-    body: extinguishers.map(e => {
-      const dateValue = e.expiryDate ? new Date(e.expiryDate) : null;
-      const isValidDate = dateValue && !isNaN(dateValue.getTime());
-      return [
-        e.id || '',
-        e.type || '',
-        e.weight || '',
-        isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
-        e.observations || ''
-      ]
-    }),
+    body: extinguishers.map(e => [
+      e.id || '',
+      e.type || '',
+      e.weight || '',
+      e.expiryDate, // Directly use the pre-formatted string
+      e.observations || ''
+    ]),
     theme: 'striped',
     headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });
@@ -51,19 +48,15 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   autoTable(doc, {
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
-    body: hoses.map(h => {
-      const dateValue = h.expiryDate ? new Date(h.expiryDate) : null;
-      const isValidDate = dateValue && !isNaN(dateValue.getTime());
-      return [
-        h.id || '',
-        h.quantity || '',
-        h.hoseType || '',
-        h.keyQuantity || '',
-        h.nozzleQuantity || '',
-        isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
-        h.observations || ''
-      ]
-    }),
+    body: hoses.map(h => [
+      h.id || '',
+      h.quantity || '',
+      h.hoseType || '',
+      h.keyQuantity || '',
+      h.nozzleQuantity || '',
+      h.expiryDate, // Directly use the pre-formatted string
+      h.observations || ''
+    ]),
     theme: 'striped',
     headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });

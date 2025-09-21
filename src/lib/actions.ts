@@ -5,6 +5,8 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, s
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 
 // --- Client Actions ---
@@ -160,12 +162,31 @@ export async function addInspectionAction(clientId: string, buildingId: string, 
 export async function getReportDataAction(clientId: string, buildingId: string) {
     const { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
     
-    const [client, building, extinguishers, hoses] = await Promise.all([
+    const [client, building, extinguishersData, hosesData] = await Promise.all([
         getClientById(clientId),
         getBuildingById(clientId, buildingId),
         getExtinguishersByBuilding(clientId, buildingId),
         getHosesByBuilding(clientId, buildingId)
     ]);
+
+    const formatOrNA = (dateString: string | undefined | null) => {
+        if (!dateString) return 'N/A';
+        const dateValue = new Date(dateString);
+        if (isNaN(dateValue.getTime())) {
+            return 'N/A';
+        }
+        return format(dateValue, 'dd/MM/yyyy', { locale: ptBR });
+    };
+
+    const extinguishers = extinguishersData.map(ext => ({
+        ...ext,
+        expiryDate: formatOrNA(ext.expiryDate)
+    }));
+
+    const hoses = hosesData.map(hose => ({
+        ...hose,
+        expiryDate: formatOrNA(hose.expiryDate)
+    }));
 
     return { client, building, extinguishers, hoses };
 }
