@@ -4,7 +4,8 @@ import { db } from '@/lib/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { getExtinguishersByBuilding, getHosesByBuilding } from './data';
+import { redirect } from 'next/navigation';
+
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -22,10 +23,7 @@ export async function createClientAction(formData: FormData) {
   }
 
   const newClientRef = doc(clientsRef);
-  const newClient = {
-    id: newClientRef.id,
-    name,
-  };
+  
   await setDoc(newClientRef, { name });
   revalidatePath('/');
 }
@@ -76,7 +74,11 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
+export async function deleteExtinguisherAction(formData: FormData) {
+    const clientId = formData.get('clientId') as string;
+    const buildingId = formData.get('buildingId') as string;
+    const id = formData.get('id') as string;
+    
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     await deleteDoc(docRef);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
@@ -106,7 +108,11 @@ export async function updateHoseAction(clientId: string, buildingId: string, id:
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
+export async function deleteHoseAction(formData: FormData) {
+    const clientId = formData.get('clientId') as string;
+    const buildingId = formData.get('buildingId') as string;
+    const id = formData.get('id') as string;
+
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
     await deleteDoc(docRef);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
@@ -159,4 +165,12 @@ export async function addInspectionAction(qrCodeValue: string, inspectionData: O
         }
     }
     return null; // Equipment not found
+}
+
+// --- Report Action ---
+export async function getReportDataAction(clientId: string, buildingId: string) {
+    const { getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
+    const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+    const hoses = await getHosesByBuilding(clientId, buildingId);
+    return { extinguishers, hoses };
 }

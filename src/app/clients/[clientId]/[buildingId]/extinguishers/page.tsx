@@ -60,7 +60,7 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                     {extinguishers.length > 0 ? extinguishers.map((ext) => {
                         const isValidDate = ext.expiryDate && !isNaN(new Date(ext.expiryDate).getTime());
                         const isExpired = isValidDate ? new Date(ext.expiryDate) < new Date() : false;
-                        const deleteAction = deleteExtinguisherAction.bind(null, clientId, buildingId, ext.id);
+                        
                         return (
                         <TableRow key={ext.id}>
                             <TableCell className="font-medium">
@@ -91,7 +91,10 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
-                                        <form action={deleteAction}>
+                                        <form action={deleteExtinguisherAction}>
+                                            <input type="hidden" name="clientId" value={clientId} />
+                                            <input type="hidden" name="buildingId" value={buildingId} />
+                                            <input type="hidden" name="id" value={ext.id} />
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                             <AlertDialogDescription>

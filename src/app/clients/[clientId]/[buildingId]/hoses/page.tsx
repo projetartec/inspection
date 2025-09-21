@@ -60,7 +60,7 @@ export default async function HosesPage({ params }: { params: { clientId: string
                     {hoses.length > 0 ? hoses.map((hose) => {
                         const isValidDate = hose.expiryDate && !isNaN(new Date(hose.expiryDate).getTime());
                         const isExpired = isValidDate ? new Date(hose.expiryDate) < new Date() : false;
-                        const deleteAction = deleteHoseAction.bind(null, clientId, buildingId, hose.id);
+                        
                         return (
                         <TableRow key={hose.id}>
                             <TableCell className="font-medium">
@@ -91,7 +91,10 @@ export default async function HosesPage({ params }: { params: { clientId: string
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
-                                        <form action={deleteAction}>
+                                        <form action={deleteHoseAction}>
+                                            <input type="hidden" name="clientId" value={clientId} />
+                                            <input type="hidden" name="buildingId" value={buildingId} />
+                                            <input type="hidden" name="id" value={hose.id} />
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                             <AlertDialogDescription>
