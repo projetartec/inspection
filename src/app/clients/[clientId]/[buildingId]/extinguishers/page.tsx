@@ -50,8 +50,8 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                     <TableRow>
                         <TableHead>ID</TableHead>
                         <TableHead>Tipo</TableHead>
-                        <TableHead>Peso (kg)</TableHead>
-                        <TableHead>Data de Validade</TableHead>
+                        <TableHead className="hidden md:table-cell">Peso (kg)</TableHead>
+                        <TableHead className="hidden md:table-cell">Validade</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
@@ -68,26 +68,26 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                               <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}`} className="hover:underline">{ext.id}</Link>
                             </TableCell>
                             <TableCell>{ext.type}</TableCell>
-                            <TableCell>{ext.weight}</TableCell>
-                            <TableCell>{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
+                            <TableCell className="hidden md:table-cell">{ext.weight}</TableCell>
+                            <TableCell className="hidden md:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
                                     {isExpired ? 'Vencido' : 'Ativo'}
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                    <Button asChild variant="ghost" size="sm">
+                                <div className="flex items-center justify-end space-x-1 md:space-x-2">
+                                    <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
                                         <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}/edit`}>
-                                            <Pencil className="h-4 w-4" />
+                                            <Pencil className="h-5 w-5 md:h-4 md:w-4" />
                                             <span className="sr-only">Editar</span>
                                         </Link>
                                     </Button>
 
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                            <Trash2 className="h-4 w-4" />
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 md:h-8 md:w-8">
+                                            <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
                                             <span className="sr-only">Deletar</span>
                                         </Button>
                                       </AlertDialogTrigger>
@@ -114,8 +114,8 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                                     </AlertDialog>
 
                                     <QrCodeDialog value={ext.qrCodeValue} label={ext.id}>
-                                        <Button variant="ghost" size="sm">
-                                            <QrCode className="h-4 w-4" />
+                                        <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
+                                            <QrCode className="h-5 w-5 md:h-4 md:w-4" />
                                             <span className="sr-only">Ver QR Code</span>
                                         </Button>
                                     </QrCodeDialog>
