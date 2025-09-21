@@ -1,4 +1,6 @@
+'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,11 +24,29 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteExtinguisherAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import { DeleteButton } from "@/components/delete-button";
+import type { Extinguisher } from '@/lib/types';
+import { DeleteButton } from '@/components/delete-button';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
+export default function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+  const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+        try {
+            setIsLoading(true);
+            const data = await getExtinguishersByBuilding(clientId, buildingId);
+            setExtinguishers(data);
+        } catch (error) {
+            console.error("Failed to fetch extinguishers:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchData();
+  }, [clientId, buildingId]);
 
   return (
     <>
@@ -56,7 +76,13 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {extinguishers.length > 0 ? extinguishers.map((ext) => {
+                    {isLoading ? (
+                        <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center">
+                                <p>Carregando...</p>
+                            </TableCell>
+                        </TableRow>
+                    ) : extinguishers.length > 0 ? extinguishers.map((ext) => {
                         const dateValue = ext.expiryDate ? new Date(ext.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         const isExpired = isValidDate ? dateValue < new Date() : false;
