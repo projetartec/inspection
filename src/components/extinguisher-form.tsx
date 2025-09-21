@@ -74,6 +74,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
   return (
       <form onSubmit={handleSubmit} className="space-y-8">
+        {isEditMode && <input type="hidden" name="id" value={extinguisher.id} />}
         <div className="space-y-2">
             <Label htmlFor="id">ID do Equipamento</Label>
             <Input 

@@ -74,6 +74,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+        {isEditMode && <input type="hidden" name="id" value={hose.id} />}
         <div className="space-y-2">
             <Label htmlFor="id">ID do Sistema</Label>
             <Input 
