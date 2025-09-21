@@ -2,29 +2,32 @@
 
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { useEffect } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface DeleteButtonProps {
     onSuccess?: () => void;
+    action: () => Promise<any>;
 }
 
-export function DeleteButton({ onSuccess }: DeleteButtonProps) {
-  const { pending, data } = useFormStatus();
+export function DeleteButton({ onSuccess, action }: DeleteButtonProps) {
+  const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    // This effect runs when the form submission is over (pending is false)
-    // and we were previously pending (which means a submission just finished).
-    // The `data` object is null during the initial render and on subsequent renders 
-    // where the form was not submitted. It is non-null after a submission.
-    // This logic ensures onSuccess is called only *after* a successful form action.
-    if (!pending && data && onSuccess) {
-      onSuccess();
-    }
-  }, [pending, data, onSuccess]);
+  const handleClick = () => {
+    startTransition(async () => {
+        await action();
+        onSuccess?.();
+    });
+  }
 
   return (
-    <Button variant="destructive" type="submit" disabled={pending}>
-      {pending ? 'Deletando...' : 'Deletar'}
+    <Button variant="destructive" type="button" onClick={handleClick} disabled={isPending}>
+      {isPending ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Deletando...
+          </>
+      ) : 'Deletar'}
     </Button>
   );
 }

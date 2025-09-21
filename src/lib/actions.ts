@@ -21,9 +21,7 @@ export async function createClientAction(formData: FormData) {
       throw new Error('Um cliente com este nome já existe.');
   }
 
-  const newClientRef = doc(clientsRef);
-  
-  await setDoc(newClientRef, { name });
+  await addDoc(clientsRef, { name });
   revalidatePath('/');
 }
 
@@ -41,7 +39,7 @@ export async function updateClientAction(id: string, formData: FormData) {
 
   await updateDoc(clientDocRef, { name });
   revalidatePath('/');
-  revalidatePath(`/clients/${id}`);
+  revalidatePath(`/clients/${id}/edit`);
   redirect('/');
 }
 
@@ -97,6 +95,40 @@ export async function createBuildingAction(clientId: string, formData: FormData)
         name,
     };
     await addDoc(buildingsRef, newBuilding);
+    revalidatePath(`/clients/${clientId}`);
+}
+
+export async function updateBuildingAction(clientId: string, buildingId: string, formData: FormData) {
+    const name = formData.get('name') as string;
+    if (!name || name.trim().length < 2) {
+        throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
+    }
+
+    const buildingDocRef = doc(db, `clients/${clientId}/buildings`, buildingId);
+    await updateDoc(buildingDocRef, { name });
+
+    revalidatePath(`/clients/${clientId}`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/edit`);
+}
+
+export async function deleteBuildingAction(clientId: string, buildingId: string) {
+    const buildingDocRef = doc(db, `clients/${clientId}/buildings`, buildingId);
+    const batch = writeBatch(db);
+
+    // Delete extinguishers in the building
+    const extinguishersRef = collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`);
+    const extinguishersSnapshot = await getDocs(extinguishersRef);
+    extinguishersSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    // Delete hoses in the building
+    const hosesRef = collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`);
+    const hosesSnapshot = await getDocs(hosesRef);
+    hosesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    // Delete the building itself
+    batch.delete(buildingDocRef);
+
+    await batch.commit();
     revalidatePath(`/clients/${clientId}`);
 }
 
