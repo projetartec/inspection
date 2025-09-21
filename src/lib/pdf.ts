@@ -29,15 +29,12 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
     body: extinguishers.map(e => {
-        const dateValue = e.expiryDate && typeof (e.expiryDate as any).toDate === 'function' 
-            ? (e.expiryDate as any).toDate() 
-            : new Date(e.expiryDate);
-        const isValidDate = dateValue && !isNaN(dateValue.getTime());
+      const dateValue = new Date(e.expiryDate);
       return [
         e.id || '',
         e.type || '',
         e.weight || '',
-        isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+        format(dateValue, 'dd/MM/yyyy', { locale: ptBR }),
         e.observations || ''
       ]
     }),
@@ -54,17 +51,14 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
     body: hoses.map(h => {
-        const dateValue = h.expiryDate && typeof (h.expiryDate as any).toDate === 'function' 
-            ? (h.expiryDate as any).toDate() 
-            : new Date(h.expiryDate);
-        const isValidDate = dateValue && !isNaN(dateValue.getTime());
+      const dateValue = new Date(h.expiryDate);
       return [
         h.id || '',
         h.quantity || '',
         h.hoseType || '',
         h.keyQuantity || '',
         h.nozzleQuantity || '',
-        isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+        format(dateValue, 'dd/MM/yyyy', { locale: ptBR }),
         h.observations || ''
       ]
     }),
