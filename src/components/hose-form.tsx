@@ -68,6 +68,9 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
     }
   };
 
+  const defaultExpiryDate = hose?.expiryDate && !isNaN(new Date(hose.expiryDate).getTime())
+    ? format(new Date(hose.expiryDate), 'yyyy-MM-dd')
+    : '';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -123,7 +126,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
                 id="expiryDate"
                 name="expiryDate"
                 type="date"
-                defaultValue={hose ? format(new Date(hose.expiryDate), 'yyyy-MM-dd') : ''}
+                defaultValue={defaultExpiryDate}
                 required
             />
         </div>

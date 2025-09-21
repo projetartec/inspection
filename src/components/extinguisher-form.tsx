@@ -67,6 +67,10 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
         setIsSubmitting(false);
     }
   };
+  
+  const defaultExpiryDate = extinguisher?.expiryDate && !isNaN(new Date(extinguisher.expiryDate).getTime())
+    ? format(new Date(extinguisher.expiryDate), 'yyyy-MM-dd')
+    : '';
 
   return (
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -124,7 +128,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
                 id="expiryDate"
                 name="expiryDate"
                 type="date"
-                defaultValue={extinguisher ? format(new Date(extinguisher.expiryDate), 'yyyy-MM-dd') : ''}
+                defaultValue={defaultExpiryDate}
                 required
             />
         </div>
