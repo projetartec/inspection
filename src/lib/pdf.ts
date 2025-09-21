@@ -1,10 +1,13 @@
 "use client";
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import applyPlugin from 'jspdf-autotable';
 import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Aplica o plugin ao jsPDF
+applyPlugin(jsPDF);
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -36,11 +39,11 @@ export function generatePdfReport(client: Client, building: Building, extinguish
       e.id,
       e.type,
       e.weight,
-      e.expiryDate ? format(new Date(e.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+      e.expiryDate && !isNaN(new Date(e.expiryDate).getTime()) ? format(new Date(e.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
       e.observations || ''
     ]),
     theme: 'striped',
-    headStyles: { fillColor: '#B71C1C' }
+    headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 40;
@@ -57,11 +60,11 @@ export function generatePdfReport(client: Client, building: Building, extinguish
       h.hoseType,
       h.keyQuantity,
       h.nozzleQuantity,
-      h.expiryDate ? format(new Date(h.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+      h.expiryDate && !isNaN(new Date(h.expiryDate).getTime()) ? format(new Date(h.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
       h.observations || ''
     ]),
     theme: 'striped',
-    headStyles: { fillColor: '#B71C1C' }
+    headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });
 
   doc.save(`Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`);
