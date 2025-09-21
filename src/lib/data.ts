@@ -1,113 +1,58 @@
+
 'use server';
 
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, query, where, setDoc, Timestamp } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import initialDb from '../../db.json';
+import * as fs from 'fs/promises';
+import path from 'path';
 import { format } from 'date-fns';
 
+const dbPath = path.join(process.cwd(), 'src', 'db.json');
 
-async function initializeDb() {
-    const clientsRef = collection(db, 'clients');
-    const snapshot = await getDocs(clientsRef);
-
-    console.log('Forcing database re-initialization...');
-
-    // Clear existing data
-    const deleteBatch = writeBatch(db);
-    for (const clientDoc of snapshot.docs) {
-      const buildingsRef = collection(db, `clients/${clientDoc.id}/buildings`);
-      const buildingsSnapshot = await getDocs(buildingsRef);
-      for (const buildingDoc of buildingsSnapshot.docs) {
-        const extinguishersRef = collection(db, `clients/${clientDoc.id}/buildings/${buildingDoc.id}/extinguishers`);
-        const extinguishersSnapshot = await getDocs(extinguishersRef);
-        extinguishersSnapshot.forEach(doc => deleteBatch.delete(doc.ref));
-        
-        const hosesRef = collection(db, `clients/${clientDoc.id}/buildings/${buildingDoc.id}/hoses`);
-        const hosesSnapshot = await getDocs(hosesRef);
-        hosesSnapshot.forEach(doc => deleteBatch.delete(doc.ref));
-
-        deleteBatch.delete(buildingDoc.ref);
-      }
-      deleteBatch.delete(clientDoc.ref);
+async function readDb(): Promise<{ clients: Client[] }> {
+    try {
+        const data = await fs.readFile(dbPath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading db.json:', error);
+        return { clients: [] };
     }
-    await deleteBatch.commit();
-    console.log('Existing data cleared.');
+}
 
-    // Initialize with new data
-    const addBatch = writeBatch(db);
-    initialDb.clients.forEach(client => {
-        const clientDocRef = doc(db, 'clients', client.id);
-        const { buildings, ...clientData } = client;
-        addBatch.set(clientDocRef, clientData);
-
-        if (client.buildings) {
-            client.buildings.forEach(building => {
-                const buildingDocRef = doc(db, `clients/${client.id}/buildings`, building.id);
-                const { extinguishers, hoses, ...buildingData } = building;
-                addBatch.set(buildingDocRef, buildingData);
-
-                if (building.extinguishers) {
-                    building.extinguishers.forEach(extinguisher => {
-                        const extDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/extinguishers`, extinguisher.id);
-                        addBatch.set(extDocRef, extinguisher);
-                    });
-                }
-
-                if (building.hoses) {
-                    building.hoses.forEach(hose => {
-                        const hoseDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/hoses`, hose.id);
-                        addBatch.set(hoseDocRef, hose);
-                    });
-                }
-            });
-        }
-    });
-    await addBatch.commit();
-    console.log('Database initialized successfully with new data.');
+async function writeDb(data: { clients: Client[] }): Promise<void> {
+    try {
+        await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (error) {
+        console.error('Error writing to db.json:', error);
+    }
 }
 
 
 // --- Client Functions ---
 export async function getClients(): Promise<Client[]> {
-  try {
-    await initializeDb();
-    const clientsCol = collection(db, 'clients');
-    const clientSnapshot = await getDocs(clientsCol);
-    if (clientSnapshot.empty) {
-      return [];
-    }
-    const clientList = clientSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
-    return clientList;
-  } catch (error) {
-    console.error("Error fetching clients:", error);
-    // Return an empty array or handle as per app's error policy
-    return [];
-  }
+    const dbData = await readDb();
+    return dbData.clients || [];
 }
 
 export async function getClientById(clientId: string): Promise<Client | null> {
-  const clientDocRef = doc(db, 'clients', clientId);
-  const clientDoc = await getDoc(clientDocRef);
-  if (!clientDoc.exists()) {
-    return null;
-  }
-  return { id: clientDoc.id, ...clientDoc.data() } as Client;
+    const dbData = await readDb();
+    const client = dbData.clients.find(c => c.id === clientId);
+    return client || null;
 }
 
 
 // --- Building Functions ---
 export async function getBuildingById(clientId: string, buildingId: string): Promise<Building | null> {
-    const buildingDocRef = doc(db, `clients/${clientId}/buildings`, buildingId);
-    const buildingDoc = await getDoc(buildingDocRef);
-    return buildingDoc.exists() ? { id: buildingDoc.id, ...buildingDoc.data() } as Building : null;
+    const client = await getClientById(clientId);
+    const building = client?.buildings.find(b => b.id === buildingId);
+    return building || null;
 }
 
 export async function getBuildingsByClient(clientId: string): Promise<Building[]> {
-  const buildingsColRef = collection(db, `clients/${clientId}/buildings`);
-  const snapshot = await getDocs(buildingsColRef);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Building));
+  const client = await getClientById(clientId);
+  return client?.buildings || [];
 }
 
 function toISODateString(date: any): string {
@@ -138,86 +83,72 @@ function toISODateString(date: any): string {
 
 // --- Equipment Functions ---
 export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
-    const extinguishersColRef = collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`);
-    const snapshot = await getDocs(extinguishersColRef);
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-            id: doc.id, 
-            ...data,
-            expiryDate: toISODateString(data.expiryDate)
-        } as Extinguisher
-    });
+    const building = await getBuildingById(clientId, buildingId);
+    return building?.extinguishers.map(ext => ({
+        ...ext,
+        expiryDate: toISODateString(ext.expiryDate)
+    })) || [];
 }
 
 export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hose[]> {
-    const hosesColRef = collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`);
-    const snapshot = await getDocs(hosesColRef);
-     return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-            id: doc.id, 
-            ...data,
-            expiryDate: toISODateString(data.expiryDate)
-        } as Hose
-    });
+    const building = await getBuildingById(clientId, buildingId);
+    return building?.hoses.map(hose => ({
+        ...hose,
+        expiryDate: toISODateString(hose.expiryDate)
+    })) || [];
 }
 
 export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
-    const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return null;
-
-    const data = docSnap.data();
-    return { 
-        id: docSnap.id, 
-        ...data,
-        expiryDate: toISODateString(data.expiryDate)
-    } as Extinguisher;
+    const building = await getBuildingById(clientId, buildingId);
+    const extinguisher = building?.extinguishers.find(e => e.id === id);
+    if (!extinguisher) return null;
+    
+    return {
+        ...extinguisher,
+        expiryDate: toISODateString(extinguisher.expiryDate)
+    };
 }
 
 export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hose | null> {
-    const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return null;
+    const building = await getBuildingById(clientId, buildingId);
+    const hose = building?.hoses.find(h => h.id === id);
+    if (!hose) return null;
     
-    const data = docSnap.data();
     return {
-         id: docSnap.id, 
-         ...data,
-         expiryDate: toISODateString(data.expiryDate)
-    } as Hose;
+        ...hose,
+        expiryDate: toISODateString(hose.expiryDate)
+    };
 }
 
 
 export async function addInspection(clientId: string, buildingId: string, qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
-    const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
+    const dbData = await readDb();
+    const client = dbData.clients.find(c => c.id === clientId);
+    if (!client) return null;
 
-    // Check extinguishers in the specific building
-    const extQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
-    const extSnapshot = await getDocs(extQuery);
-    if (!extSnapshot.empty) {
-        const extDoc = extSnapshot.docs[0];
-        const extinguisher = { id: extDoc.id, ...extDoc.data() } as Extinguisher;
-        const inspections = extinguisher.inspections || [];
-        inspections.push(newInspection);
-        await updateDoc(extDoc.ref, { inspections });
-        const redirectUrl = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
-        revalidatePath(redirectUrl);
-        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
-        return { redirectUrl };
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (!building) return null;
+
+    const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
+    
+    let redirectUrl: string | null = null;
+
+    const extinguisher = building.extinguishers.find(e => e.qrCodeValue === qrCodeValue);
+    if (extinguisher) {
+        extinguisher.inspections = extinguisher.inspections || [];
+        extinguisher.inspections.push(newInspection);
+        redirectUrl = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
     }
 
-    // Check hoses in the specific building
-    const hoseQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
-    const hoseSnapshot = await getDocs(hoseQuery);
-    if (!hoseSnapshot.empty) {
-        const hoseDoc = hoseSnapshot.docs[0];
-        const hose = { id: hoseDoc.id, ...hoseDoc.data() } as Hose;
-        const inspections = hose.inspections || [];
-        inspections.push(newInspection);
-        await updateDoc(hoseDoc.ref, { inspections });
-        const redirectUrl = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
+    const hose = building.hoses.find(h => h.qrCodeValue === qrCodeValue);
+    if (hose) {
+        hose.inspections = hose.inspections || [];
+        hose.inspections.push(newInspection);
+        redirectUrl = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
+    }
+
+    if (redirectUrl) {
+        await writeDb(dbData);
         revalidatePath(redirectUrl);
         revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
         return { redirectUrl };
