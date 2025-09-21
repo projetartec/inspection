@@ -143,21 +143,19 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
-                                        <form>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Esta ação não pode ser desfeita. Isso irá deletar permanentemente o extintor{' '}
-                                                <span className="font-bold">{ext.id}</span>.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction asChild>
-                                                <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.id)} onSuccess={() => handleDeleteSuccess(ext.id)} />
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </form>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação não pode ser desfeita. Isso irá deletar permanentemente o extintor{' '}
+                                            <span className="font-bold">{ext.id}</span>.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction asChild>
+                                            <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.id)} onSuccess={() => handleDeleteSuccess(ext.id)} />
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
 

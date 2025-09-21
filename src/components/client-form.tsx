@@ -11,6 +11,8 @@ import { Label } from "./ui/label";
 import { createClientAction, updateClientAction } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/types";
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
 
 interface ClientFormProps {
   client?: Client;
@@ -81,10 +83,10 @@ export function ClientForm({ client, onSuccess }: ClientFormProps) {
     <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="new-client" className="border-none">
             <div className="flex justify-center">
-                <AccordionTrigger>
-                    <Button>
+                <AccordionTrigger asChild className={cn(buttonVariants({ variant: "default" }), "no-underline")}>
+                    <div className="flex items-center">
                         <PlusCircle className="mr-2" /> Adicionar Novo Cliente
-                    </Button>
+                    </div>
                 </AccordionTrigger>
             </div>
             <AccordionContent>

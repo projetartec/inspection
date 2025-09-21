@@ -47,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchClients();
-  }, [toast]);
+  }, []);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
     setClients(prevClients => prevClients.filter(client => client.id !== deletedClientId));
@@ -93,8 +93,6 @@ export default function Home() {
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
-                        <form action={deleteClientAction}>
-                          <input type="hidden" name="id" value={client.id} />
                           <AlertDialogHeader>
                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                             <AlertDialogDescription>
@@ -105,10 +103,9 @@ export default function Home() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction asChild>
-                              <DeleteButton onSuccess={() => handleDeleteSuccess(client.id)} />
+                              <DeleteButton action={() => deleteClientAction(client.id)} onSuccess={() => handleDeleteSuccess(client.id)} />
                             </AlertDialogAction>
                           </AlertDialogFooter>
-                        </form>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>

@@ -64,7 +64,7 @@ export default function ClientPage({ params }: { params: { clientId: string } })
 
   useEffect(() => {
     fetchClientAndBuildings();
-  }, [clientId, toast]);
+  }, [clientId]);
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
     setBuildings(prevBuildings =>
@@ -148,7 +148,6 @@ export default function ClientPage({ params }: { params: { clientId: string } })
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
-                              <form>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                   <AlertDialogDescription>
@@ -167,7 +166,6 @@ export default function ClientPage({ params }: { params: { clientId: string } })
                                     />
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
-                              </form>
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>

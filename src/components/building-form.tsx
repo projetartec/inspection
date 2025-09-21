@@ -12,6 +12,8 @@ import { SubmitButton } from "./submit-button";
 import { createBuildingAction, updateBuildingAction } from "@/lib/actions";
 import type { Building } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
 
 interface BuildingFormProps {
     clientId: string;
@@ -86,10 +88,10 @@ export function BuildingForm({ clientId, building, onSuccess }: BuildingFormProp
     <Accordion type="single" collapsible className="w-full" defaultValue={isEditMode ? "edit-building" : undefined}>
         <AccordionItem value="new-building" className="border-none">
             <div className="flex justify-center">
-                <AccordionTrigger>
-                    <Button>
+                <AccordionTrigger asChild className={cn(buttonVariants({ variant: "default" }), "no-underline")}>
+                    <div className="flex items-center">
                         <PlusCircle className="mr-2" /> Adicionar Novo Local
-                    </Button>
+                    </div>
                 </AccordionTrigger>
             </div>
             <AccordionContent>

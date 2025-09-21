@@ -146,24 +146,19 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
-                                        <form action={deleteHoseAction}>
-                                            <input type="hidden" name="clientId" value={clientId} />
-                                            <input type="hidden" name="buildingId" value={buildingId} />
-                                            <input type="hidden" name="id" value={hose.id} />
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Esta ação não pode ser desfeita. Isso irá deletar permanentemente o sistema de mangueira{' '}
-                                                <span className="font-bold">{hose.id}</span>.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction asChild>
-                                                <DeleteButton onSuccess={() => handleDeleteSuccess(hose.id)} />
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </form>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação não pode ser desfeita. Isso irá deletar permanentemente o sistema de mangueira{' '}
+                                            <span className="font-bold">{hose.id}</span>.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction asChild>
+                                            <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.id)} onSuccess={() => handleDeleteSuccess(hose.id)} />
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
 
