@@ -4,14 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addInspection } from '@/lib/data';
+import { addInspectionAction } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CameraOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export function QrScanner() {
+interface QrScannerProps {
+  clientId: string;
+  buildingId: string;
+}
+
+export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -65,7 +70,7 @@ export function QrScanner() {
           longitude: position.coords.longitude,
         };
         try {
-            const result = await addInspection(scanResult, { date: new Date().toISOString(), notes, location });
+            const result = await addInspectionAction(clientId, buildingId, scanResult, { date: new Date().toISOString(), notes, location });
             if (result?.redirectUrl) {
                 toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
                 router.push(result.redirectUrl);
@@ -87,7 +92,7 @@ export function QrScanner() {
           description: 'Não foi possível obter a localização GPS. Registrando inspeção sem ela.'
         });
         try {
-            const result = await addInspection(scanResult, { date: new Date().toISOString(), notes });
+            const result = await addInspectionAction(clientId, buildingId, scanResult, { date: new Date().toISOString(), notes });
              if (result?.redirectUrl) {
                 toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
                 router.push(result.redirectUrl);

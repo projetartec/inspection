@@ -109,42 +109,42 @@ export async function getHoseById(clientId: string, buildingId: string, id: stri
 }
 
 
-export async function addInspection(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
-    const clients = await getClients();
+export async function addInspection(clientId: string, buildingId: string, qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
     const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
 
-    for (const client of clients) {
-        const buildings = await getBuildingsByClient(client.id);
-        for (const building of buildings) {
-            // Check extinguishers
-            const extQuery = query(collection(db, `clients/${client.id}/buildings/${building.id}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
-            const extSnapshot = await getDocs(extQuery);
-            if (!extSnapshot.empty) {
-                const extDoc = extSnapshot.docs[0];
-                const extinguisher = { id: extDoc.id, ...extDoc.data() } as Extinguisher;
-                const inspections = extinguisher.inspections || [];
-                inspections.push(newInspection);
-                await updateDoc(extDoc.ref, { inspections });
-                revalidatePath(`/clients/${client.id}/${buildingId}/extinguishers/${extinguisher.id}`);
-                return { redirectUrl: `/clients/${client.id}/${buildingId}/extinguishers/${extinguisher.id}` };
-            }
-
-            // Check hoses
-            const hoseQuery = query(collection(db, `clients/${client.id}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
-            const hoseSnapshot = await getDocs(hoseQuery);
-            if (!hoseSnapshot.empty) {
-                const hoseDoc = hoseSnapshot.docs[0];
-                const hose = { id: hoseDoc.id, ...hoseDoc.data() } as Hose;
-                const inspections = hose.inspections || [];
-                inspections.push(newInspection);
-                await updateDoc(hoseDoc.ref, { inspections });
-                 revalidatePath(`/clients/${client.id}/${buildingId}/hoses/${hose.id}`);
-                return { redirectUrl: `/clients/${client.id}/${buildingId}/hoses/${hose.id}` };
-            }
-        }
+    // Check extinguishers in the specific building
+    const extQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
+    const extSnapshot = await getDocs(extQuery);
+    if (!extSnapshot.empty) {
+        const extDoc = extSnapshot.docs[0];
+        const extinguisher = { id: extDoc.id, ...extDoc.data() } as Extinguisher;
+        const inspections = extinguisher.inspections || [];
+        inspections.push(newInspection);
+        await updateDoc(extDoc.ref, { inspections });
+        const redirectUrl = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
+        revalidatePath(redirectUrl);
+        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+        return { redirectUrl };
     }
+
+    // Check hoses in the specific building
+    const hoseQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
+    const hoseSnapshot = await getDocs(hoseQuery);
+    if (!hoseSnapshot.empty) {
+        const hoseDoc = hoseSnapshot.docs[0];
+        const hose = { id: hoseDoc.id, ...hoseDoc.data() } as Hose;
+        const inspections = hose.inspections || [];
+        inspections.push(newInspection);
+        await updateDoc(hoseDoc.ref, { inspections });
+        const redirectUrl = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
+        revalidatePath(redirectUrl);
+        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+        return { redirectUrl };
+    }
+    
     return null; // Equipment not found
 }
+
 
 export async function getReportDataAction(clientId: string, buildingId: string) {
   const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);

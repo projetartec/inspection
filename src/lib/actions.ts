@@ -120,51 +120,40 @@ export async function deleteHoseAction(formData: FormData) {
 }
 
 // --- Inspection Action ---
-export async function addInspectionAction(qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
-    const clientsCollection = collection(db, 'clients');
-    const clientsSnapshot = await getDocs(clientsCollection);
-    const clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
+export async function addInspectionAction(clientId: string, buildingId: string, qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
     const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
 
-    for (const client of clients) {
-        const buildingsCollection = collection(db, `clients/${client.id}/buildings`);
-        const buildingsSnapshot = await getDocs(buildingsCollection);
-        const buildings = buildingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<Building, 'id'> }));
-
-        for (const building of buildings) {
-
-            // Check extinguishers
-            const extQuery = query(collection(db, `clients/${client.id}/buildings/${building.id}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
-            const extSnapshot = await getDocs(extQuery);
-            if (!extSnapshot.empty) {
-                const extDoc = extSnapshot.docs[0];
-                const extinguisher = { id: extDoc.id, ...extDoc.data() } as Extinguisher;
-                const inspections = extinguisher.inspections || [];
-                inspections.push(newInspection);
-                await updateDoc(extDoc.ref, { inspections });
-                const path = `/clients/${client.id}/${building.id}/extinguishers/${extinguisher.id}`;
-                revalidatePath(path);
-                revalidatePath(`/clients/${client.id}/${building.id}/dashboard`);
-                return { redirectUrl: path };
-            }
-
-            // Check hoses
-            const hoseQuery = query(collection(db, `clients/${client.id}/buildings/${building.id}/hoses`), where('qrCodeValue', '==', qrCodeValue));
-            const hoseSnapshot = await getDocs(hoseQuery);
-            if (!hoseSnapshot.empty) {
-                const hoseDoc = hoseSnapshot.docs[0];
-                const hose = { id: hoseDoc.id, ...hoseDoc.data() } as Hose;
-                const inspections = hose.inspections || [];
-                inspections.push(newInspection);
-                await updateDoc(hoseDoc.ref, { inspections });
-                const path = `/clients/${client.id}/${building.id}/hoses/${hose.id}`;
-                revalidatePath(path);
-                revalidatePath(`/clients/${client.id}/${building.id}/dashboard`);
-                return { redirectUrl: path };
-            }
-        }
+    // Check extinguishers in the specific building
+    const extQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`), where('qrCodeValue', '==', qrCodeValue));
+    const extSnapshot = await getDocs(extQuery);
+    if (!extSnapshot.empty) {
+        const extDoc = extSnapshot.docs[0];
+        const extinguisher = { id: extDoc.id, ...extDoc.data() } as Extinguisher;
+        const inspections = extinguisher.inspections || [];
+        inspections.push(newInspection);
+        await updateDoc(extDoc.ref, { inspections });
+        const path = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
+        revalidatePath(path);
+        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+        return { redirectUrl: path };
     }
-    return null; // Equipment not found
+
+    // Check hoses in the specific building
+    const hoseQuery = query(collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
+    const hoseSnapshot = await getDocs(hoseQuery);
+    if (!hoseSnapshot.empty) {
+        const hoseDoc = hoseSnapshot.docs[0];
+        const hose = { id: hoseDoc.id, ...hoseDoc.data() } as Hose;
+        const inspections = hose.inspections || [];
+        inspections.push(newInspection);
+        await updateDoc(hoseDoc.ref, { inspections });
+        const path = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
+        revalidatePath(path);
+        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+        return { redirectUrl: path };
+    }
+
+    return null; // Equipment not found in the specified building
 }
 
 // --- Report Action ---
