@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'FireGuard Inspector',
   description: 'Aplicativo de inspeção para extintores e mangueiras de incêndio',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 };
 
 export default function RootLayout({
