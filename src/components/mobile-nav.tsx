@@ -43,12 +43,12 @@ export function MobileNav() {
   const buildingBasePath = `/clients/${clientId}/${buildingId}`;
 
   const menuItems = [
-    { href: `${buildingBasePath}/dashboard`, label: "Painel", icon: LayoutDashboard },
-    { href: `${buildingBasePath}/extinguishers`, label: "Extintores", icon: Flame },
-    { href: `${buildingBasePath}/scan`, label: "Escanear", icon: ScanLine },
-    { href: `${buildingBasePath}/hoses`, label: "Mangueiras", icon: Droplets },
-    { href: `/clients/${clientId}`, label: "Prédios", icon: Building },
-    { href: `/`, label: "Clientes", icon: Users },
+    { href: `${buildingBasePath}/dashboard`, icon: LayoutDashboard },
+    { href: `${buildingBasePath}/extinguishers`, icon: Flame },
+    { href: `${buildingBasePath}/hoses`, icon: Droplets },
+    { href: `${buildingBasePath}/scan`, icon: ScanLine },
+    { href: `/clients/${clientId}`, icon: Building },
+    { href: `/`, icon: Users },
   ];
 
   return (
@@ -66,7 +66,6 @@ export function MobileNav() {
               )}
             >
               <item.icon className="h-6 w-6" />
-              <span className="sr-only">{item.label}</span>
             </Link>
           );
         })}
