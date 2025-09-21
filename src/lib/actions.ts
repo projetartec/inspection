@@ -1,13 +1,10 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, setDoc } from 'firebase/firestore';
-import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, setDoc, getDoc, writeBatch } from 'firebase/firestore';
+import type { Extinguisher, Hose, Inspection } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -27,6 +24,56 @@ export async function createClientAction(formData: FormData) {
   const newClientRef = doc(clientsRef);
   
   await setDoc(newClientRef, { name });
+  revalidatePath('/');
+}
+
+export async function updateClientAction(id: string, formData: FormData) {
+  const name = formData.get('name') as string;
+  if (!name || name.trim().length < 2) {
+    throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
+  }
+
+  const clientDocRef = doc(db, 'clients', id);
+  const clientDoc = await getDoc(clientDocRef);
+  if(!clientDoc.exists()) {
+    throw new Error('Cliente não encontrado.');
+  }
+
+  await updateDoc(clientDocRef, { name });
+  revalidatePath('/');
+  revalidatePath(`/clients/${id}`);
+  redirect('/');
+}
+
+export async function deleteClientAction(formData: FormData) {
+  const id = formData.get('id') as string;
+  const clientDocRef = doc(db, 'clients', id);
+
+  // Recursively delete subcollections
+  const buildingsRef = collection(db, `clients/${id}/buildings`);
+  const buildingsSnapshot = await getDocs(buildingsRef);
+  const batch = writeBatch(db);
+
+  for (const buildingDoc of buildingsSnapshot.docs) {
+    const buildingId = buildingDoc.id;
+    // Delete extinguishers in the building
+    const extinguishersRef = collection(db, `clients/${id}/buildings/${buildingId}/extinguishers`);
+    const extinguishersSnapshot = await getDocs(extinguishersRef);
+    extinguishersSnapshot.forEach(doc => batch.delete(doc.ref));
+    
+    // Delete hoses in the building
+    const hosesRef = collection(db, `clients/${id}/buildings/${buildingId}/hoses`);
+    const hosesSnapshot = await getDocs(hosesRef);
+    hosesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    // Delete the building itself
+    batch.delete(buildingDoc.ref);
+  }
+
+  // Delete the client
+  batch.delete(clientDocRef);
+  await batch.commit();
+
   revalidatePath('/');
 }
 
@@ -60,7 +107,7 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     
     const newExtinguisher: Omit<Extinguisher, 'id'> = {
         ...data,
-        expiryDate: data.expiryDate, // Ensure it's a string
+        expiryDate: data.expiryDate,
         qrCodeValue: `fireguard-ext-${data.id}`,
         inspections: [],
     };
@@ -73,7 +120,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     await updateDoc(docRef, {
         ...data,
-        expiryDate: data.expiryDate, // Ensure it's a string
+        expiryDate: data.expiryDate,
     });
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
@@ -98,7 +145,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
 
     const newHose: Omit<Hose, 'id'> = {
         ...data,
-        expiryDate: data.expiryDate, // Ensure it's a string
+        expiryDate: data.expiryDate,
         qrCodeValue: `fireguard-hose-${data.id}`,
         inspections: [],
     };
@@ -111,7 +158,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, id:
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
     await updateDoc(docRef, {
         ...data,
-        expiryDate: data.expiryDate, // Ensure it's a string
+        expiryDate: data.expiryDate,
     });
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${id}`);

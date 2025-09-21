@@ -5,17 +5,22 @@ import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
-import { createClientAction } from "@/lib/actions";
+import { createClientAction, updateClientAction } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
+import type { Client } from "@/lib/types";
 
+interface ClientFormProps {
+  client?: Client;
+}
 
-export function ClientForm() {
+export function ClientForm({ client }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const isEditMode = !!client;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -23,8 +28,20 @@ export function ClientForm() {
     const formData = new FormData(event.currentTarget);
 
     try {
-      await createClientAction(formData);
-      // Redirect is handled by the server action
+      if (isEditMode) {
+        await updateClientAction(client.id, formData);
+        toast({
+          title: "Sucesso!",
+          description: `Cliente "${formData.get('name')}" atualizado.`,
+        });
+      } else {
+        await createClientAction(formData);
+        toast({
+          title: "Sucesso!",
+          description: `Cliente "${formData.get('name')}" criado.`,
+        });
+        formRef.current?.reset();
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -33,9 +50,30 @@ export function ClientForm() {
       });
     } finally {
       setIsSubmitting(false);
-      formRef.current?.reset();
     }
   };
+
+  if (isEditMode) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Editar Cliente</CardTitle>
+                <CardDescription>Modifique o nome do cliente abaixo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nome do Cliente</Label>
+                        <Input id="name" name="name" placeholder="Ex: Shopping Center" required defaultValue={client.name}/>
+                    </div>
+                    <SubmitButton isSubmitting={isSubmitting} className="w-full">
+                        Salvar Alterações
+                    </SubmitButton>
+                </form>
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Accordion type="single" collapsible className="w-full">

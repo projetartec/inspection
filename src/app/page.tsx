@@ -9,6 +9,20 @@ import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
 import type { Client } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
+import { Pencil, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteClientAction } from '@/lib/actions';
+import { DeleteButton } from '@/components/delete-button';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -32,7 +46,7 @@ export default function Home() {
       }
     }
     fetchClients();
-  }, [toast]); // A dependência vazia garante que isso rode apenas uma vez no carregamento
+  }, [toast]);
 
   return (
     <div className="min-h-screen container mx-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center">
@@ -41,38 +55,62 @@ export default function Home() {
       </header>
 
       <main className="w-full max-w-2xl">
-        {isLoading ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Carregando Clientes...</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle>Selecione um Cliente</CardTitle>
+            <CardDescription>Escolha um cliente para gerenciar os locais e equipamentos.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {isLoading ? (
               <p>Buscando dados...</p>
-            </CardContent>
-          </Card>
-        ) : clients.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Selecione um Cliente</CardTitle>
-              <CardDescription>Escolha um cliente para gerenciar os locais e equipamentos.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {clients.map((client) => (
-                <Button key={client.id} asChild variant="outline" size="lg" className="justify-start">
-                  <Link href={`/clients/${client.id}`}>{client.name}</Link>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="text-center">
-            <CardHeader>
-              <CardTitle>Bem-vindo ao Brazil Extintores</CardTitle>
-              <CardDescription>Nenhum cliente foi cadastrado ainda. Comece adicionando seu primeiro cliente.</CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-
+            ) : clients.length > 0 ? (
+              clients.map((client) => (
+                <div key={client.id} className="flex items-center justify-between p-2 rounded-lg border">
+                  <Button asChild variant="link" className="justify-start flex-grow text-lg">
+                    <Link href={`/clients/${client.id}`}>{client.name}</Link>
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    <Button asChild variant="ghost" size="icon">
+                      <Link href={`/clients/${client.id}/edit`}>
+                        <Pencil className="h-5 w-5" />
+                        <span className="sr-only">Editar Cliente</span>
+                      </Link>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-5 w-5" />
+                          <span className="sr-only">Deletar Cliente</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <form action={deleteClientAction}>
+                          <input type="hidden" name="id" value={client.id} />
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Isso irá deletar permanentemente o cliente{' '}
+                              <span className="font-bold">{client.name}</span> e todos os seus locais e equipamentos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction asChild>
+                              <DeleteButton />
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </form>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground py-4">Nenhum cliente foi cadastrado ainda.</p>
+            )}
+          </CardContent>
+        </Card>
+        
         <div className="mt-8">
             <ClientForm />
         </div>
