@@ -28,6 +28,28 @@ import type { Extinguisher } from '@/lib/types';
 import { DeleteButton } from '@/components/delete-button';
 import { Skeleton } from '@/components/ui/skeleton';
 
+function TableSkeleton() {
+  return (
+    Array(3).fill(0).map((_, index) => (
+      <TableRow key={index}>
+        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-10" /></TableCell>
+        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end space-x-1 md:space-x-2">
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+          </div>
+        </TableCell>
+      </TableRow>
+    ))
+  );
+}
+
+
 export default function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
   const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
@@ -77,11 +99,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
-                                <p>Carregando...</p>
-                            </TableCell>
-                        </TableRow>
+                        <TableSkeleton />
                     ) : extinguishers.length > 0 ? extinguishers.map((ext) => {
                         const dateValue = ext.expiryDate ? new Date(ext.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
