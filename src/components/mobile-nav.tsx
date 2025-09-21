@@ -16,8 +16,7 @@ export function MobileNav() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
             <nav className="flex items-center justify-around h-full">
                 <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
-                    <Users className="h-6 w-6 mb-1" />
-                    <span>Clientes</span>
+                    <Users className="h-6 w-6" />
                 </Link>
             </nav>
         </div>
@@ -30,12 +29,10 @@ export function MobileNav() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
             <nav className="flex items-center justify-around h-full">
                  <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
-                    <ChevronLeft className="h-6 w-6 mb-1" />
-                    <span>Todos os Clientes</span>
+                    <ChevronLeft className="h-6 w-6" />
                 </Link>
                 <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === `/clients/${clientId}` ? "text-primary" : "text-muted-foreground")}>
-                    <Building className="h-6 w-6 mb-1" />
-                    <span>Prédios</span>
+                    <Building className="h-6 w-6" />
                 </Link>
             </nav>
         </div>
@@ -68,8 +65,8 @@ export function MobileNav() {
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <item.icon className="h-5 w-5 mb-1" />
-              <span>{item.label}</span>
+              <item.icon className="h-6 w-6" />
+              <span className="sr-only">{item.label}</span>
             </Link>
           );
         })}
