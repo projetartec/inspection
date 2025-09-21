@@ -160,33 +160,16 @@ export async function addInspectionAction(clientId: string, buildingId: string, 
 
 // --- Report Action ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
+    // IMPORTANT: This function now passes raw data to the PDF generator.
+    // The date formatting logic is handled within the PDF generator itself.
     const { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
     
-    const [client, building, extinguishersData, hosesData] = await Promise.all([
+    const [client, building, extinguishers, hoses] = await Promise.all([
         getClientById(clientId),
         getBuildingById(clientId, buildingId),
         getExtinguishersByBuilding(clientId, buildingId),
         getHosesByBuilding(clientId, buildingId)
     ]);
-
-    const formatOrNA = (dateString: string | undefined | null) => {
-        if (!dateString) return 'N/A';
-        const dateValue = new Date(dateString);
-        if (isNaN(dateValue.getTime())) {
-            return 'N/A';
-        }
-        return format(dateValue, 'dd/MM/yyyy', { locale: ptBR });
-    };
-
-    const extinguishers = extinguishersData.map(ext => ({
-        ...ext,
-        expiryDate: formatOrNA(ext.expiryDate)
-    }));
-
-    const hoses = hosesData.map(hose => ({
-        ...hose,
-        expiryDate: formatOrNA(hose.expiryDate)
-    }));
 
     return { client, building, extinguishers, hoses };
 }

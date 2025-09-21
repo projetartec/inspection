@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // This function now expects the expiryDate to be a pre-formatted string.
-export function generatePdfReport(client: Client, building: Building, extinguishers: any[], hoses: any[]) {
+export function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {
   const doc = new jsPDF();
   const page_width = doc.internal.pageSize.getWidth();
 
@@ -22,6 +22,18 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   doc.setFontSize(10);
   doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, page_width - 14, 42, { align: 'right' });
 
+  const formatDateCell = (cell: any) => {
+      const rawDate = cell.raw;
+      if (rawDate) {
+        // The raw value can be a Firebase Timestamp object or an ISO string
+        const dateValue = typeof rawDate.toDate === 'function' ? rawDate.toDate() : new Date(rawDate);
+        if (!isNaN(dateValue.getTime())) {
+          cell.text = [format(dateValue, 'dd/MM/yyyy', { locale: ptBR })];
+          return;
+        }
+      }
+      cell.text = ['N/A'];
+  };
 
   // Tabela de Extintores
   doc.setFontSize(16);
@@ -33,11 +45,16 @@ export function generatePdfReport(client: Client, building: Building, extinguish
       e.id || '',
       e.type || '',
       e.weight || '',
-      e.expiryDate, // Directly use the pre-formatted string
+      e.expiryDate, // Pass raw date object/string
       e.observations || ''
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
+    headStyles: { fillColor: [183, 28, 28] }, // Cor em formato RGB,
+    didParseCell: (data) => {
+        if (data.column.index === 3 && data.section === 'body') {
+            formatDateCell(data.cell);
+        }
+    }
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 40;
@@ -54,11 +71,16 @@ export function generatePdfReport(client: Client, building: Building, extinguish
       h.hoseType || '',
       h.keyQuantity || '',
       h.nozzleQuantity || '',
-      h.expiryDate, // Directly use the pre-formatted string
+      h.expiryDate, // Pass raw date object/string
       h.observations || ''
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
+    headStyles: { fillColor: [183, 28, 28] }, // Cor em formato RGB,
+    didParseCell: (data) => {
+        if (data.column.index === 5 && data.section === 'body') {
+            formatDateCell(data.cell);
+        }
+    }
   });
 
   doc.save(`Relatorio_${(client.name || 'Cliente').replace(/ /g, '_')}_${(building.name || 'Local').replace(/ /g, '_')}.pdf`);
