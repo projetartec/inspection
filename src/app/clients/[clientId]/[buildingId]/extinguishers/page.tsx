@@ -58,8 +58,9 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                 </TableHeader>
                 <TableBody>
                     {extinguishers.length > 0 ? extinguishers.map((ext) => {
-                        const isValidDate = ext.expiryDate && !isNaN(new Date(ext.expiryDate).getTime());
-                        const isExpired = isValidDate ? new Date(ext.expiryDate) < new Date() : false;
+                        const dateValue = ext.expiryDate && typeof (ext.expiryDate as any).toDate === 'function' ? (ext.expiryDate as any).toDate() : new Date(ext.expiryDate);
+                        const isValidDate = dateValue && !isNaN(dateValue.getTime());
+                        const isExpired = isValidDate ? dateValue < new Date() : false;
                         
                         return (
                         <TableRow key={ext.id}>
@@ -68,7 +69,7 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                             </TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell>{ext.weight}</TableCell>
-                            <TableCell>{isValidDate ? format(new Date(ext.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
+                            <TableCell>{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
                                     {isExpired ? 'Vencido' : 'Ativo'}

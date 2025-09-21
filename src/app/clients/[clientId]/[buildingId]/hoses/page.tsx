@@ -58,8 +58,9 @@ export default async function HosesPage({ params }: { params: { clientId: string
                 </TableHeader>
                 <TableBody>
                     {hoses.length > 0 ? hoses.map((hose) => {
-                        const isValidDate = hose.expiryDate && !isNaN(new Date(hose.expiryDate).getTime());
-                        const isExpired = isValidDate ? new Date(hose.expiryDate) < new Date() : false;
+                        const dateValue = hose.expiryDate && typeof (hose.expiryDate as any).toDate === 'function' ? (hose.expiryDate as any).toDate() : new Date(hose.expiryDate);
+                        const isValidDate = dateValue && !isNaN(dateValue.getTime());
+                        const isExpired = isValidDate ? dateValue < new Date() : false;
                         
                         return (
                         <TableRow key={hose.id}>
@@ -68,7 +69,7 @@ export default async function HosesPage({ params }: { params: { clientId: string
                             </TableCell>
                             <TableCell>{hose.hoseType}"</TableCell>
                             <TableCell>{hose.quantity}</TableCell>
-                            <TableCell>{isValidDate ? format(new Date(hose.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
+                            <TableCell>{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                             <TableCell>
                                 <Badge variant={isExpired ? 'destructive' : 'secondary'}>
                                     {isExpired ? 'Vencido' : 'Ativo'}

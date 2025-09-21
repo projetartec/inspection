@@ -21,8 +21,9 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
     notFound();
   }
 
-  const isValidDate = hose.expiryDate && !isNaN(new Date(hose.expiryDate).getTime());
-  const isExpired = isValidDate ? new Date(hose.expiryDate) < new Date() : false;
+  const dateValue = hose.expiryDate && typeof (hose.expiryDate as any).toDate === 'function' ? (hose.expiryDate as any).toDate() : new Date(hose.expiryDate);
+  const isValidDate = dateValue && !isNaN(dateValue.getTime());
+  const isExpired = isValidDate ? dateValue < new Date() : false;
 
   const details = [
     { label: 'Valor do QR Code', value: hose.qrCodeValue },
@@ -30,7 +31,7 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
     { label: 'Quantidade de Mangueiras', value: hose.quantity },
     { label: 'Quantidade de Chaves', value: hose.keyQuantity },
     { label: 'Quantidade de Bicos', value: hose.nozzleQuantity },
-    { label: 'Data de Validade', value: isValidDate ? format(new Date(hose.expiryDate), 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) : 'Data inválida' },
+    { label: 'Data de Validade', value: isValidDate ? format(dateValue, 'd \'de\' MMMM \'de\' yyyy', { locale: ptBR }) : 'Data inválida' },
     { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
 
