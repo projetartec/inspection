@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteHoseAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Hose } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 
 export default async function HosesPage({ params }: { params: { clientId: string, buildingId: string }}) {

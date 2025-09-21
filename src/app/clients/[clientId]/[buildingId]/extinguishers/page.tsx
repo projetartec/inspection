@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteExtinguisherAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Extinguisher } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 
 export default async function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
