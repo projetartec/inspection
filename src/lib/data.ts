@@ -256,7 +256,6 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
     return null; // Equipment not found
 }
 
-
 export async function getReportDataAction(clientId: string, buildingId: string) {
   const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
   const hoses = await getHosesByBuilding(clientId, buildingId);
