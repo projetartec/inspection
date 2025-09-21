@@ -25,9 +25,9 @@ export default async function DashboardPage({ params }: { params: { clientId: st
   const expiredHoses = hoses.filter(isExpired).length;
 
   const stats = [
-    { title: "Total de Extintores", value: extinguishers.length, icon: Flame, color: "text-muted-foreground" },
-    { title: "Total de Mangueiras", value: hoses.length, icon: Droplets, color: "text-muted-foreground" },
-    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras` },
+    { title: "Total de Extintores", value: extinguishers.length, icon: Flame, color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
+    { title: "Total de Mangueiras", value: hoses.length, icon: Droplets, color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
+    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
   ];
 
   const scanUrl = `/clients/${clientId}/${buildingId}/scan`;
@@ -36,18 +36,30 @@ export default async function DashboardPage({ params }: { params: { clientId: st
     <div className="flex flex-col gap-8">
       <PageHeader title={`Painel: ${building.name}`} />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-              {stat.description && <p className="text-xs text-muted-foreground">{stat.description}</p>}
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((stat) => {
+          const CardComponent = (
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                {stat.description && <p className="text-xs text-muted-foreground">{stat.description}</p>}
+              </CardContent>
+            </Card>
+          );
+          
+          return stat.href ? (
+            <Link href={stat.href} key={stat.title}>
+              {CardComponent}
+            </Link>
+          ) : (
+            <div key={stat.title}>
+              {CardComponent}
+            </div>
+          );
+        })}
       </div>
       <Card className="text-center">
         <CardHeader>
