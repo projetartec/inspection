@@ -1,10 +1,11 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, query, where, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, query, where, setDoc, Timestamp } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import initialDb from '../../db.json';
+import { format } from 'date-fns';
 
 
 async function initializeDb() {
@@ -83,29 +84,69 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Building));
 }
 
+function toISODateString(date: any): string {
+    if (!date) return '';
+    if (typeof date === 'string') return date;
+    if (date instanceof Timestamp) {
+      return format(date.toDate(), 'yyyy-MM-dd');
+    }
+    if (date instanceof Date) {
+        return format(date, 'yyyy-MM-dd');
+    }
+    return '';
+}
+
 // --- Equipment Functions ---
 export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
     const extinguishersColRef = collection(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`);
     const snapshot = await getDocs(extinguishersColRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Extinguisher));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data,
+            expiryDate: toISODateString(data.expiryDate)
+        } as Extinguisher
+    });
 }
 
 export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hose[]> {
     const hosesColRef = collection(db, `clients/${clientId}/buildings/${buildingId}/hoses`);
     const snapshot = await getDocs(hosesColRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Hose));
+     return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            id: doc.id, 
+            ...data,
+            expiryDate: toISODateString(data.expiryDate)
+        } as Hose
+    });
 }
 
 export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Extinguisher : null;
+    if (!docSnap.exists()) return null;
+
+    const data = docSnap.data();
+    return { 
+        id: docSnap.id, 
+        ...data,
+        expiryDate: toISODateString(data.expiryDate)
+    } as Extinguisher;
 }
 
 export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hose | null> {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Hose : null;
+    if (!docSnap.exists()) return null;
+    
+    const data = docSnap.data();
+    return {
+         id: docSnap.id, 
+         ...data,
+         expiryDate: toISODateString(data.expiryDate)
+    } as Hose;
 }
 
 

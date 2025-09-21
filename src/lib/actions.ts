@@ -60,6 +60,7 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     
     const newExtinguisher: Omit<Extinguisher, 'id'> = {
         ...data,
+        expiryDate: data.expiryDate, // Ensure it's a string
         qrCodeValue: `fireguard-ext-${data.id}`,
         inspections: [],
     };
@@ -70,7 +71,10 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<Omit<Extinguisher, 'id'>>) {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/extinguishers`, id);
-    await updateDoc(docRef, data);
+    await updateDoc(docRef, {
+        ...data,
+        expiryDate: data.expiryDate, // Ensure it's a string
+    });
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -94,6 +98,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
 
     const newHose: Omit<Hose, 'id'> = {
         ...data,
+        expiryDate: data.expiryDate, // Ensure it's a string
         qrCodeValue: `fireguard-hose-${data.id}`,
         inspections: [],
     };
@@ -104,7 +109,10 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
 
 export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<Omit<Hose, 'id'>>) {
     const docRef = doc(db, `clients/${clientId}/buildings/${buildingId}/hoses`, id);
-    await updateDoc(docRef, data);
+    await updateDoc(docRef, {
+        ...data,
+        expiryDate: data.expiryDate, // Ensure it's a string
+    });
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${id}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
