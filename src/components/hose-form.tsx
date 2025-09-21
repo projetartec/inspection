@@ -1,16 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createHoseAction, updateHoseAction } from "@/lib/actions";
+import { addHose, updateHose } from "@/lib/data";
 import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities, type Hose } from "@/lib/types";
 import { Input } from "./ui/input";
 import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
+import { HoseFormSchema } from "@/lib/schemas";
 
 
 interface HoseFormProps {
@@ -23,33 +24,53 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isEditMode = !!hose;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formAction = async (formData: FormData) => {
-    const action = isEditMode
-      ? updateHoseAction.bind(null, clientId, buildingId, hose.id)
-      : createHoseAction.bind(null, clientId, buildingId);
-      
-    const success = await action(formData);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(event.currentTarget);
+    const rawData = Object.fromEntries(formData.entries());
 
-    if (success) {
-      toast({
-        title: "Sucesso!",
-        description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
-      });
-      router.refresh();
-      router.push(`/clients/${clientId}/${buildingId}/hoses`);
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o sistema de mangueira.`,
-      });
+    const validatedFields = HoseFormSchema.safeParse(rawData);
+    
+    if (!validatedFields.success) {
+        console.error(validatedFields.error.flatten().fieldErrors);
+        toast({
+            variant: "destructive",
+            title: "Erro de Validação",
+            description: "Por favor, verifique os campos do formulário.",
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
+    try {
+        if (isEditMode) {
+            await updateHose(clientId, buildingId, hose.id, validatedFields.data);
+        } else {
+            await addHose(clientId, buildingId, validatedFields.data as Omit<Hose, 'qrCodeValue' | 'inspections'>);
+        }
+        toast({
+            title: "Sucesso!",
+            description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
+        });
+        router.push(`/clients/${clientId}/${buildingId}/hoses`);
+        router.refresh();
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Erro",
+            description: error.message || `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o sistema de mangueira.`,
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-2">
             <Label htmlFor="id">ID do Sistema</Label>
             <Input 
@@ -117,7 +138,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
             />
         </div>
         
-        <SubmitButton>
+        <SubmitButton isSubmitting={isSubmitting}>
           {isEditMode ? 'Salvar Alterações' : 'Criar Sistema de Mangueira'}
         </SubmitButton>
       </form>

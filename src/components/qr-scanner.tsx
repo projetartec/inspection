@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { logInspectionAction } from '@/lib/actions';
+import { addInspection } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,14 +64,19 @@ export function QrScanner() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
-        const result = await logInspectionAction(scanResult, notes, location);
-        
-        if (result?.message) {
-          toast({ variant: 'destructive', title: 'Erro', description: result.message });
-          setIsSubmitting(false);
-        } else if (result?.redirectUrl) {
-          toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
-          router.push(result.redirectUrl);
+        try {
+            const result = await addInspection(scanResult, { date: new Date().toISOString(), notes, location });
+            if (result?.redirectUrl) {
+                toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
+                router.push(result.redirectUrl);
+                router.refresh();
+            } else {
+                 toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado para o QR code escaneado.' });
+            }
+        } catch(e: any) {
+             toast({ variant: 'destructive', title: 'Erro de banco de dados', description: 'Falha ao registrar inspeção.' });
+        } finally {
+            setIsSubmitting(false);
         }
       },
       async (error) => {
@@ -81,14 +86,20 @@ export function QrScanner() {
           title: 'Aviso de Localização',
           description: 'Não foi possível obter a localização GPS. Registrando inspeção sem ela.'
         });
-        const result = await logInspectionAction(scanResult, notes);
-        if (result?.message) {
-          toast({ variant: 'destructive', title: 'Erro', description: result.message });
-        } else if (result?.redirectUrl) {
-          toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
-          router.push(result.redirectUrl);
+        try {
+            const result = await addInspection(scanResult, { date: new Date().toISOString(), notes });
+             if (result?.redirectUrl) {
+                toast({ title: 'Sucesso', description: 'Inspeção registrada com sucesso!' });
+                router.push(result.redirectUrl);
+                router.refresh();
+            } else {
+                 toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado para o QR code escaneado.' });
+            }
+        } catch(e: any) {
+             toast({ variant: 'destructive', title: 'Erro de banco de dados', description: 'Falha ao registrar inspeção.' });
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
       },
       { enableHighAccuracy: true }
     );

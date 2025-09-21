@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createExtinguisherAction, updateExtinguisherAction } from "@/lib/actions";
+import { addExtinguisher, updateExtinguisher } from "@/lib/data";
 import { extinguisherTypes, extinguisherWeights, type Extinguisher } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
+import { ExtinguisherFormSchema } from "@/lib/schemas";
+import { useState } from "react";
 
 
 interface ExtinguisherFormProps {
@@ -22,32 +24,52 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
   const router = useRouter();
   const { toast } = useToast();
   const isEditMode = !!extinguisher;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formAction = async (formData: FormData) => {
-    const action = isEditMode
-      ? updateExtinguisherAction.bind(null, clientId, buildingId, extinguisher.id)
-      : createExtinguisherAction.bind(null, clientId, buildingId);
-      
-    const success = await action(formData);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(event.currentTarget);
+    const rawData = Object.fromEntries(formData.entries());
 
-    if (success) {
+    const validatedFields = ExtinguisherFormSchema.safeParse(rawData);
+  
+    if (!validatedFields.success) {
+      console.error(validatedFields.error.flatten().fieldErrors);
+      toast({
+        variant: "destructive",
+        title: "Erro de Validação",
+        description: "Por favor, verifique os campos do formulário.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      if (isEditMode) {
+        await updateExtinguisher(clientId, buildingId, extinguisher.id, validatedFields.data);
+      } else {
+        await addExtinguisher(clientId, buildingId, validatedFields.data as Omit<Extinguisher, 'qrCodeValue' | 'inspections'>);
+      }
       toast({
         title: "Sucesso!",
         description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
       });
-      router.refresh();
       router.push(`/clients/${clientId}/${buildingId}/extinguishers`);
-    } else {
-      toast({
+      router.refresh();
+    } catch (error: any) {
+       toast({
         variant: "destructive",
         title: "Erro",
-        description: `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o extintor.`,
+        description: error.message || `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o extintor.`,
       });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
   return (
-      <form action={formAction} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-2">
             <Label htmlFor="id">ID do Equipamento</Label>
             <Input 
@@ -121,7 +143,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
              </p>
         </div>
         
-        <SubmitButton>
+        <SubmitButton isSubmitting={isSubmitting}>
           {isEditMode ? 'Salvar Alterações' : 'Criar Extintor'}
         </SubmitButton>
       </form>

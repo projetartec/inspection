@@ -7,10 +7,13 @@ import { cn } from "@/lib/utils";
 
 type SubmitButtonProps = ButtonProps & {
     children: React.ReactNode;
+    isSubmitting?: boolean;
 }
 
-export function SubmitButton({ children, className, ...props }: SubmitButtonProps) {
-    const { pending } = useFormStatus();
+export function SubmitButton({ children, className, isSubmitting, ...props }: SubmitButtonProps) {
+    // useFormStatus is only for Server Actions. We get isSubmitting as a prop now.
+    // const { pending } = useFormStatus();
+    const pending = isSubmitting;
 
     return (
         <Button type="submit" disabled={pending} className={cn(className)} {...props}>
