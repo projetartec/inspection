@@ -13,7 +13,248 @@
         {
           "id": "bldg-1758332823582",
           "name": "Prédio 2",
-          "extinguishers": [],
+          "extinguishers": [
+            {
+              "id": "ext-001",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2027,
+              "observations": "SUBSOLO",
+              "qrCodeValue": "fireguard-ext-ext-001",
+              "inspections": [
+                {
+                  "id": "insp-1717939783000",
+                  "date": "2025-06-09T10:29:43.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-002",
+              "type": "BC",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "SUBSOLO CORREDOR",
+              "qrCodeValue": "fireguard-ext-ext-002",
+              "inspections": [
+                {
+                  "id": "insp-1717940887000",
+                  "date": "2025-06-09T10:48:07.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-003",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "SUBSOLO",
+              "qrCodeValue": "fireguard-ext-ext-003",
+              "inspections": [
+                {
+                  "id": "insp-1717940852000",
+                  "date": "2025-06-09T10:47:32.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-004",
+              "type": "BC",
+              "weight": 4,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2025,
+              "observations": "ENTRADA FUNDO",
+              "qrCodeValue": "fireguard-ext-ext-004",
+              "inspections": [
+                {
+                  "id": "insp-1717940554000",
+                  "date": "2025-06-09T10:42:34.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-005",
+              "type": "CO2",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2028,
+              "observations": "TERREO RECEPÇAO",
+              "qrCodeValue": "fireguard-ext-ext-005",
+              "inspections": [
+                {
+                  "id": "insp-1717930800000",
+                  "date": "2025-06-09T10:00:00.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-006",
+              "type": "CO2",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2028,
+              "observations": "CORREDOR TERREO",
+              "qrCodeValue": "fireguard-ext-ext-006",
+              "inspections": [
+                 {
+                  "id": "insp-1717930800001",
+                  "date": "2025-06-09T10:00:00.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-007",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2027,
+              "observations": "CORREDOR TÉRREO",
+              "qrCodeValue": "fireguard-ext-ext-007",
+              "inspections": [
+                {
+                  "id": "insp-1717940619000",
+                  "date": "2025-06-09T10:43:39.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-008",
+              "type": "BC",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "CORREDOR TÉRREO",
+              "qrCodeValue": "fireguard-ext-ext-008",
+              "inspections": [
+                {
+                  "id": "insp-1717940625000",
+                  "date": "2025-06-09T10:43:45.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-009",
+              "type": "BC",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2028,
+              "observations": "CORREDOR TÉRREO BANHEIRO",
+              "qrCodeValue": "fireguard-ext-ext-009",
+              "inspections": [
+                {
+                  "id": "insp-1717940674000",
+                  "date": "2025-06-09T10:44:34.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-010",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2027,
+              "observations": "CORREDOR TÉRREO BANHEIRO",
+              "qrCodeValue": "fireguard-ext-ext-010",
+              "inspections": [
+                {
+                  "id": "insp-1717940684000",
+                  "date": "2025-06-09T10:44:44.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-011",
+              "type": "BC",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "1° ANDAR",
+              "qrCodeValue": "fireguard-ext-ext-011",
+              "inspections": [
+                {
+                  "id": "insp-1717941038000",
+                  "date": "2025-06-09T10:50:38.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-012",
+              "type": "BC",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "1° ANDAR",
+              "qrCodeValue": "fireguard-ext-ext-012",
+              "inspections": [
+                {
+                  "id": "insp-1717941594000",
+                  "date": "2025-06-09T10:59:54.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-013",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "1° ANDAR",
+              "qrCodeValue": "fireguard-ext-ext-013",
+              "inspections": [
+                {
+                  "id": "insp-1717941600000",
+                  "date": "2025-06-09T11:00:00.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-014",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2027,
+              "observations": "1° ANDAR",
+              "qrCodeValue": "fireguard-ext-ext-014",
+              "inspections": [
+                {
+                  "id": "insp-1717941533000",
+                  "date": "2025-06-09T10:58:53.000Z",
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "id": "ext-015",
+              "type": "BC",
+              "weight": 6,
+              "expiryDate": "2025-11-01",
+              "hydrostaticTestYear": 2026,
+              "observations": "1° ANDAR",
+              "qrCodeValue": "fireguard-ext-ext-015",
+              "inspections": [
+                {
+                  "id": "insp-1717941526000",
+                  "date": "2025-06-09T10:58:46.000Z",
+                  "notes": ""
+                }
+              ]
+            }
+          ],
           "hoses": []
         }
       ]
