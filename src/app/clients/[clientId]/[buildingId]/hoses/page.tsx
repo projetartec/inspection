@@ -58,7 +58,7 @@ export default async function HosesPage({ params }: { params: { clientId: string
                 </TableHeader>
                 <TableBody>
                     {hoses.length > 0 ? hoses.map((hose) => {
-                        const dateValue = hose.expiryDate && typeof (hose.expiryDate as any).toDate === 'function' ? (hose.expiryDate as any).toDate() : new Date(hose.expiryDate);
+                        const dateValue = hose.expiryDate ? new Date(hose.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         const isExpired = isValidDate ? dateValue < new Date() : false;
                         

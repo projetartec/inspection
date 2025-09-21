@@ -21,7 +21,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
     notFound();
   }
   
-  const dateValue = extinguisher.expiryDate && typeof (extinguisher.expiryDate as any).toDate === 'function' ? (extinguisher.expiryDate as any).toDate() : new Date(extinguisher.expiryDate);
+  const dateValue = extinguisher.expiryDate ? new Date(extinguisher.expiryDate) : null;
   const isValidDate = dateValue && !isNaN(dateValue.getTime());
   const isExpired = isValidDate ? dateValue < new Date() : false;
 

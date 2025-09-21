@@ -58,7 +58,7 @@ export default async function ExtinguishersPage({ params }: { params: { clientId
                 </TableHeader>
                 <TableBody>
                     {extinguishers.length > 0 ? extinguishers.map((ext) => {
-                        const dateValue = ext.expiryDate && typeof (ext.expiryDate as any).toDate === 'function' ? (ext.expiryDate as any).toDate() : new Date(ext.expiryDate);
+                        const dateValue = ext.expiryDate ? new Date(ext.expiryDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         const isExpired = isValidDate ? dateValue < new Date() : false;
                         
