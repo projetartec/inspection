@@ -125,12 +125,12 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
                 const inspections = extinguisher.inspections || [];
                 inspections.push(newInspection);
                 await updateDoc(extDoc.ref, { inspections });
-                revalidatePath(`/clients/${client.id}/${building.id}/extinguishers/${extinguisher.id}`);
-                return { redirectUrl: `/clients/${client.id}/${building.id}/extinguishers/${extinguisher.id}` };
+                revalidatePath(`/clients/${client.id}/${buildingId}/extinguishers/${extinguisher.id}`);
+                return { redirectUrl: `/clients/${client.id}/${buildingId}/extinguishers/${extinguisher.id}` };
             }
 
             // Check hoses
-            const hoseQuery = query(collection(db, `clients/${client.id}/buildings/${building.id}/hoses`), where('qrCodeValue', '==', qrCodeValue));
+            const hoseQuery = query(collection(db, `clients/${client.id}/buildings/${buildingId}/hoses`), where('qrCodeValue', '==', qrCodeValue));
             const hoseSnapshot = await getDocs(hoseQuery);
             if (!hoseSnapshot.empty) {
                 const hoseDoc = hoseSnapshot.docs[0];
@@ -138,8 +138,8 @@ export async function addInspection(qrCodeValue: string, inspectionData: Omit<In
                 const inspections = hose.inspections || [];
                 inspections.push(newInspection);
                 await updateDoc(hoseDoc.ref, { inspections });
-                 revalidatePath(`/clients/${client.id}/${building.id}/hoses/${hose.id}`);
-                return { redirectUrl: `/clients/${client.id}/${building.id}/hoses/${hose.id}` };
+                 revalidatePath(`/clients/${client.id}/${buildingId}/hoses/${hose.id}`);
+                return { redirectUrl: `/clients/${client.id}/${buildingId}/hoses/${hose.id}` };
             }
         }
     }
