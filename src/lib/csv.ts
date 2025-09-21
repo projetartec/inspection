@@ -12,17 +12,16 @@ function escapeCsvCell(cell: string | number): string {
     return cellStr;
 }
 
-function formatDate(dateString: string): string {
-    if (!dateString) return 'N/A';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            return 'Data Inválida';
-        }
-        return format(date, 'dd/MM/yyyy', { locale: ptBR });
-    } catch (e) {
+function formatDate(dateInput: any): string {
+    if (!dateInput) return 'N/A';
+    
+    // Handles both Firestore Timestamps and date strings
+    const date = dateInput.toDate ? dateInput.toDate() : new Date(dateInput);
+
+    if (isNaN(date.getTime())) {
         return 'Data Inválida';
     }
+    return format(date, 'dd/MM/yyyy', { locale: ptBR });
 }
 
 export function generateCsvReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {
@@ -69,7 +68,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     });
 
     // --- Download ---
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
