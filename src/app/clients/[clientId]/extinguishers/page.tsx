@@ -151,10 +151,8 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction asChild>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                             <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.id)} onSuccess={() => handleDeleteSuccess(ext.id)} />
-                                        </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>

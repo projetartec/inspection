@@ -155,9 +155,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction asChild>
-                                            <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.id)} onSuccess={() => handleDeleteSuccess(hose.id)} />
-                                        </AlertDialogAction>
+                                        <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.id)} onSuccess={() => handleDeleteSuccess(hose.id)} />
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>

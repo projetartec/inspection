@@ -1,33 +1,46 @@
-'use client';
+"use client";
 
-import { useFormStatus } from 'react-dom';
+import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
+import { AlertDialogAction } from '@/components/ui/alert-dialog';
 
 interface DeleteButtonProps {
-    onSuccess?: () => void;
     action: () => Promise<any>;
+    onSuccess: () => void;
 }
 
-export function DeleteButton({ onSuccess, action }: DeleteButtonProps) {
+export function DeleteButton({ action, onSuccess }: DeleteButtonProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
     startTransition(async () => {
+      try {
         await action();
-        onSuccess?.();
+        onSuccess();
+      } catch (error) {
+        console.error("Ação de deletar falhou:", error);
+        // Opcional: Adicionar um toast de erro aqui se necessário
+      }
     });
-  }
+  };
 
   return (
-    <Button variant="destructive" type="button" onClick={handleClick} disabled={isPending}>
-      {isPending ? (
+    <AlertDialogAction asChild>
+      <Button
+        variant="destructive"
+        onClick={handleClick}
+        disabled={isPending}
+      >
+        {isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Deletando...
           </>
-      ) : 'Deletar'}
-    </Button>
+        ) : (
+          'Deletar'
+        )}
+      </Button>
+    </AlertDialogAction>
   );
 }

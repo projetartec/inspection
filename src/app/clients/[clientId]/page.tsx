@@ -159,12 +159,10 @@ export default function ClientPage({ params }: { params: { clientId: string } })
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction asChild>
-                                    <DeleteButton
+                                  <DeleteButton
                                       action={() => deleteBuildingAction(client.id, building.id)}
                                       onSuccess={() => handleDeleteSuccess(building.id)}
                                     />
-                                  </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

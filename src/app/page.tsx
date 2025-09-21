@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -102,9 +101,7 @@ export default function Home() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction asChild>
-                              <DeleteButton action={() => deleteClientAction(client.id)} onSuccess={() => handleDeleteSuccess(client.id)} />
-                            </AlertDialogAction>
+                            <DeleteButton action={() => deleteClientAction(client.id)} onSuccess={() => handleDeleteSuccess(client.id)} />
                           </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
