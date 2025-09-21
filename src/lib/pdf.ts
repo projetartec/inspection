@@ -29,7 +29,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
     body: extinguishers.map(e => {
-      const dateValue = typeof (e.expiryDate as any).toDate === 'function' ? (e.expiryDate as any).toDate() : new Date(e.expiryDate);
+      const dateValue = new Date(e.expiryDate);
       return [
         e.id,
         e.type,
@@ -51,7 +51,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
     body: hoses.map(h => {
-       const dateValue = typeof (h.expiryDate as any).toDate === 'function' ? (h.expiryDate as any).toDate() : new Date(h.expiryDate);
+       const dateValue = new Date(h.expiryDate);
       return [
         h.id,
         h.quantity,
