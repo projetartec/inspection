@@ -19,21 +19,27 @@ async function initializeDb() {
             const { buildings, ...clientData } = client;
             batch.set(clientDocRef, clientData);
 
-            client.buildings.forEach(building => {
-                const buildingDocRef = doc(db, `clients/${client.id}/buildings`, building.id);
-                const { extinguishers, hoses, ...buildingData } = building;
-                batch.set(buildingDocRef, buildingData);
+            if (client.buildings) {
+                client.buildings.forEach(building => {
+                    const buildingDocRef = doc(db, `clients/${client.id}/buildings`, building.id);
+                    const { extinguishers, hoses, ...buildingData } = building;
+                    batch.set(buildingDocRef, buildingData);
 
-                building.extinguishers.forEach(extinguisher => {
-                    const extDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/extinguishers`, extinguisher.id);
-                    batch.set(extDocRef, extinguisher);
-                });
+                    if (building.extinguishers) {
+                        building.extinguishers.forEach(extinguisher => {
+                            const extDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/extinguishers`, extinguisher.id);
+                            batch.set(extDocRef, extinguisher);
+                        });
+                    }
 
-                building.hoses.forEach(hose => {
-                    const hoseDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/hoses`, hose.id);
-                    batch.set(hoseDocRef, hose);
+                    if (building.hoses) {
+                        building.hoses.forEach(hose => {
+                            const hoseDocRef = doc(db, `clients/${client.id}/buildings/${building.id}/hoses`, hose.id);
+                            batch.set(hoseDocRef, hose);
+                        });
+                    }
                 });
-            });
+            }
         });
         await batch.commit();
         console.log('Database initialized successfully.');
@@ -86,7 +92,18 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
 
 function toISODateString(date: any): string {
     if (!date) return '';
-    if (typeof date === 'string') return date;
+    if (typeof date === 'string') {
+        // If it's already a string in 'YYYY-MM-DD' format, return it.
+        if (/\d{4}-\d{2}-\d{2}/.test(date)) {
+            return date.split('T')[0]; // Ensure no time part
+        }
+        // If it's another string format, try parsing
+        const parsedDate = new Date(date);
+        if (!isNaN(parsedDate.getTime())) {
+            return format(parsedDate, 'yyyy-MM-dd');
+        }
+        return '';
+    }
     if (date instanceof Timestamp) {
       return format(date.toDate(), 'yyyy-MM-dd');
     }
@@ -185,3 +202,5 @@ export async function addInspection(clientId: string, buildingId: string, qrCode
     
     return null; // Equipment not found
 }
+
+    
