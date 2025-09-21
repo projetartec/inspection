@@ -28,13 +28,17 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   autoTable(doc, {
     startY: 65,
     head: [['ID', 'Tipo', 'Peso (kg)', 'Validade', 'Observações']],
-    body: extinguishers.map(e => [
-      e.id,
-      e.type,
-      e.weight,
-      e.expiryDate && !isNaN(new Date(e.expiryDate).getTime()) ? format(new Date(e.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
-      e.observations || ''
-    ]),
+    body: extinguishers.map(e => {
+      const dateValue = e.expiryDate && typeof (e.expiryDate as any).toDate === 'function' ? (e.expiryDate as any).toDate() : new Date(e.expiryDate);
+      const isValidDate = dateValue && !isNaN(dateValue.getTime());
+      return [
+        e.id,
+        e.type,
+        e.weight,
+        isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+        e.observations || ''
+      ]
+    }),
     theme: 'striped',
     headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });
@@ -47,15 +51,19 @@ export function generatePdfReport(client: Client, building: Building, extinguish
   autoTable(doc, {
     startY: finalY + 20,
     head: [['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações']],
-    body: hoses.map(h => [
-      h.id,
-      h.quantity,
-      h.hoseType,
-      h.keyQuantity,
-      h.nozzleQuantity,
-      h.expiryDate && !isNaN(new Date(h.expiryDate).getTime()) ? format(new Date(h.expiryDate), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
-      h.observations || ''
-    ]),
+    body: hoses.map(h => {
+       const dateValue = h.expiryDate && typeof (h.expiryDate as any).toDate === 'function' ? (h.expiryDate as any).toDate() : new Date(h.expiryDate);
+       const isValidDate = dateValue && !isNaN(dateValue.getTime());
+      return [
+        h.id,
+        h.quantity,
+        h.hoseType,
+        h.keyQuantity,
+        h.nozzleQuantity,
+        isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A',
+        h.observations || ''
+      ]
+    }),
     theme: 'striped',
     headStyles: { fillColor: [183, 28, 28] } // Cor em formato RGB
   });
