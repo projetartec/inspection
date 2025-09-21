@@ -16,7 +16,7 @@ export const ExtinguisherFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
   type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.' }),
   weight: z.coerce.number({ required_error: 'Por favor, selecione um peso válido.' }),
-  expiryDate: z.coerce.date({ required_error: 'A data de validade é obrigatória.'}),
+  expiryDate: z.string().min(1, 'A data de validade é obrigatória.'),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
 });
 export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
@@ -28,7 +28,7 @@ export const HoseFormSchema = z.object({
   hoseType: z.enum(hoseTypes, { required_error: 'Por favor, selecione um tipo de mangueira.' }),
   keyQuantity: z.coerce.number({ required_error: 'Por favor, selecione a quantidade de chaves.' }),
   nozzleQuantity: z.coerce.number({ required_error: 'Por favor, selecione a quantidade de bicos.' }),
-  expiryDate: z.coerce.date({ required_error: 'A data de validade é obrigatória.'}),
+  expiryDate: z.string().min(1, 'A data de validade é obrigatória.'),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
 });
 export type HoseFormValues = z.infer<typeof HoseFormSchema>;

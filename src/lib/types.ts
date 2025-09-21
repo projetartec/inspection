@@ -19,7 +19,7 @@ export type Extinguisher = {
   qrCodeValue: string;
   type: ExtinguisherType;
   weight: ExtinguisherWeight;
-  expiryDate: string; // Changed to string
+  expiryDate: string; 
   observations: string;
   inspections: Inspection[];
 };
@@ -43,7 +43,7 @@ export type Hose = {
   hoseType: HoseType;
   keyQuantity: KeyQuantity;
   nozzleQuantity: NozzleQuantity;
-  expiryDate: string; // Changed to string
+  expiryDate: string;
   observations: string;
   inspections: Inspection[];
 };

@@ -68,7 +68,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
     }
   };
 
-  const defaultExpiryDate = hose?.expiryDate && !isNaN(new Date(hose.expiryDate).getTime())
+  const defaultExpiryDate = hose?.expiryDate
     ? format(new Date(hose.expiryDate), 'yyyy-MM-dd')
     : '';
 
@@ -76,9 +76,9 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
     <form onSubmit={handleSubmit} className="space-y-8">
         {isEditMode && <input type="hidden" name="id" value={hose.id} />}
         <div className="space-y-2">
-            <Label htmlFor="id">ID do Sistema</Label>
+            <Label htmlFor="id-input">ID do Sistema</Label>
             <Input 
-                id="id"
+                id="id-input"
                 name="id"
                 placeholder="Ex: HOSE-SYS-01" 
                 defaultValue={hose?.id}

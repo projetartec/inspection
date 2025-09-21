@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
 
@@ -12,16 +12,17 @@ function escapeCsvCell(cell: string | number): string {
     return cellStr;
 }
 
-function formatDate(dateInput: any): string {
+function formatDate(dateInput: string | null | undefined): string {
     if (!dateInput) return 'N/A';
     
-    // Handles both Firestore Timestamps and date strings
-    const date = dateInput.toDate ? dateInput.toDate() : new Date(dateInput);
-
-    if (isNaN(date.getTime())) {
+    try {
+        // The date is stored as 'yyyy-MM-dd', parseISO handles this correctly.
+        const date = parseISO(dateInput);
+        return format(date, 'dd/MM/yyyy', { locale: ptBR });
+    } catch (error) {
+        // If parsing fails for any reason, return invalid.
         return 'Data Inválida';
     }
-    return format(date, 'dd/MM/yyyy', { locale: ptBR });
 }
 
 export function generateCsvReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {

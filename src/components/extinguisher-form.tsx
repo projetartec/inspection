@@ -68,7 +68,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
     }
   };
   
-  const defaultExpiryDate = extinguisher?.expiryDate && !isNaN(new Date(extinguisher.expiryDate).getTime())
+  const defaultExpiryDate = extinguisher?.expiryDate 
     ? format(new Date(extinguisher.expiryDate), 'yyyy-MM-dd')
     : '';
 
@@ -76,9 +76,9 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
       <form onSubmit={handleSubmit} className="space-y-8">
         {isEditMode && <input type="hidden" name="id" value={extinguisher.id} />}
         <div className="space-y-2">
-            <Label htmlFor="id">ID do Equipamento</Label>
+            <Label htmlFor="id-input">ID do Equipamento</Label>
             <Input 
-                id="id"
+                id="id-input"
                 name="id"
                 placeholder="Ex: EXT-001" 
                 defaultValue={extinguisher?.id} 
