@@ -1,49 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { addClient } from "@/lib/data";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 import { Card, CardContent } from "./ui/card";
 import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
-import { ClientFormSchema } from "@/lib/schemas";
+import { createClientAction } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+
 
 export function ClientForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
-    const name = formData.get('name') as string;
-
-    const validatedFields = ClientFormSchema.safeParse({ name });
-
-    if (!validatedFields.success) {
-      toast({
-        variant: "destructive",
-        title: "Erro de Validação",
-        description: validatedFields.error.flatten().fieldErrors.name,
-      });
-      setIsSubmitting(false);
-      return;
-    }
 
     try {
-      await addClient(validatedFields.data);
-      toast({
-        title: "Sucesso",
-        description: `Cliente "${validatedFields.data.name}" criado.`,
-      });
-      router.refresh();
-      // Optionally reset form state or close accordion here
+      await createClientAction(formData);
+      // Redirect is handled by the server action
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -52,8 +33,7 @@ export function ClientForm() {
       });
     } finally {
       setIsSubmitting(false);
-      const form = event.currentTarget;
-      form.reset();
+      formRef.current?.reset();
     }
   };
 
@@ -70,7 +50,7 @@ export function ClientForm() {
             <AccordionContent>
                 <Card className="mt-4">
                     <CardContent className="pt-6">
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Nome do Cliente</Label>
                                 <Input id="name" name="name" placeholder="Ex: Shopping Center" required />

@@ -1,9 +1,6 @@
-'use client';
-
 import Link from "next/link";
-import React, { useState, useEffect } from 'react';
 import { notFound } from "next/navigation";
-import { getClientById } from "@/lib/data";
+import { getClientById, getBuildingsByClient } from "@/lib/data";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,28 +8,16 @@ import { BuildingForm } from "@/components/building-form";
 import { Sidebar, SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
-import type { Client } from "@/lib/types";
+import type { Building } from "@/lib/types";
 
-export default function ClientPage({ params }: { params: { clientId: string } }) {
-  const [client, setClient] = useState<Client | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchClient() {
-      const clientData = await getClientById(params.clientId);
-      setClient(clientData);
-      setIsLoading(false);
-    }
-    fetchClient();
-  }, [params.clientId]);
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full min-h-screen">Carregando...</div>;
-  }
+export default async function ClientPage({ params }: { params: { clientId: string } }) {
+  const client = await getClientById(params.clientId);
   
   if (!client) {
     notFound();
   }
+
+  const buildings: Building[] = await getBuildingsByClient(params.clientId);
 
   return (
      <SidebarProvider>
@@ -45,14 +30,14 @@ export default function ClientPage({ params }: { params: { clientId: string } })
             <PageHeader title={`Cliente: ${client.name}`} href="/" />
             
             <div className="w-full max-w-2xl mx-auto">
-                {client.buildings.length > 0 ? (
+                {buildings.length > 0 ? (
                 <Card>
                     <CardHeader>
                     <CardTitle>Selecione um Local</CardTitle>
                     <CardDescription>Escolha um local para gerenciar os equipamentos.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-4">
-                    {client.buildings.map((building) => (
+                    {buildings.map((building) => (
                         <Button key={building.id} asChild variant="outline" size="lg" className="justify-start">
                         <Link href={`/clients/${client.id}/${building.id}/dashboard`}>{building.name}</Link>
                         </Button>

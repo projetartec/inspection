@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { addHose, updateHose } from "@/lib/data";
+import { createHoseAction, updateHoseAction } from "@/lib/actions";
 import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities, type Hose } from "@/lib/types";
 import { Input } from "./ui/input";
 import { SubmitButton } from "./submit-button";
@@ -47,9 +47,9 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
 
     try {
         if (isEditMode) {
-            await updateHose(clientId, buildingId, hose.id, validatedFields.data);
+            await updateHoseAction(clientId, buildingId, hose.id, validatedFields.data);
         } else {
-            await addHose(clientId, buildingId, validatedFields.data as Omit<Hose, 'qrCodeValue' | 'inspections'>);
+            await createHoseAction(clientId, buildingId, validatedFields.data);
         }
         toast({
             title: "Sucesso!",

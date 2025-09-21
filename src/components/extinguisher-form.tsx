@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { addExtinguisher, updateExtinguisher } from "@/lib/data";
+import { createExtinguisherAction, updateExtinguisherAction } from "@/lib/actions";
 import { extinguisherTypes, extinguisherWeights, type Extinguisher } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "./submit-button";
@@ -47,9 +47,9 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
     try {
       if (isEditMode) {
-        await updateExtinguisher(clientId, buildingId, extinguisher.id, validatedFields.data);
+        await updateExtinguisherAction(clientId, buildingId, extinguisher.id, validatedFields.data);
       } else {
-        await addExtinguisher(clientId, buildingId, validatedFields.data as Omit<Extinguisher, 'qrCodeValue' | 'inspections'>);
+        await createExtinguisherAction(clientId, buildingId, validatedFields.data);
       }
       toast({
         title: "Sucesso!",

@@ -1,6 +1,3 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { getHoseById } from '@/lib/data';
@@ -14,25 +11,10 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
-import type { Hose } from '@/lib/types';
 
-export default function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
+export default async function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const [hose, setHose] = useState<Hose | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-        const data = await getHoseById(clientId, buildingId, id);
-        setHose(data);
-        setIsLoading(false);
-    }
-    fetchData();
-  }, [clientId, buildingId, id]);
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Carregando...</div>;
-  }
+  const hose = await getHoseById(clientId, buildingId, id);
 
   if (!hose) {
     notFound();
@@ -103,7 +85,7 @@ export default function HoseDetailPage({ params }: { params: { clientId: string,
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {hose.inspections.length > 0 ? hose.inspections.map(insp => (
+                    {hose.inspections && hose.inspections.length > 0 ? hose.inspections.map(insp => (
                         <TableRow key={insp.id}>
                         <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                         <TableCell>

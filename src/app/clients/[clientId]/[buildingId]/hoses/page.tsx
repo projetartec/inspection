@@ -1,11 +1,8 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getHosesByBuilding, deleteHose } from "@/lib/data";
+import { getHosesByBuilding } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -22,48 +19,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { deleteHoseAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 import type { Hose } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { DeleteButton } from "@/components/delete-button";
 
-export default function HosesPage({ params }: { params: { clientId: string, buildingId: string }}) {
+export default async function HosesPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
-  const [hoses, setHoses] = useState<Hose[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-  const router = useRouter();
-
-  useEffect(() => {
-    async function fetchData() {
-        const data = await getHosesByBuilding(clientId, buildingId);
-        setHoses(data);
-        setIsLoading(false);
-    }
-    fetchData();
-  }, [clientId, buildingId]);
-
-  const handleDelete = async (id: string) => {
-    try {
-        await deleteHose(clientId, buildingId, id);
-        toast({
-            title: "Sucesso",
-            description: "Sistema de mangueira deletado com sucesso."
-        });
-        setHoses(hoses.filter(hose => hose.id !== id));
-        router.refresh();
-    } catch(error: any) {
-        toast({
-            variant: "destructive",
-            title: "Erro",
-            description: "Falha ao deletar o sistema de mangueira."
-        });
-    }
-  }
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Carregando...</div>;
-  }
+  const hoses = await getHosesByBuilding(clientId, buildingId);
 
   return (
     <>
@@ -95,6 +58,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                 <TableBody>
                     {hoses.length > 0 ? hoses.map((hose) => {
                         const isExpired = new Date(hose.expiryDate) < new Date();
+                        const deleteAction = deleteHoseAction.bind(null, clientId, buildingId, hose.id);
                         return (
                         <TableRow key={hose.id}>
                             <TableCell className="font-medium">
@@ -125,6 +89,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                         </Button>
                                       </AlertDialogTrigger>
                                       <AlertDialogContent>
+                                        <form action={deleteAction}>
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                             <AlertDialogDescription>
@@ -134,10 +99,11 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(hose.id)}>
-                                                Deletar
+                                            <AlertDialogAction asChild>
+                                                <DeleteButton />
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
+                                        </form>
                                       </AlertDialogContent>
                                     </AlertDialog>
 

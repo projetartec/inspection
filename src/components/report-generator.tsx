@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getReportDataAction } from '@/lib/data';
+import { getReportDataAction } from '@/lib/actions';
 import { generatePdfReport } from '@/lib/pdf';
 import { SidebarMenuButton } from '@/components/ui/sidebar';
 

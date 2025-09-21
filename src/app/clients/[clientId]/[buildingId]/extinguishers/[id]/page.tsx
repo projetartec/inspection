@@ -1,6 +1,3 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { getExtinguisherById } from '@/lib/data';
@@ -14,25 +11,10 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
-import type { Extinguisher } from '@/lib/types';
 
-export default function ExtinguisherDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
+export default async function ExtinguisherDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const [extinguisher, setExtinguisher] = useState<Extinguisher | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-      const data = await getExtinguisherById(clientId, buildingId, id);
-      setExtinguisher(data);
-      setIsLoading(false);
-    }
-    fetchData();
-  }, [clientId, buildingId, id]);
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Carregando...</div>;
-  }
+  const extinguisher = await getExtinguisherById(clientId, buildingId, id);
 
   if (!extinguisher) {
     notFound();
@@ -101,7 +83,7 @@ export default function ExtinguisherDetailPage({ params }: { params: { clientId:
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
+                    {extinguisher.inspections && extinguisher.inspections.length > 0 ? extinguisher.inspections.map(insp => (
                         <TableRow key={insp.id}>
                         <TableCell>{format(new Date(insp.date), 'Pp', { locale: ptBR })}</TableCell>
                         <TableCell>

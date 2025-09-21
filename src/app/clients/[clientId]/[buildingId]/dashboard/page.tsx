@@ -1,47 +1,24 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
+import { notFound } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Flame, Droplets, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { notFound } from "next/navigation";
-import type { Building, Extinguisher, Hose } from '@/lib/types';
 
-export default function DashboardPage({ params }: { params: { clientId: string, buildingId: string }}) {
+export default async function DashboardPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
   
-  const [building, setBuilding] = useState<Building | null>(null);
-  const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
-  const [hoses, setHoses] = useState<Hose[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchData() {
-      const foundBuilding = await getBuildingById(clientId, buildingId);
-      if (foundBuilding) {
-        setBuilding(foundBuilding);
-        const [extinguisherData, hoseData] = await Promise.all([
-          getExtinguishersByBuilding(clientId, buildingId),
-          getHosesByBuilding(clientId, buildingId),
-        ]);
-        setExtinguishers(extinguisherData);
-        setHoses(hoseData);
-      }
-      setIsLoading(false);
-    }
-    fetchData();
-  }, [clientId, buildingId]);
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Carregando...</div>;
-  }
-
+  const building = await getBuildingById(clientId, buildingId);
+  
   if (!building) {
     notFound();
   }
+
+  const [extinguishers, hoses] = await Promise.all([
+    getExtinguishersByBuilding(clientId, buildingId),
+    getHosesByBuilding(clientId, buildingId),
+  ]);
 
   const isExpired = (item: { expiryDate: string }) => new Date(item.expiryDate) < new Date();
   const expiredExtinguishers = extinguishers.filter(isExpired).length;
