@@ -1,15 +1,17 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Droplets, AlertTriangle } from "lucide-react";
+import { Flame, Droplets, AlertTriangle, Play } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Extinguisher, Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useInspectionSession } from '@/hooks/use-inspection-session';
 
 interface Stat {
     title: string;
@@ -38,10 +40,13 @@ function StatCardSkeleton() {
 export default function DashboardPage() {
     const params = useParams() as { clientId: string, buildingId: string };
     const { clientId, buildingId } = params;
+    const router = useRouter();
 
     const [buildingName, setBuildingName] = useState<string>('');
     const [stats, setStats] = useState<Stat[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const { session: inspectionSession, startInspection } = useInspectionSession();
 
     useEffect(() => {
         async function fetchData() {
@@ -85,7 +90,6 @@ export default function DashboardPage() {
 
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
-                // Optionally set an error state to show in the UI
             } finally {
                 setIsLoading(false);
             }
@@ -94,7 +98,14 @@ export default function DashboardPage() {
         fetchData();
     }, [clientId, buildingId]);
 
+    const handleStartInspection = () => {
+        startInspection(clientId, buildingId);
+        router.push(scanUrl);
+    };
+
     const scanUrl = `/clients/${clientId}/${buildingId}/scan`;
+
+    const isInspectionActive = inspectionSession && inspectionSession.buildingId === buildingId;
 
     return (
         <div className="flex flex-col gap-8">
@@ -135,15 +146,28 @@ export default function DashboardPage() {
             </div>
             <Card className="text-center">
                 <CardHeader>
-                    <CardTitle className="font-headline">Pronto para a Inspeção?</CardTitle>
+                    <CardTitle className="font-headline">{isInspectionActive ? 'Inspeção em Andamento' : 'Pronto para a Inspeção?'}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground mb-4">Inicie uma nova inspeção escaneando um código QR.</p>
-                    <Button asChild size="lg">
-                        <Link href={scanUrl}>Iniciar Leitura</Link>
-                    </Button>
+                    <p className="text-muted-foreground mb-4">
+                       {isInspectionActive 
+                            ? 'Continue escaneando os equipamentos ou finalize a inspeção.'
+                            : 'Inicie uma nova inspeção para registrar as condições dos equipamentos.'
+                       }
+                    </p>
+                    {isInspectionActive ? (
+                         <Button asChild size="lg">
+                            <Link href={scanUrl}>Continuar Escaneando</Link>
+                        </Button>
+                    ) : (
+                        <Button size="lg" onClick={handleStartInspection}>
+                            <Play className="mr-2" />
+                            Iniciar Nova Inspeção
+                        </Button>
+                    )}
                 </CardContent>
             </Card>
         </div>
     );
 }
+

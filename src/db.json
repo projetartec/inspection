@@ -1,2 +1,56 @@
-
-    
+{
+  "clients": [
+    {
+      "id": "client-1758498362045",
+      "name": "ULTRAGAZ",
+      "buildings": [
+        {
+          "id": "bldg-1758498404180",
+          "name": "UG 1",
+          "extinguishers": [
+            {
+              "id": "456",
+              "type": "AP",
+              "weight": 10,
+              "expiryDate": "2025-10-01",
+              "hydrostaticTestYear": 2027,
+              "observations": "FRENTE",
+              "qrCodeValue": "fireguard-ext-456",
+              "inspections": []
+            }
+          ],
+          "hoses": []
+        },
+        {
+          "id": "bldg-1758498413838",
+          "name": "UG 2",
+          "extinguishers": [],
+          "hoses": []
+        },
+        {
+          "id": "bldg-1758498422040",
+          "name": "UG 3",
+          "extinguishers": [],
+          "hoses": []
+        },
+        {
+          "id": "bldg-1758498428207",
+          "name": "UG 4",
+          "extinguishers": [],
+          "hoses": []
+        },
+        {
+          "id": "bldg-1758498436234",
+          "name": "SP GAZ",
+          "extinguishers": [],
+          "hoses": []
+        }
+      ]
+    },
+    {
+      "id": "client-1758498380282",
+      "name": "CPQD",
+      "buildings": []
+    }
+  ]
+}

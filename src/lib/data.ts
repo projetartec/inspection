@@ -16,8 +16,12 @@ async function readDb(): Promise<{ clients: Client[] }> {
         const data = await fs.readFile(dbPath, 'utf-8');
         return JSON.parse(data);
     } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            console.log('db.json not found, returning empty list.');
+            return { clients: [] };
+        }
         console.error('Error reading db.json:', error);
-        return { clients: [] };
+        throw error;
     }
 }
 
@@ -58,14 +62,12 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
 function toISODateString(date: any): string {
     if (!date) return '';
     if (typeof date === 'string') {
-        // If it's already a string in 'YYYY-MM-DD' format, return it.
         if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
             return date;
         }
          if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/.test(date)) {
             return date.split('T')[0];
         }
-        // If it's another string format, try parsing
         const parsedDate = new Date(date);
         if (!isNaN(parsedDate.getTime())) {
             return format(parsedDate, 'yyyy-MM-dd');
@@ -119,42 +121,5 @@ export async function getHoseById(clientId: string, buildingId: string, id: stri
         expiryDate: toISODateString(hose.expiryDate)
     };
 }
-
-
-export async function addInspection(clientId: string, buildingId: string, qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) return null;
-
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) return null;
-
-    const newInspection: Inspection = { ...inspectionData, id: `insp-${Date.now()}` };
     
-    let redirectUrl: string | null = null;
 
-    const extinguisher = building.extinguishers.find(e => e.qrCodeValue === qrCodeValue);
-    if (extinguisher) {
-        extinguisher.inspections = extinguisher.inspections || [];
-        extinguisher.inspections.push(newInspection);
-        redirectUrl = `/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`;
-    }
-
-    const hose = building.hoses.find(h => h.qrCodeValue === qrCodeValue);
-    if (hose) {
-        hose.inspections = hose.inspections || [];
-        hose.inspections.push(newInspection);
-        redirectUrl = `/clients/${clientId}/${buildingId}/hoses/${hose.id}`;
-    }
-
-    if (redirectUrl) {
-        await writeDb(dbData);
-        revalidatePath(redirectUrl);
-        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
-        return { redirectUrl };
-    }
-    
-    return null; // Equipment not found
-}
-
-    

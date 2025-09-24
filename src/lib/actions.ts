@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import * as fs from 'fs/promises';
 import path from 'path';
 import { ExtinguisherFormValues, HoseFormValues } from './schemas';
+import type { InspectedItem } from '@/hooks/use-inspection-session';
 
 const dbPath = path.join(process.cwd(), 'src', 'db.json');
 
@@ -263,10 +264,45 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
 }
 
 // --- Inspection Action ---
-export async function addInspectionAction(clientId: string, buildingId: string, qrCodeValue: string, inspectionData: Omit<Inspection, 'id'>): Promise<{ redirectUrl: string } | null> {
-    const { addInspection } = await import('./data');
-    return addInspection(clientId, buildingId, qrCodeValue, inspectionData);
+export async function addInspectionBatchAction(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
+    const dbData = await readDb();
+    const client = dbData.clients.find(c => c.id === clientId);
+    if (!client) throw new Error('Client not found');
+
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (!building) throw new Error('Building not found');
+
+    let revalidatedPaths: Set<string> = new Set();
+
+    inspectedItems.forEach(item => {
+        const newInspection: Inspection = {
+            id: `insp-${Date.now()}-${Math.random()}`,
+            date: item.date,
+            location: item.location,
+            notes: item.notes,
+        };
+
+        const extinguisher = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);
+        if (extinguisher) {
+            extinguisher.inspections = extinguisher.inspections || [];
+            extinguisher.inspections.push(newInspection);
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`);
+        }
+
+        const hose = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
+        if (hose) {
+            hose.inspections = hose.inspections || [];
+            hose.inspections.push(newInspection);
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${hose.id}`);
+        }
+    });
+
+    await writeDb(dbData);
+
+    revalidatedPaths.forEach(p => revalidatePath(p));
+    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
+
 
 // --- Report Action ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
@@ -281,3 +317,4 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
 
     return { client, building, extinguishers, hoses };
 }
+
