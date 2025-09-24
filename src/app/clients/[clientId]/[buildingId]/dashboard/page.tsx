@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Extinguisher, Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInspectionSession } from '@/hooks/use-inspection-session';
+import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 
 interface Stat {
     title: string;

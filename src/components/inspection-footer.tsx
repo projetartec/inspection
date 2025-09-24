@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useInspectionSession } from '@/hooks/use-inspection-session';
+import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from './ui/button';
 import { Loader2, Flag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CameraOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session';
+import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
 
 interface QrScannerProps {
   clientId: string;

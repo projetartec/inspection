@@ -2,7 +2,7 @@
 import { Sidebar, SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
-import { InspectionProvider } from "@/hooks/use-inspection-session";
+import { InspectionProvider } from "@/hooks/use-inspection-session.tsx";
 import { InspectionFooter } from "@/components/inspection-footer";
 
 export default function BuildingLayout({
