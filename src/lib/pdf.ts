@@ -64,9 +64,16 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
     finalY += 10;
 
+    const tableStyles = {
+        theme: 'striped',
+        headStyles: { fillColor: [0, 128, 128] },
+        bodyStyles: { halign: 'center' },
+    };
+
     // --- Extinguishers Table ---
     if (extinguishers.length > 0) {
         doc.autoTable({
+            ...tableStyles,
             startY: finalY,
             head: [['ID', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Localização', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: extinguishers.map(e => {
@@ -84,8 +91,6 @@ export function generatePdfReport(client: Client, building: Building, extinguish
                     insp.gps,
                 ];
             }),
-            theme: 'striped',
-            headStyles: { fillColor: [0, 128, 128] }, 
         });
         finalY = (doc as any).lastAutoTable.finalY;
     } else {
@@ -102,6 +107,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     // --- Hoses Table ---
     if (hoses.length > 0) {
         doc.autoTable({
+            ...tableStyles,
             startY: finalY,
             head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: hoses.map(h => {
@@ -121,8 +127,6 @@ export function generatePdfReport(client: Client, building: Building, extinguish
                     insp.gps,
                 ];
             }),
-            theme: 'striped',
-            headStyles: { fillColor: [0, 128, 128] }, // Teal header
         });
     } else {
          doc.text("Nenhum hidrante registrado.", 14, finalY);
