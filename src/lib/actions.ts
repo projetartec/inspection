@@ -1,35 +1,33 @@
 
 'use server';
 
-import { db } from '@/lib/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, query, where, setDoc, getDoc, writeBatch } from 'firebase/firestore';
 import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import * as fs from 'fs/promises';
-import path from 'path';
 import { ExtinguisherFormValues, HoseFormValues } from './schemas';
-import type { InspectedItem } from '@/hooks/use-inspection-session';
-
-const dbPath = path.join(process.cwd(), 'src', 'db.json');
-
-async function readDb(): Promise<{ clients: Client[] }> {
-    try {
-        const data = await fs.readFile(dbPath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Error reading db.json:', error);
-        return { clients: [] };
-    }
-}
-
-async function writeDb(data: { clients: Client[] }): Promise<void> {
-    try {
-        await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (error) {
-        console.error('Error writing to db.json:', error);
-    }
-}
+import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import {
+    getClients,
+    getClientById,
+    getBuildingById,
+    getExtinguishersByBuilding,
+    getHosesByBuilding,
+    getExtinguisherById,
+    getHoseById,
+    addClient,
+    updateClient,
+    deleteClient,
+    addBuilding,
+    updateBuilding,
+    deleteBuilding,
+    addExtinguisher,
+    updateExtinguisher,
+    deleteExtinguisher,
+    addHose,
+    updateHose,
+    deleteHose,
+    addInspectionBatch
+} from './data';
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
@@ -37,22 +35,18 @@ export async function createClientAction(formData: FormData) {
   if (!name || name.trim().length < 2) {
     throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
   }
-
-  const dbData = await readDb();
   
-  const nameExists = dbData.clients.some(client => client.name.toLowerCase() === name.toLowerCase());
+  const clients = await getClients();
+  const nameExists = clients.some(client => client.name.toLowerCase() === name.toLowerCase());
   if (nameExists) {
       throw new Error('Um cliente com este nome já existe.');
   }
 
-  const newClient: Client = {
+  await addClient({
       id: `client-${Date.now()}`,
       name: name,
       buildings: []
-  };
-
-  dbData.clients.push(newClient);
-  await writeDb(dbData);
+  });
   
   revalidatePath('/');
 }
@@ -63,15 +57,7 @@ export async function updateClientAction(id: string, formData: FormData) {
     throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
   }
 
-  const dbData = await readDb();
-  const clientIndex = dbData.clients.findIndex(c => c.id === id);
-
-  if (clientIndex === -1) {
-      throw new Error('Cliente não encontrado.');
-  }
-
-  dbData.clients[clientIndex].name = name;
-  await writeDb(dbData);
+  await updateClient(id, { name });
 
   revalidatePath('/');
   revalidatePath(`/clients/${id}/edit`);
@@ -79,9 +65,7 @@ export async function updateClientAction(id: string, formData: FormData) {
 }
 
 export async function deleteClientAction(id: string) {
-    const dbData = await readDb();
-    dbData.clients = dbData.clients.filter(c => c.id !== id);
-    await writeDb(dbData);
+    await deleteClient(id);
     revalidatePath('/');
 }
 
@@ -93,9 +77,7 @@ export async function createBuildingAction(clientId: string, formData: FormData)
         throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
     }
     
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-
+    const client = await getClientById(clientId);
     if (!client) {
         throw new Error('Cliente não encontrado.');
     }
@@ -112,8 +94,7 @@ export async function createBuildingAction(clientId: string, formData: FormData)
         hoses: []
     };
 
-    client.buildings.push(newBuilding);
-    await writeDb(dbData);
+    await addBuilding(clientId, newBuilding);
     revalidatePath(`/clients/${clientId}`);
 }
 
@@ -122,43 +103,21 @@ export async function updateBuildingAction(clientId: string, buildingId: string,
     if (!name || name.trim().length < 2) {
         throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
     }
-
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) {
-        throw new Error('Cliente não encontrado.');
-    }
-
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) {
-        throw new Error('Local não encontrado.');
-    }
     
-    building.name = name;
-    await writeDb(dbData);
+    await updateBuilding(clientId, buildingId, { name });
 
     revalidatePath(`/clients/${clientId}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/edit`);
 }
 
 export async function deleteBuildingAction(clientId: string, buildingId: string) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-
-    if (client) {
-        client.buildings = client.buildings.filter(b => b.id !== buildingId);
-        await writeDb(dbData);
-    }
-    
+    await deleteBuilding(clientId, buildingId);
     revalidatePath(`/clients/${clientId}`);
 }
 
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Cliente não encontrado.');
-    const building = client.buildings.find(b => b.id === buildingId);
+    const building = await getBuildingById(clientId, buildingId);
     if (!building) throw new Error('Local não encontrado.');
 
     const idExists = building.extinguishers.some(e => e.id === data.id);
@@ -170,24 +129,14 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
         inspections: [],
     };
     
-    building.extinguishers.push(newExtinguisher);
-    await writeDb(dbData);
+    await addExtinguisher(clientId, buildingId, newExtinguisher);
     
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<ExtinguisherFormValues>) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Cliente não encontrado.');
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) throw new Error('Local não encontrado.');
-    const extIndex = building.extinguishers.findIndex(e => e.id === id);
-    if (extIndex === -1) throw new Error('Extintor não encontrado.');
-
-    building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...data };
-    await writeDb(dbData);
+    await updateExtinguisher(clientId, buildingId, id, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
@@ -195,14 +144,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
 }
 
 export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Cliente não encontrado.');
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) throw new Error('Local não encontrado.');
-
-    building.extinguishers = building.extinguishers.filter(e => e.id !== id);
-    await writeDb(dbData);
+    await deleteExtinguisher(clientId, buildingId, id);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -210,10 +152,7 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 
 // --- Hose Actions ---
 export async function createHoseAction(clientId: string, buildingId: string, data: HoseFormValues) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Cliente não encontrado.');
-    const building = client.buildings.find(b => b.id === buildingId);
+    const building = await getBuildingById(clientId, buildingId);
     if (!building) throw new Error('Local não encontrado.');
 
     const idExists = building.hoses.some(h => h.id === data.id);
@@ -225,24 +164,14 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
         inspections: [],
     };
     
-    building.hoses.push(newHose);
-    await writeDb(dbData);
+    await addHose(clientId, buildingId, newHose);
     
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<HoseFormValues>) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Cliente não encontrado.');
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) throw new Error('Local não encontrado.');
-    const hoseIndex = building.hoses.findIndex(h => h.id === id);
-    if (hoseIndex === -1) throw new Error('Sistema de mangueira não encontrado.');
-
-    building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...data };
-    await writeDb(dbData);
+    await updateHose(clientId, buildingId, id, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${id}`);
@@ -250,14 +179,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, id:
 }
 
 export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Cliente não encontrado.');
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) throw new Error('Local não encontrado.');
-
-    building.hoses = building.hoses.filter(h => h.id !== id);
-    await writeDb(dbData);
+    await deleteHose(clientId, buildingId, id);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -265,39 +187,19 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
 
 // --- Inspection Action ---
 export async function addInspectionBatchAction(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (!client) throw new Error('Client not found');
+    await addInspectionBatch(clientId, buildingId, inspectedItems);
 
-    const building = client.buildings.find(b => b.id === buildingId);
-    if (!building) throw new Error('Building not found');
-
-    let revalidatedPaths: Set<string> = new Set();
-
+    const revalidatedPaths: Set<string> = new Set();
     inspectedItems.forEach(item => {
-        const newInspection: Inspection = {
-            id: `insp-${Date.now()}-${Math.random()}`,
-            date: item.date,
-            location: item.location,
-            notes: item.notes,
-        };
-
-        const extinguisher = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);
-        if (extinguisher) {
-            extinguisher.inspections = extinguisher.inspections || [];
-            extinguisher.inspections.push(newInspection);
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}`);
+        if (item.qrCodeValue.startsWith('fireguard-ext-')) {
+            const extId = item.qrCodeValue.replace('fireguard-ext-', '');
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${extId}`);
         }
-
-        const hose = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
-        if (hose) {
-            hose.inspections = hose.inspections || [];
-            hose.inspections.push(newInspection);
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${hose.id}`);
+        if (item.qrCodeValue.startsWith('fireguard-hose-')) {
+            const hoseId = item.qrCodeValue.replace('fireguard-hose-', '');
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
         }
     });
-
-    await writeDb(dbData);
 
     revalidatedPaths.forEach(p => revalidatePath(p));
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -306,8 +208,6 @@ export async function addInspectionBatchAction(clientId: string, buildingId: str
 
 // --- Report Action ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
-    const { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } = await import('./data');
-    
     const [client, building, extinguishers, hoses] = await Promise.all([
         getClientById(clientId),
         getBuildingById(clientId, buildingId),
@@ -317,4 +217,3 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
 
     return { client, building, extinguishers, hoses };
 }
-
