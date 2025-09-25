@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore'; // Only for type checking
 import { HydrantFormValues, ExtinguisherFormValues } from './schemas';
-import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import type { InspectedItem } from '@/hooks/use-inspection-session';
 import initialDb from '@/db.json';
 
 // In-memory cache for the database
@@ -16,9 +16,7 @@ async function readDb(): Promise<{ clients: Client[] }> {
     if (dbCache) {
         return dbCache;
     }
-    // In production, we use the imported JSON directly.
-    // In dev, this structure allows for "hot-reloading" of sorts if we were still using fs.
-    // For Vercel, direct import is the only way.
+    // Deep clone the initial data to avoid modifying the original import
     dbCache = JSON.parse(JSON.stringify(initialDb));
     return dbCache as { clients: Client[] };
 }
