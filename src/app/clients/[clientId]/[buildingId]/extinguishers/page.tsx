@@ -108,7 +108,7 @@ export default function ExtinguishersPage() {
                         <TableHead className="hidden md:table-cell">Capacidade (kg)</TableHead>
                         <TableHead>Recarga</TableHead>
                         <TableHead className="hidden md:table-cell">Test. Hidrostático</TableHead>
-                        <TableHead className="hidden md:table-cell">Localização</TableHead>
+                        <TableHead className="hidden md:table-cell">Local</TableHead>
                         <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>

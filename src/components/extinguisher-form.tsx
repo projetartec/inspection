@@ -152,7 +152,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
         
         <div className="space-y-2">
-            <Label htmlFor="observations">Localização</Label>
+            <Label htmlFor="observations">Local</Label>
             <Textarea
                 id="observations"
                 name="observations"

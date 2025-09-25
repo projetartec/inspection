@@ -22,17 +22,7 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-function formatInspection(inspection: any): string {
-    if (!inspection?.date) return 'N/A';
-    const date = parseISO(inspection.date);
-    let str = format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
-    if (inspection.location) {
-        str += `\nGPS: ${inspection.location.latitude.toFixed(4)}, ${inspection.location.longitude.toFixed(4)}`;
-    }
-    return str;
-}
-
-function formatLastInspectionForCsv(inspection: any) {
+function formatLastInspection(inspection: any) {
     if (!inspection?.date) return { date: 'N/A', time: 'N/A', gps: 'N/A', status: 'N/A' };
     const date = parseISO(inspection.date);
     return {
@@ -68,6 +58,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
         theme: 'striped',
         headStyles: { fillColor: [0, 128, 128] },
         bodyStyles: { halign: 'center' },
+        styles: { halign: 'center' },
     };
 
     // --- Extinguishers Table ---
@@ -75,16 +66,16 @@ export function generatePdfReport(client: Client, building: Building, extinguish
         doc.autoTable({
             ...tableStyles,
             startY: finalY,
-            head: [['ID', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Localização', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
+            head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: extinguishers.map(e => {
-                const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
+                const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
                 return [
                     e.id,
+                    e.observations || '',
                     e.type,
                     e.weight + ' kg',
                     formatDate(e.expiryDate),
                     e.hydrostaticTestYear,
-                    e.observations || '',
                     insp.status,
                     insp.date,
                     insp.time,
@@ -111,7 +102,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
             startY: finalY,
             head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: hoses.map(h => {
-                const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
+                const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                 return [
                     h.id,
                     h.location,

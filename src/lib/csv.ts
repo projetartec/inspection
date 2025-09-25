@@ -45,17 +45,17 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += `Gerado em:,${escapeCsvCell(format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR }))}\n\n`;
 
     csvContent += `"Extintores"\n`;
-    const extHeader = ['ID', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Localização', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
+    const extHeader = ['ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
     csvContent += extHeader.map(escapeCsvCell).join(',') + '\n';
     extinguishers.forEach(e => {
         const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
         const row = [
             e.id,
+            e.observations,
             e.type,
             e.weight,
             formatDate(e.expiryDate),
             e.hydrostaticTestYear,
-            e.observations,
             insp.status,
             insp.date,
             insp.time,

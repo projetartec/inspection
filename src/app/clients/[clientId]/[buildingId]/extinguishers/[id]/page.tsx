@@ -31,7 +31,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
     { label: 'Capacidade', value: `${extinguisher.weight} kg` },
     { label: 'Recarga', value: isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida' },
     { label: 'Teste Hidrostático', value: extinguisher.hydrostaticTestYear },
-    { label: 'Localização', value: extinguisher.observations || 'N/A' },
+    { label: 'Local', value: extinguisher.observations || 'N/A' },
     { label: 'Status', value: <Badge variant={isExpired ? 'destructive' : 'secondary'}>{isExpired ? 'Vencido' : 'Ativo'}</Badge> },
   ];
 
