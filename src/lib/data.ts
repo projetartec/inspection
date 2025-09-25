@@ -1,73 +1,88 @@
-
 'use server';
 
-import type { Extinguisher, Hydrant, Inspection, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  setDoc,
+  deleteDoc,
+  writeBatch,
+  Timestamp,
+} from 'firebase/firestore';
+import { db } from './firebase'; // Use db from firebase config
+import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
+import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import { revalidatePath } from 'next/cache';
-import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore'; // Only for type checking
-import { HydrantFormValues, ExtinguisherFormValues } from './schemas';
-import type { InspectedItem } from '@/hooks/use-inspection-session';
-import initialDb from '@/db.json';
 
-// In-memory cache for the database
-let dbCache: { clients: Client[] } | null = null;
+const CLIENTS_COLLECTION = 'clients';
 
-async function readDb(): Promise<{ clients: Client[] }> {
-    if (dbCache) {
-        return dbCache;
-    }
-    // Deep clone the initial data to avoid modifying the original import
-    dbCache = JSON.parse(JSON.stringify(initialDb));
-    return dbCache as { clients: Client[] };
-}
-
-
-function scheduleWriteDb(): void {
-    // This function is now a no-op in a serverless environment like Vercel.
-    // Data modifications will only exist in memory for the lifecycle of the request.
+function docToClient(doc: any): Client {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    name: data.name,
+    buildings: data.buildings || [],
+  };
 }
 
 // --- Client Functions ---
 export async function getClients(): Promise<Client[]> {
-    const dbData = await readDb();
-    return JSON.parse(JSON.stringify(dbData.clients || [])); // Deep copy to prevent mutation
+  try {
+    const querySnapshot = await getDocs(collection(db, CLIENTS_COLLECTION));
+    return querySnapshot.docs.map(docToClient);
+  } catch (error) {
+    console.error("Error fetching clients: ", error);
+    return [];
+  }
 }
 
 export async function getClientById(clientId: string): Promise<Client | null> {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    return client ? JSON.parse(JSON.stringify(client)) : null; // Deep copy
+  try {
+    const docRef = doc(db, CLIENTS_COLLECTION, clientId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docToClient(docSnap);
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error fetching client ${clientId}: `, error);
+    return null;
+  }
 }
 
-export async function addClient(newClient: Client) {
-    const dbData = await readDb();
-    dbData.clients.push(newClient);
-    scheduleWriteDb();
+export async function addClient(newClientData: { name: string }): Promise<string> {
+    const clients = await getClients();
+    const nameExists = clients.some(client => client.name.toLowerCase() === newClientData.name.toLowerCase());
+    if (nameExists) {
+        throw new Error('Um cliente com este nome já existe.');
+    }
+    
+    const id = `client-${Date.now()}`;
+    const newClient: Omit<Client, 'id'> = {
+        name: newClientData.name,
+        buildings: []
+    };
+    await setDoc(doc(db, CLIENTS_COLLECTION, id), newClient);
+    return id;
 }
 
 export async function updateClient(id: string, updatedData: Partial<Client>) {
-    const dbData = await readDb();
-    const clientIndex = dbData.clients.findIndex(c => c.id === id);
-    if (clientIndex !== -1) {
-        dbData.clients[clientIndex] = { ...dbData.clients[clientIndex], ...updatedData };
-        scheduleWriteDb();
-    } else {
-        throw new Error('Cliente não encontrado.');
-    }
+  const docRef = doc(db, CLIENTS_COLLECTION, id);
+  await setDoc(docRef, updatedData, { merge: true });
 }
 
 export async function deleteClient(id: string) {
-    const dbData = await readDb();
-    dbData.clients = dbData.clients.filter(c => c.id !== id);
-    scheduleWriteDb();
+  const docRef = doc(db, CLIENTS_COLLECTION, id);
+  await deleteDoc(docRef);
 }
 
 
 // --- Building Functions ---
 export async function getBuildingById(clientId: string, buildingId: string): Promise<Building | null> {
     const client = await getClientById(clientId);
-    const building = client?.buildings.find(b => b.id === buildingId);
-    return building || null;
+    return client?.buildings.find(b => b.id === buildingId) || null;
 }
 
 export async function getBuildingsByClient(clientId: string): Promise<Building[]> {
@@ -75,118 +90,88 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
   return client?.buildings || [];
 }
 
-export async function addBuilding(clientId: string, newBuilding: Building) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+export async function addBuilding(clientId: string, newBuildingData: { name: string }): Promise<void> {
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
-    if (!client.buildings) client.buildings = [];
+
+    const nameExists = client.buildings.some(b => b.name.toLowerCase() === newBuildingData.name.toLowerCase());
+    if (nameExists) {
+        throw new Error('Um local com este nome já existe para este cliente.');
+    }
+
+    const newBuilding: Building = {
+        id: `bldg-${Date.now()}`,
+        name: newBuildingData.name,
+        extinguishers: [],
+        hoses: []
+    };
+
     client.buildings.push(newBuilding);
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 export async function updateBuilding(clientId: string, buildingId: string, updatedData: Partial<Building>) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
+
     const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
-    if (buildingIndex !== -1) {
-        client.buildings[buildingIndex] = { ...client.buildings[buildingIndex], ...updatedData };
-        scheduleWriteDb();
-    } else {
-        throw new Error('Local não encontrado.');
-    }
+    if (buildingIndex === -1) throw new Error('Local não encontrado.');
+    
+    client.buildings[buildingIndex] = { ...client.buildings[buildingIndex], ...updatedData };
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 export async function deleteBuilding(clientId: string, buildingId: string) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
-    if (client) {
-        client.buildings = client.buildings.filter(b => b.id !== buildingId);
-        scheduleWriteDb();
-    } else {
-        throw new Error('Cliente não encontrado.');
-    }
-}
+    const client = await getClientById(clientId);
+    if (!client) throw new Error('Cliente não encontrado.');
 
-
-function toISODateString(date: any): string {
-    if (!date) return '';
-    if (typeof date === 'string') {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            return date;
-        }
-         if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/.test(date)) {
-            return date.split('T')[0];
-        }
-        const parsedDate = new Date(date);
-        if (!isNaN(parsedDate.getTime())) {
-            return format(parsedDate, 'yyyy-MM-dd');
-        }
-        return '';
-    }
-    if (date instanceof Date) {
-        return format(date, 'yyyy-MM-dd');
-    }
-    // This is for Firestore Timestamp, but keeping type for compatibility if needed later
-    if (typeof date.toDate === 'function') {
-      return format(date.toDate(), 'yyyy-MM-dd');
-    }
-    return '';
+    client.buildings = client.buildings.filter(b => b.id !== buildingId);
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 // --- Equipment Functions ---
 export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
     const building = await getBuildingById(clientId, buildingId);
-    return building?.extinguishers.map(ext => ({
-        ...ext,
-        expiryDate: toISODateString(ext.expiryDate)
-    })) || [];
+    return building?.extinguishers || [];
 }
 
 export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hydrant[]> {
     const building = await getBuildingById(clientId, buildingId);
-    return building?.hoses.map(hose => ({
-        ...hose,
-        hydrostaticTestDate: toISODateString(hose.hydrostaticTestDate)
-    })) || [];
+    return building?.hoses || [];
 }
 
 export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
     const building = await getBuildingById(clientId, buildingId);
-    const extinguisher = building?.extinguishers.find(e => e.id === id);
-    if (!extinguisher) return null;
-    
-    return {
-        ...extinguisher,
-        expiryDate: toISODateString(extinguisher.expiryDate)
-    };
+    return building?.extinguishers.find(e => e.id === id) || null;
 }
 
 export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hydrant | null> {
     const building = await getBuildingById(clientId, buildingId);
-    const hose = building?.hoses.find(h => h.id === id);
-    if (!hose) return null;
-    
-    return {
-        ...hose,
-        hydrostaticTestDate: toISODateString(hose.hydrostaticTestDate)
-    };
+    return building?.hoses.find(h => h.id === id) || null;
 }
 
-export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisher: Extinguisher) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: ExtinguisherFormValues) {
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
+    
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
-    if (!building.extinguishers) building.extinguishers = [];
+
+    const idExists = building.extinguishers.some(e => e.id === newExtinguisherData.id);
+    if (idExists) throw new Error('Já existe um extintor com este ID neste local.');
+
+    const newExtinguisher: Extinguisher = {
+        ...newExtinguisherData,
+        qrCodeValue: `fireguard-ext-${newExtinguisherData.id}`,
+        inspections: [],
+    };
+    
     building.extinguishers.push(newExtinguisher);
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 export async function updateExtinguisher(clientId: string, buildingId: string, id: string, updatedData: Partial<ExtinguisherFormValues>) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
@@ -194,34 +179,40 @@ export async function updateExtinguisher(clientId: string, buildingId: string, i
     if (extIndex === -1) throw new Error('Extintor não encontrado.');
 
     building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...updatedData };
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, id: string) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
 
     building.extinguishers = building.extinguishers.filter(e => e.id !== id);
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
-export async function addHose(clientId: string, buildingId: string, newHose: Hydrant) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+export async function addHose(clientId: string, buildingId: string, newHoseData: HydrantFormValues) {
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
-    if (!building.hoses) building.hoses = [];
+
+    const idExists = building.hoses.some(h => h.id === newHoseData.id);
+    if (idExists) throw new Error('Já existe um hidrante com este ID neste local.');
+    
+    const newHose: Hydrant = {
+        ...newHoseData,
+        qrCodeValue: `fireguard-hose-${newHoseData.id}`,
+        inspections: [],
+    };
+    
     building.hoses.push(newHose);
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 export async function updateHose(clientId: string, buildingId: string, id: string, updatedData: Partial<HydrantFormValues>) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
@@ -229,25 +220,23 @@ export async function updateHose(clientId: string, buildingId: string, id: strin
     if (hoseIndex === -1) throw new Error('Hidrante não encontrado.');
 
     building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 export async function deleteHose(clientId: string, buildingId: string, id: string) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
 
     building.hoses = building.hoses.filter(h => h.id !== id);
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 
 // --- Inspection Action ---
 export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    const dbData = await readDb();
-    const client = dbData.clients.find(c => c.id === clientId);
+    const client = await getClientById(clientId);
     if (!client) throw new Error('Client not found');
 
     const building = client.buildings.find(b => b.id === buildingId);
@@ -275,7 +264,7 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
         }
     });
 
-    scheduleWriteDb();
+    await updateClient(clientId, { buildings: client.buildings });
 }
 
 // --- Report Action ---
@@ -289,3 +278,24 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
 
     return { client, building, extinguishers, hoses };
 }
+
+// --- Initial Data Seeding ---
+async function seedInitialData() {
+    const querySnapshot = await getDocs(collection(db, CLIENTS_COLLECTION));
+    if (querySnapshot.empty) {
+        console.log("No clients found, seeding initial data...");
+        const initialDb = (await import('@/db.json')).default;
+        const batch = writeBatch(db);
+        initialDb.clients.forEach((client: Client) => {
+            const docRef = doc(db, CLIENTS_COLLECTION, client.id);
+            batch.set(docRef, {
+                name: client.name,
+                buildings: client.buildings || []
+            });
+        });
+        await batch.commit();
+        console.log("Initial data seeded successfully.");
+    }
+}
+
+seedInitialData().catch(console.error);

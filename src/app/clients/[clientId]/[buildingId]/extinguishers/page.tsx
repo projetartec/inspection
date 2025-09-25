@@ -59,20 +59,21 @@ export default function ExtinguishersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!clientId || !buildingId) return;
+  const fetchData = async () => {
+    if (!clientId || !buildingId) return;
 
-        try {
-            setIsLoading(true);
-            const data = await getExtinguishersByBuilding(clientId, buildingId);
-            setExtinguishers(data);
-        } catch (error) {
-            console.error("Failed to fetch extinguishers:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }
+      try {
+          setIsLoading(true);
+          const data = await getExtinguishersByBuilding(clientId, buildingId);
+          setExtinguishers(data);
+      } catch (error) {
+          console.error("Failed to fetch extinguishers:", error);
+      } finally {
+          setIsLoading(false);
+      }
+  }
+
+  useEffect(() => {
     fetchData();
   }, [clientId, buildingId]);
 

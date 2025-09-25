@@ -61,20 +61,21 @@ export default function HosesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function fetchData() {
-        if (!clientId || !buildingId) return;
+  const fetchData = async () => {
+    if (!clientId || !buildingId) return;
 
-        try {
-            setIsLoading(true);
-            const data = await getHosesByBuilding(clientId, buildingId);
-            setHoses(data);
-        } catch (error) {
-            console.error("Failed to fetch hoses:", error);
-        } finally {
-            setIsLoading(false);
-        }
+    try {
+        setIsLoading(true);
+        const data = await getHosesByBuilding(clientId, buildingId);
+        setHoses(data);
+    } catch (error) {
+        console.error("Failed to fetch hoses:", error);
+    } finally {
+        setIsLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchData();
   }, [clientId, buildingId]);
 

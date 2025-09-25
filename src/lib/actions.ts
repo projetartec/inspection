@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { Extinguisher, Hydrant, Inspection, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
@@ -14,18 +14,18 @@ import {
     getHosesByBuilding,
     getExtinguisherById,
     getHoseById,
-    addClient,
-    updateClient,
-    deleteClient,
-    addBuilding,
-    updateBuilding,
-    deleteBuilding,
-    addExtinguisher,
-    updateExtinguisher,
-    deleteExtinguisher,
-    addHose,
-    updateHose,
-    deleteHose,
+    addClient as addClientData,
+    updateClient as updateClientData,
+    deleteClient as deleteClientData,
+    addBuilding as addBuildingData,
+    updateBuilding as updateBuildingData,
+    deleteBuilding as deleteBuildingData,
+    addExtinguisher as addExtinguisherData,
+    updateExtinguisher as updateExtinguisherData,
+    deleteExtinguisher as deleteExtinguisherData,
+    addHose as addHoseData,
+    updateHose as updateHoseData,
+    deleteHose as deleteHoseData,
     addInspectionBatch
 } from './data';
 
@@ -35,18 +35,8 @@ export async function createClientAction(formData: FormData) {
   if (!name || name.trim().length < 2) {
     throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
   }
-  
-  const clients = await getClients();
-  const nameExists = clients.some(client => client.name.toLowerCase() === name.toLowerCase());
-  if (nameExists) {
-      throw new Error('Um cliente com este nome já existe.');
-  }
 
-  await addClient({
-      id: `client-${Date.now()}`,
-      name: name,
-      buildings: []
-  });
+  await addClientData({ name });
   
   revalidatePath('/');
 }
@@ -57,7 +47,7 @@ export async function updateClientAction(id: string, formData: FormData) {
     throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
   }
 
-  await updateClient(id, { name });
+  await updateClientData(id, { name });
 
   revalidatePath('/');
   revalidatePath(`/clients/${id}/edit`);
@@ -65,7 +55,7 @@ export async function updateClientAction(id: string, formData: FormData) {
 }
 
 export async function deleteClientAction(id: string) {
-    await deleteClient(id);
+    await deleteClientData(id);
     revalidatePath('/');
 }
 
@@ -76,25 +66,8 @@ export async function createBuildingAction(clientId: string, formData: FormData)
     if (!name || name.trim().length < 2) {
         throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
     }
-    
-    const client = await getClientById(clientId);
-    if (!client) {
-        throw new Error('Cliente não encontrado.');
-    }
 
-    const nameExists = client.buildings.some(b => b.name.toLowerCase() === name.toLowerCase());
-    if (nameExists) {
-        throw new Error('Um local com este nome já existe para este cliente.');
-    }
-
-    const newBuilding: Building = {
-        id: `bldg-${Date.now()}`,
-        name: name,
-        extinguishers: [],
-        hoses: []
-    };
-
-    await addBuilding(clientId, newBuilding);
+    await addBuildingData(clientId, { name });
     revalidatePath(`/clients/${clientId}`);
 }
 
@@ -104,39 +77,27 @@ export async function updateBuildingAction(clientId: string, buildingId: string,
         throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
     }
     
-    await updateBuilding(clientId, buildingId, { name });
+    await updateBuildingData(clientId, buildingId, { name });
 
     revalidatePath(`/clients/${clientId}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/edit`);
 }
 
 export async function deleteBuildingAction(clientId: string, buildingId: string) {
-    await deleteBuilding(clientId, buildingId);
+    await deleteBuildingData(clientId, buildingId);
     revalidatePath(`/clients/${clientId}`);
 }
 
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
-    const building = await getBuildingById(clientId, buildingId);
-    if (!building) throw new Error('Local não encontrado.');
-
-    const idExists = building.extinguishers.some(e => e.id === data.id);
-    if (idExists) throw new Error('Já existe um extintor com este ID neste local.');
-
-    const newExtinguisher: Extinguisher = {
-        ...data,
-        qrCodeValue: `fireguard-ext-${data.id}`,
-        inspections: [],
-    };
-    
-    await addExtinguisher(clientId, buildingId, newExtinguisher);
+    await addExtinguisherData(clientId, buildingId, data);
     
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<ExtinguisherFormValues>) {
-    await updateExtinguisher(clientId, buildingId, id, data);
+    await updateExtinguisherData(clientId, buildingId, id, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
@@ -144,7 +105,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
 }
 
 export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
-    await deleteExtinguisher(clientId, buildingId, id);
+    await deleteExtinguisherData(clientId, buildingId, id);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -152,26 +113,14 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 
 // --- Hose Actions ---
 export async function createHoseAction(clientId: string, buildingId: string, data: HydrantFormValues) {
-    const building = await getBuildingById(clientId, buildingId);
-    if (!building) throw new Error('Local não encontrado.');
-
-    const idExists = building.hoses.some(h => h.id === data.id);
-    if (idExists) throw new Error('Já existe um hidrante com este ID neste local.');
-
-    const newHose: Hydrant = {
-        ...data,
-        qrCodeValue: `fireguard-hose-${data.id}`,
-        inspections: [],
-    };
-    
-    await addHose(clientId, buildingId, newHose);
+    await addHoseData(clientId, buildingId, data);
     
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<HydrantFormValues>) {
-    await updateHose(clientId, buildingId, id, data);
+    await updateHoseData(clientId, buildingId, id, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${id}`);
@@ -179,7 +128,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, id:
 }
 
 export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
-    await deleteHose(clientId, buildingId, id);
+    await deleteHoseData(clientId, buildingId, id);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);

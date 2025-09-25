@@ -9,7 +9,7 @@ import { Flame, Droplets, AlertTriangle, Play } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Extinguisher, Hose } from '@/lib/types';
+import type { Extinguisher, Hydrant as Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 
@@ -71,10 +71,11 @@ export default function DashboardPage() {
                 }
                 setBuildingName(building.name);
 
-                const isExpired = (item: { expiryDate: string }) => {
-                    if (!item.expiryDate || typeof item.expiryDate !== 'string') return false;
+                const isExpired = (item: { expiryDate?: string, hydrostaticTestDate?: string }) => {
+                    const dateStr = item.expiryDate || item.hydrostaticTestDate;
+                    if (!dateStr || typeof dateStr !== 'string') return false;
                     try {
-                        const date = new Date(item.expiryDate);
+                        const date = new Date(dateStr);
                         return date < new Date();
                     } catch {
                         return false;
