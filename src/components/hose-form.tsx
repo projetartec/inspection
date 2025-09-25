@@ -1,28 +1,35 @@
+
 "use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { createHoseAction, updateHoseAction } from "@/lib/actions";
-import { hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities, type Hose } from "@/lib/types";
+import { 
+    hydrantQuantities, 
+    hydrantTypes,
+    hydrantDiameters,
+    hydrantKeyQuantities,
+    hydrantNozzleQuantities,
+    type Hydrant 
+} from "@/lib/types";
 import { Input } from "./ui/input";
 import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
-import { HoseFormSchema } from "@/lib/schemas";
+import { HydrantFormSchema } from "@/lib/schemas";
 
 
 interface HoseFormProps {
     clientId: string;
     buildingId: string;
-    hose?: Hose;
+    hose?: Hydrant;
 }
 
-export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
+export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const isEditMode = !!hose;
+  const isEditMode = !!hydrant;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -31,7 +38,7 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
     const formData = new FormData(event.currentTarget);
     const rawData = Object.fromEntries(formData.entries());
 
-    const validatedFields = HoseFormSchema.safeParse(rawData);
+    const validatedFields = HydrantFormSchema.safeParse(rawData);
     
     if (!validatedFields.success) {
         console.error(validatedFields.error.flatten().fieldErrors);
@@ -46,13 +53,13 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
 
     try {
         if (isEditMode) {
-            await updateHoseAction(clientId, buildingId, hose.id, validatedFields.data);
+            await updateHoseAction(clientId, buildingId, hydrant.id, validatedFields.data);
         } else {
             await createHoseAction(clientId, buildingId, validatedFields.data);
         }
         toast({
             title: "Sucesso!",
-            description: `Sistema de mangueira ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
+            description: `Hidrante ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
         });
         router.push(`/clients/${clientId}/${buildingId}/hoses`);
         router.refresh();
@@ -60,87 +67,96 @@ export function HoseForm({ clientId, buildingId, hose }: HoseFormProps) {
         toast({
             variant: "destructive",
             title: "Erro",
-            description: error.message || `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o sistema de mangueira.`,
+            description: error.message || `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o hidrante.`,
         });
     } finally {
         setIsSubmitting(false);
     }
   };
 
-  const defaultExpiryDate = hose?.expiryDate || '';
+  const defaultTestDate = hydrant?.hydrostaticTestDate || '';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-        {isEditMode && <input type="hidden" name="id" value={hose.id} />}
-        <div className="space-y-2">
-            <Label htmlFor="id-input">ID do Sistema</Label>
-            <Input 
-                id="id-input"
-                name="id"
-                placeholder="Ex: HOSE-SYS-01" 
-                defaultValue={hose?.id}
-                disabled={isEditMode}
-                required
-            />
-            <p className="text-sm text-muted-foreground">
-                Digite um identificador único para este sistema de mangueira. Não pode ser alterado após a criação.
-            </p>
-        </div>
+        {isEditMode && <input type="hidden" name="id" value={hydrant.id} />}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
-                <Label htmlFor="hoseType">Tipo de Mangueira</Label>
-                <Select name="hoseType" defaultValue={hose?.hoseType} required>
-                    <SelectTrigger id="hoseType"><SelectValue placeholder="Selecione o tipo de mangueira" /></SelectTrigger>
-                    <SelectContent>{hoseTypes.map(t => <SelectItem key={t} value={t}>{t}"</SelectItem>)}</SelectContent>
-                </Select>
+                <Label htmlFor="id-input">Hidrante (ID)</Label>
+                <Input 
+                    id="id-input"
+                    name="id"
+                    placeholder="Ex: HID-01" 
+                    defaultValue={hydrant?.id}
+                    disabled={isEditMode}
+                    required
+                />
             </div>
-             <div className="space-y-2">
-                <Label htmlFor="quantity">Quantidade de Mangueiras</Label>
-                <Select name="quantity" defaultValue={String(hose?.quantity)} required>
-                  <SelectTrigger id="quantity"><SelectValue placeholder="Selecione a quantidade" /></SelectTrigger>
-                  <SelectContent>{hoseQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
+            <div className="space-y-2">
+                <Label htmlFor="location-input">Local</Label>
+                <Input 
+                    id="location-input"
+                    name="location"
+                    placeholder="Ex: Térreo, próximo à escada" 
+                    defaultValue={hydrant?.location}
+                    required
+                />
+            </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+                <Label htmlFor="quantity">Qtd. Mangueiras</Label>
+                <Select name="quantity" defaultValue={String(hydrant?.quantity)} required>
+                  <SelectTrigger id="quantity"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{hydrantQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
                 </Select>
             </div>
             <div className="space-y-2">
-                <Label htmlFor="keyQuantity">Quantidade de Chaves</Label>
-                <Select name="keyQuantity" defaultValue={String(hose?.keyQuantity)} required>
-                  <SelectTrigger id="keyQuantity"><SelectValue placeholder="Selecione a quantidade de chaves" /></SelectTrigger>
-                  <SelectContent>{keyQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
+                <Label htmlFor="hoseType">Tipo Mangueira</Label>
+                <Select name="hoseType" defaultValue={hydrant?.hoseType} required>
+                    <SelectTrigger id="hoseType"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                    <SelectContent>{hydrantTypes.map(t => <SelectItem key={t} value={t}>Tipo {t}</SelectItem>)}</SelectContent>
                 </Select>
             </div>
             <div className="space-y-2">
-                <Label htmlFor="nozzleQuantity">Quantidade de Bicos</Label>
-                <Select name="nozzleQuantity" defaultValue={String(hose?.nozzleQuantity)} required>
-                  <SelectTrigger id="nozzleQuantity"><SelectValue placeholder="Selecione a quantidade de bicos" /></SelectTrigger>
-                  <SelectContent>{nozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
+                <Label htmlFor="diameter">Diâmetro</Label>
+                <Select name="diameter" defaultValue={hydrant?.diameter} required>
+                    <SelectTrigger id="diameter"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>{hydrantDiameters.map(d => <SelectItem key={d} value={d}>{d}"</SelectItem>)}</SelectContent>
                 </Select>
             </div>
         </div>
 
-        <div className="space-y-2">
-            <Label htmlFor="expiryDate">Data de Validade</Label>
-            <Input
-                id="expiryDate"
-                name="expiryDate"
-                type="date"
-                defaultValue={defaultExpiryDate}
-                required
-            />
-        </div>
-
-        <div className="space-y-2">
-            <Label htmlFor="observations">Observações</Label>
-            <Textarea 
-                id="observations"
-                name="observations"
-                placeholder="Ex: Localizado no gabinete da ala leste" 
-                defaultValue={hose?.observations}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+                <Label htmlFor="keyQuantity">Qtd. Chaves</Label>
+                <Select name="keyQuantity" defaultValue={String(hydrant?.keyQuantity)} required>
+                  <SelectTrigger id="keyQuantity"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{hydrantKeyQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="nozzleQuantity">Qtd. Esguichos (ESG)</Label>
+                <Select name="nozzleQuantity" defaultValue={String(hydrant?.nozzleQuantity)} required>
+                  <SelectTrigger id="nozzleQuantity"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{hydrantNozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="hydrostaticTestDate">Próx. Teste Hidrostático</Label>
+                <Input
+                    id="hydrostaticTestDate"
+                    name="hydrostaticTestDate"
+                    type="date"
+                    defaultValue={defaultTestDate}
+                    required
+                />
+            </div>
         </div>
         
         <SubmitButton isSubmitting={isSubmitting}>
-          {isEditMode ? 'Salvar Alterações' : 'Criar Sistema de Mangueira'}
+          {isEditMode ? 'Salvar Alterações' : 'Criar Hidrante'}
         </SubmitButton>
       </form>
   );

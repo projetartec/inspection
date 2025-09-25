@@ -1,10 +1,10 @@
 
 'use server';
 
-import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { ExtinguisherFormValues, HoseFormValues } from './schemas';
+import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
     getClients,
@@ -151,14 +151,14 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 }
 
 // --- Hose Actions ---
-export async function createHoseAction(clientId: string, buildingId: string, data: HoseFormValues) {
+export async function createHoseAction(clientId: string, buildingId: string, data: HydrantFormValues) {
     const building = await getBuildingById(clientId, buildingId);
     if (!building) throw new Error('Local não encontrado.');
 
     const idExists = building.hoses.some(h => h.id === data.id);
-    if (idExists) throw new Error('Já existe um sistema de mangueira com este ID neste local.');
+    if (idExists) throw new Error('Já existe um hidrante com este ID neste local.');
 
-    const newHose: Hose = {
+    const newHose: Hydrant = {
         ...data,
         qrCodeValue: `fireguard-hose-${data.id}`,
         inspections: [],
@@ -170,7 +170,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<HoseFormValues>) {
+export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<HydrantFormValues>) {
     await updateHose(clientId, buildingId, id, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);

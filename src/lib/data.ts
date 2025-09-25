@@ -1,13 +1,13 @@
 
 'use server';
 
-import type { Extinguisher, Hose, Inspection, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import * as fs from 'fs/promises';
 import path from 'path';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore'; // Only for type checking
-import { ExtinguisherFormValues, HoseFormValues } from './schemas';
+import { HydrantFormValues, ExtinguisherFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 
 const dbPath = path.join(process.cwd(), 'src', 'db.json');
@@ -17,9 +17,8 @@ let dbCache: { clients: Client[] } | null = null;
 let dbWriteTimeout: NodeJS.Timeout | null = null;
 
 async function readDb(): Promise<{ clients: Client[] }> {
-    if (dbCache) {
-        return dbCache;
-    }
+    // For development, always read from the file to see changes from actions.
+    // In a real DB, this would hit the DB.
     try {
         const data = await fs.readFile(dbPath, 'utf-8');
         dbCache = JSON.parse(data);
@@ -28,12 +27,14 @@ async function readDb(): Promise<{ clients: Client[] }> {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
             console.log('db.json not found, initializing with empty list.');
             dbCache = { clients: [] };
+            await fs.writeFile(dbPath, JSON.stringify(dbCache, null, 2), 'utf-8');
             return dbCache;
         }
         console.error('Error reading db.json:', error);
         throw error;
     }
 }
+
 
 function scheduleWriteDb(): void {
     if (dbWriteTimeout) {
@@ -48,7 +49,7 @@ function scheduleWriteDb(): void {
             }
         }
         dbWriteTimeout = null;
-    }, 1000); // Debounce write operations by 1 second
+    }, 500); // Debounce write operations
 }
 
 // --- Client Functions ---
@@ -103,6 +104,7 @@ export async function addBuilding(clientId: string, newBuilding: Building) {
     const dbData = await readDb();
     const client = dbData.clients.find(c => c.id === clientId);
     if (!client) throw new Error('Cliente não encontrado.');
+    if (!client.buildings) client.buildings = [];
     client.buildings.push(newBuilding);
     scheduleWriteDb();
 }
@@ -166,11 +168,11 @@ export async function getExtinguishersByBuilding(clientId: string, buildingId: s
     })) || [];
 }
 
-export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hose[]> {
+export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hydrant[]> {
     const building = await getBuildingById(clientId, buildingId);
     return building?.hoses.map(hose => ({
         ...hose,
-        expiryDate: toISODateString(hose.expiryDate)
+        hydrostaticTestDate: toISODateString(hose.hydrostaticTestDate)
     })) || [];
 }
 
@@ -185,14 +187,14 @@ export async function getExtinguisherById(clientId: string, buildingId: string, 
     };
 }
 
-export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hose | null> {
+export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hydrant | null> {
     const building = await getBuildingById(clientId, buildingId);
     const hose = building?.hoses.find(h => h.id === id);
     if (!hose) return null;
     
     return {
         ...hose,
-        expiryDate: toISODateString(hose.expiryDate)
+        hydrostaticTestDate: toISODateString(hose.hydrostaticTestDate)
     };
 }
 
@@ -202,6 +204,7 @@ export async function addExtinguisher(clientId: string, buildingId: string, newE
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
+    if (!building.extinguishers) building.extinguishers = [];
     building.extinguishers.push(newExtinguisher);
     scheduleWriteDb();
 }
@@ -230,24 +233,25 @@ export async function deleteExtinguisher(clientId: string, buildingId: string, i
     scheduleWriteDb();
 }
 
-export async function addHose(clientId: string, buildingId: string, newHose: Hose) {
+export async function addHose(clientId: string, buildingId: string, newHose: Hydrant) {
     const dbData = await readDb();
     const client = dbData.clients.find(c => c.id === clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
+    if (!building.hoses) building.hoses = [];
     building.hoses.push(newHose);
     scheduleWriteDb();
 }
 
-export async function updateHose(clientId: string, buildingId: string, id: string, updatedData: Partial<HoseFormValues>) {
+export async function updateHose(clientId: string, buildingId: string, id: string, updatedData: Partial<HydrantFormValues>) {
     const dbData = await readDb();
     const client = dbData.clients.find(c => c.id === clientId);
     if (!client) throw new Error('Cliente não encontrado.');
     const building = client.buildings.find(b => b.id === buildingId);
     if (!building) throw new Error('Local não encontrado.');
     const hoseIndex = building.hoses.findIndex(h => h.id === id);
-    if (hoseIndex === -1) throw new Error('Sistema de mangueira não encontrado.');
+    if (hoseIndex === -1) throw new Error('Hidrante não encontrado.');
 
     building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
     scheduleWriteDb();
@@ -280,6 +284,7 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             date: item.date,
             location: item.location,
             notes: item.notes,
+            status: item.status,
         };
 
         const extinguisher = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);

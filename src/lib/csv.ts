@@ -3,7 +3,7 @@
 
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Extinguisher, Hose, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 
 function escapeCsvCell(cell: string | number | null | undefined): string {
     const cellStr = String(cell ?? '');
@@ -24,25 +24,19 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-function formatInspectionDate(inspection: any): string {
-    if (!inspection?.date) return 'N/A';
+function formatLastInspectionForCsv(inspection: any) {
+    if (!inspection?.date) return { date: 'N/A', time: 'N/A', gps: 'N/A', status: 'N/A' };
     const date = parseISO(inspection.date);
-    return format(date, 'dd/MM/yyyy', { locale: ptBR });
-}
-
-function formatInspectionTime(inspection: any): string {
-    if (!inspection?.date) return 'N/A';
-    const date = parseISO(inspection.date);
-    return format(date, 'HH:mm:ss', { locale: ptBR });
-}
-
-function formatInspectionLocation(inspection: any): string {
-    if (!inspection?.location) return 'N/A';
-    return `${inspection.location.latitude}, ${inspection.location.longitude}`;
+    return {
+        date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
+        time: format(date, 'HH:mm:ss', { locale: ptBR }),
+        gps: inspection.location ? `${inspection.location.latitude}, ${inspection.location.longitude}` : 'N/A',
+        status: inspection.status || 'N/A',
+    };
 }
 
 
-export function generateCsvReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hose[]) {
+export function generateCsvReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
     let csvContent = '';
 
     csvContent += `"Relatório de Inspeção"\n`;
@@ -51,44 +45,47 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += `Gerado em:,${escapeCsvCell(format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR }))}\n\n`;
 
     csvContent += `"Extintores"\n`;
-    const extHeader = ['ID', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Localização', 'Data Últ. Inspeção', 'Hora Últ. Inspeção', 'GPS Últ. Inspeção'];
-    csvContent += extHeader.join(',') + '\n';
+    const extHeader = ['ID', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Localização', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
+    csvContent += extHeader.map(escapeCsvCell).join(',') + '\n';
     extinguishers.forEach(e => {
-        const lastInspection = e.inspections?.[e.inspections.length - 1];
+        const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
         const row = [
-            escapeCsvCell(e.id),
-            escapeCsvCell(e.type),
-            escapeCsvCell(e.weight),
-            escapeCsvCell(formatDate(e.expiryDate)),
-            escapeCsvCell(e.hydrostaticTestYear),
-            escapeCsvCell(e.observations),
-            escapeCsvCell(formatInspectionDate(lastInspection)),
-            escapeCsvCell(formatInspectionTime(lastInspection)),
-            escapeCsvCell(formatInspectionLocation(lastInspection)),
+            e.id,
+            e.type,
+            e.weight,
+            formatDate(e.expiryDate),
+            e.hydrostaticTestYear,
+            e.observations,
+            insp.status,
+            insp.date,
+            insp.time,
+            insp.gps,
         ];
-        csvContent += row.join(',') + '\n';
+        csvContent += row.map(escapeCsvCell).join(',') + '\n';
     });
     
     csvContent += '\n';
 
-    csvContent += `"Sistemas de Mangueira"\n`;
-    const hoseHeader = ['ID', 'Qtd', 'Tipo', 'Chaves', 'Bicos', 'Validade', 'Observações', 'Data Últ. Inspeção', 'Hora Últ. Inspeção', 'GPS Últ. Inspeção'];
-    csvContent += hoseHeader.join(',') + '\n';
+    csvContent += `"Hidrantes"\n`;
+    const hoseHeader = ['Hidrante', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
+    csvContent += hoseHeader.map(escapeCsvCell).join(',') + '\n';
     hoses.forEach(h => {
-        const lastInspection = h.inspections?.[h.inspections.length - 1];
+        const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
         const row = [
-            escapeCsvCell(h.id),
-            escapeCsvCell(h.quantity),
-            escapeCsvCell(h.hoseType),
-            escapeCsvCell(h.keyQuantity),
-            escapeCsvCell(h.nozzleQuantity),
-            escapeCsvCell(formatDate(h.expiryDate)),
-            escapeCsvCell(h.observations),
-            escapeCsvCell(formatInspectionDate(lastInspection)),
-            escapeCsvCell(formatInspectionTime(lastInspection)),
-            escapeCsvCell(formatInspectionLocation(lastInspection)),
+            h.id,
+            h.location,
+            h.quantity,
+            'Tipo ' + h.hoseType,
+            h.diameter + '"',
+            h.keyQuantity,
+            h.nozzleQuantity,
+            formatDate(h.hydrostaticTestDate),
+            insp.status,
+            insp.date,
+            insp.time,
+            insp.gps,
         ];
-        csvContent += row.join(',') + '\n';
+        csvContent += row.map(escapeCsvCell).join(',') + '\n';
     });
 
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });

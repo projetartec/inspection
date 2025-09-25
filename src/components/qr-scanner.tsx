@@ -8,9 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CameraOff } from 'lucide-react';
+import { Loader2, CameraOff, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import type { Inspection } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface QrScannerProps {
   clientId: string;
@@ -22,6 +24,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const readerRef = useRef<HTMLDivElement>(null);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState<Inspection['status'] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const router = useRouter();
@@ -75,7 +78,14 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   }, [scanResult]);
 
   const handleLogInspection = async () => {
-    if (!scanResult) return;
+    if (!scanResult || !status) {
+        toast({
+            variant: 'destructive',
+            title: 'Status Obrigatório',
+            description: 'Por favor, selecione "OK" ou "Não Conforme".'
+        });
+        return;
+    }
     setIsSubmitting(true);
     
     const processInspection = (location?: GeolocationCoordinates) => {
@@ -83,6 +93,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             qrCodeValue: scanResult,
             date: new Date().toISOString(),
             notes,
+            status,
             location: location ? {
                 latitude: location.latitude,
                 longitude: location.longitude,
@@ -93,12 +104,13 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         
         toast({
             title: 'Item Registrado',
-            description: `Item ${scanResult} adicionado à inspeção.`,
+            description: `Item ${scanResult} adicionado à inspeção com status ${status}.`,
         });
 
         // Reset for next scan
         setScanResult(null);
         setNotes('');
+        setStatus(null);
         setIsSubmitting(false);
     };
 
@@ -141,19 +153,35 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea 
-            placeholder="Adicionar notas de observação (opcional)..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={4}
-          />
+            <div className="grid grid-cols-2 gap-4">
+                 <Button 
+                    variant={status === 'OK' ? 'default' : 'outline'}
+                    onClick={() => setStatus('OK')}
+                    className={cn("h-16 text-lg", status === 'OK' && "bg-green-600 hover:bg-green-700")}
+                 >
+                    <ThumbsUp className="mr-2" /> OK
+                 </Button>
+                 <Button 
+                    variant={status === 'N/C' ? 'destructive' : 'outline'}
+                    onClick={() => setStatus('N/C')}
+                    className="h-16 text-lg"
+                >
+                    <ThumbsDown className="mr-2" /> N/C
+                 </Button>
+            </div>
+            <Textarea 
+                placeholder="Adicionar notas de observação (opcional)..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+            />
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button onClick={handleLogInspection} disabled={isSubmitting} className="w-full">
+          <Button onClick={handleLogInspection} disabled={isSubmitting || !status} className="w-full">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar e Continuar
           </Button>
-          <Button variant="outline" onClick={() => setScanResult(null)} className="w-full">
+          <Button variant="outline" onClick={() => { setScanResult(null); setStatus(null); }} className="w-full">
             Escanear Novamente
           </Button>
         </CardFooter>

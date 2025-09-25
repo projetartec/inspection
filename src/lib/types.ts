@@ -1,3 +1,4 @@
+
 export type Inspection = {
   id: string;
   date: string;
@@ -6,6 +7,7 @@ export type Inspection = {
     longitude: number;
   };
   notes: string;
+  status: 'OK' | 'N/C';
 };
 
 export const extinguisherTypes = ["AP", "BC", "ABC", "CO2", "EPM"] as const;
@@ -25,35 +27,42 @@ export type Extinguisher = {
   inspections: Inspection[];
 };
 
-export const hoseQuantities = [1, 2, 3, 4] as const;
-export type HoseQuantity = (typeof hoseQuantities)[number];
+// --- Hydrant (Hose) Types ---
+export const hydrantQuantities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export type HydrantQuantity = (typeof hydrantQuantities)[number];
 
-export const hoseTypes = ["1 1/2", "2 1/2"] as const;
-export type HoseType = (typeof hoseTypes)[number];
+export const hydrantTypes = ["1", "2", "3", "4", "5", "6", "7"] as const;
+export type HydrantType = (typeof hydrantTypes)[number];
 
-export const keyQuantities = [1, 2, 3, 4] as const;
-export type KeyQuantity = (typeof keyQuantities)[number];
+export const hydrantDiameters = ["1 1/2", "2 1/2"] as const;
+export type HydrantDiameter = (typeof hydrantDiameters)[number];
 
-export const nozzleQuantities = [1, 2, 3, 4] as const;
-export type NozzleQuantity = (typeof nozzleQuantities)[number];
+export const hydrantKeyQuantities = [0, 1, 2, 3, 4] as const;
+export type HydrantKeyQuantity = (typeof hydrantKeyQuantities)[number];
 
-export type Hose = {
-  id: string;
+export const hydrantNozzleQuantities = [0, 1, 2, 3, 4] as const;
+export type HydrantNozzleQuantity = (typeof hydrantNozzleQuantities)[number];
+
+
+export type Hydrant = {
+  id: string; // HIDRANTE
   qrCodeValue: string;
-  quantity: HoseQuantity;
-  hoseType: HoseType;
-  keyQuantity: KeyQuantity;
-  nozzleQuantity: NozzleQuantity;
-  expiryDate: string;
-  observations: string;
+  location: string; // LOCAL
+  quantity: HydrantQuantity; // QTD MANG.
+  hoseType: HydrantType; // TIPO
+  diameter: HydrantDiameter; // DIAMETRO
+  keyQuantity: HydrantKeyQuantity; // CHAVE
+  nozzleQuantity: HydrantNozzleQuantity; // ESG (Esguicho)
+  hydrostaticTestDate: string; // PROX. TESTE HIDR.
   inspections: Inspection[];
 };
+
 
 export type Building = {
   id: string;
   name: string;
   extinguishers: Extinguisher[];
-  hoses: Hose[];
+  hoses: Hydrant[]; // Renamed from hoses to hydrants
 };
 
 export type Client = {

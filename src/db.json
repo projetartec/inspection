@@ -1,3 +1,4 @@
+
 {
   "clients": [
     {
@@ -24,12 +25,36 @@
                     "latitude": -22.7901723,
                     "longitude": -47.1909263
                   },
-                  "notes": "Ok"
+                  "notes": "Ok",
+                  "status": "OK"
                 }
               ]
+            },
+            {
+              "id": "041",
+              "type": "BC",
+              "weight": 4,
+              "expiryDate": "2025-09-10",
+              "hydrostaticTestYear": 2025,
+              "observations": "Recepção",
+              "qrCodeValue": "fireguard-ext-041",
+              "inspections": []
             }
           ],
-          "hoses": []
+          "hoses": [
+            {
+              "id": "HID-01-T",
+              "location": "Térreo - Ala Norte",
+              "quantity": 2,
+              "hoseType": "2",
+              "diameter": "1 1/2",
+              "keyQuantity": 2,
+              "nozzleQuantity": 2,
+              "hydrostaticTestDate": "2026-05-20",
+              "qrCodeValue": "fireguard-hose-HID-01-T",
+              "inspections": []
+            }
+          ]
         },
         {
           "id": "bldg-1758498413838",
@@ -60,7 +85,14 @@
     {
       "id": "client-1758498380282",
       "name": "CPQD",
-      "buildings": []
+      "buildings": [
+        {
+          "id": "bldg-1758332140558",
+          "name": "Prédio 1",
+          "extinguishers": [],
+          "hoses": []
+        }
+      ]
     }
   ]
 }

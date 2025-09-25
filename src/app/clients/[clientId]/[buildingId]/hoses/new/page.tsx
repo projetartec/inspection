@@ -1,3 +1,4 @@
+
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HoseForm } from "@/components/hose-form";
@@ -6,12 +7,12 @@ export default function NewHosePage({ params }: { params: { clientId: string, bu
   const { clientId, buildingId } = params;
   return (
     <>
-      <PageHeader title="Adicionar Novo Sistema de Mangueira" />
+      <PageHeader title="Adicionar Novo Hidrante" />
       <Card>
         <CardHeader>
-          <CardTitle>Detalhes do Sistema</CardTitle>
+          <CardTitle>Detalhes do Hidrante</CardTitle>
           <CardDescription>
-            Preencha o formulário abaixo para registrar um novo sistema de mangueira de incêndio.
+            Preencha o formulário abaixo para registrar um novo hidrante.
           </CardDescription>
         </CardHeader>
         <CardContent>

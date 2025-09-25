@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteHoseAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Hose } from '@/lib/types';
+import type { Hydrant } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -35,9 +36,10 @@ function TableSkeleton() {
     Array(3).fill(0).map((_, index) => (
       <TableRow key={index}>
         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-10" /></TableCell>
-        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+        <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+        <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
         <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end space-x-1 md:space-x-2">
@@ -55,7 +57,7 @@ function TableSkeleton() {
 export default function HosesPage() {
   const params = useParams() as { clientId: string, buildingId: string };
   const { clientId, buildingId } = params;
-  const [hoses, setHoses] = useState<Hose[]>([]);
+  const [hoses, setHoses] = useState<Hydrant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -80,33 +82,34 @@ export default function HosesPage() {
     setHoses(prev => prev.filter(hose => hose.id !== deletedId));
     toast({
         title: "Sucesso!",
-        description: "Sistema de mangueira deletado com sucesso."
+        description: "Hidrante deletado com sucesso."
     });
   };
 
   return (
     <>
-      <PageHeader title="Mangueiras">
+      <PageHeader title="Hidrantes">
         <Button asChild>
           <Link href={`/clients/${clientId}/${buildingId}/hoses/new`}>
             <PlusCircle className="mr-2" />
-            Adicionar Sistema de Mangueira
+            Adicionar Hidrante
           </Link>
         </Button>
       </PageHeader>
       <Card>
         <CardHeader>
-            <CardTitle>Sistemas de Mangueira Registrados</CardTitle>
-            <CardDescription>Uma lista de todos os sistemas de mangueira de incêndio neste local.</CardDescription>
+            <CardTitle>Hidrantes Registrados</CardTitle>
+            <CardDescription>Uma lista de todos os hidrantes neste local.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead className="hidden md:table-cell">Qtd</TableHead>
-                        <TableHead className="hidden md:table-cell">Validade</TableHead>
+                        <TableHead>Hidrante (ID)</TableHead>
+                        <TableHead>Local</TableHead>
+                        <TableHead className="hidden md:table-cell">Tipo</TableHead>
+                        <TableHead className="hidden md:table-cell">Diâmetro</TableHead>
+                        <TableHead className="hidden lg:table-cell">Próx. Teste Hidr.</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
@@ -115,21 +118,23 @@ export default function HosesPage() {
                      {isLoading ? (
                         <TableSkeleton />
                     ) : hoses.length > 0 ? hoses.map((hose) => {
-                        const dateValue = hose.expiryDate ? parseISO(hose.expiryDate) : null;
+                        const dateValue = hose.hydrostaticTestDate ? parseISO(hose.hydrostaticTestDate) : null;
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         const isExpired = isValidDate ? dateValue < new Date() : false;
+                        const lastInspection = hose.inspections?.[hose.inspections.length - 1];
                         
                         return (
                         <TableRow key={hose.id}>
                             <TableCell className="font-medium">
                                <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
                             </TableCell>
-                            <TableCell>{hose.hoseType}"</TableCell>
-                            <TableCell className="hidden md:table-cell">{hose.quantity}</TableCell>
-                            <TableCell className="hidden md:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
+                            <TableCell>{hose.location}</TableCell>
+                            <TableCell className="hidden md:table-cell">Tipo {hose.hoseType}</TableCell>
+                            <TableCell className="hidden md:table-cell">{hose.diameter}"</TableCell>
+                            <TableCell className="hidden lg:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                             <TableCell>
-                                <Badge variant={isExpired ? 'destructive' : 'secondary'}>
-                                    {isExpired ? 'Vencido' : 'Ativo'}
+                                <Badge variant={isExpired || lastInspection?.status === 'N/C' ? 'destructive' : 'secondary'}>
+                                    {isExpired ? 'Vencido' : (lastInspection?.status || 'N/A')}
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">
@@ -152,7 +157,7 @@ export default function HosesPage() {
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Esta ação não pode ser desfeita. Isso irá deletar permanentemente o sistema de mangueira{' '}
+                                            Esta ação não pode ser desfeita. Isso irá deletar permanentemente o hidrante{' '}
                                             <span className="font-bold">{hose.id}</span>.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
@@ -175,8 +180,8 @@ export default function HosesPage() {
                         );
                     }) : (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center h-24">
-                                Nenhum sistema de mangueira encontrado.
+                            <TableCell colSpan={7} className="text-center h-24">
+                                Nenhum hidrante encontrado.
                             </TableCell>
                         </TableRow>
                     )}

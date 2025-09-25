@@ -1,5 +1,14 @@
+
 import { z } from 'zod';
-import { extinguisherTypes, extinguisherWeights, hoseQuantities, hoseTypes, keyQuantities, nozzleQuantities } from '@/lib/types';
+import { 
+    extinguisherTypes, 
+    extinguisherWeights, 
+    hydrantQuantities,
+    hydrantTypes,
+    hydrantDiameters,
+    hydrantKeyQuantities,
+    hydrantNozzleQuantities
+} from '@/lib/types';
 
 // Schemas for validation
 export const ClientFormSchema = z.object({
@@ -23,13 +32,19 @@ export const ExtinguisherFormSchema = z.object({
 export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
 
 
-export const HoseFormSchema = z.object({
-  id: z.string().min(1, 'O ID é obrigatório.'),
-  quantity: z.coerce.number({ required_error: 'Por favor, selecione uma quantidade.' }),
-  hoseType: z.enum(hoseTypes, { required_error: 'Por favor, selecione um tipo de mangueira.' }),
-  keyQuantity: z.coerce.number({ required_error: 'Por favor, selecione a quantidade de chaves.' }),
-  nozzleQuantity: z.coerce.number({ required_error: 'Por favor, selecione a quantidade de bicos.' }),
-  expiryDate: z.string().min(1, 'A data de validade é obrigatória.'),
-  observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
+export const HydrantFormSchema = z.object({
+  id: z.string().min(1, 'O ID (HIDRANTE) é obrigatório.'),
+  location: z.string().min(2, 'O Local é obrigatório.'),
+  quantity: z.coerce.number().min(1, 'A quantidade de mangueiras é obrigatória.'),
+  hoseType: z.enum(hydrantTypes, { required_error: 'Por favor, selecione um tipo de mangueira.' }),
+  diameter: z.enum(hydrantDiameters, { required_error: 'Por favor, selecione um diâmetro.' }),
+  keyQuantity: z.coerce.number().min(0, 'A quantidade de chaves é obrigatória.'),
+  nozzleQuantity: z.coerce.number().min(0, 'A quantidade de esguichos é obrigatória.'),
+  hydrostaticTestDate: z.string().min(1, 'A data do próximo teste hidrostático é obrigatória.'),
 });
-export type HoseFormValues = z.infer<typeof HoseFormSchema>;
+export type HydrantFormValues = z.infer<typeof HydrantFormSchema>;
+
+
+// Compatibility export
+export const HoseFormSchema = HydrantFormSchema;
+export type HoseFormValues = HydrantFormValues;
