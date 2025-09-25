@@ -13,7 +13,6 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -28,6 +27,7 @@ import type { Extinguisher } from '@/lib/types';
 import { DeleteButton } from '@/components/delete-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useParams } from 'next/navigation';
 
 function TableSkeleton() {
   return (
@@ -52,7 +52,8 @@ function TableSkeleton() {
 }
 
 
-export default function ExtinguishersPage({ params }: { params: { clientId: string, buildingId: string }}) {
+export default function ExtinguishersPage() {
+  const params = useParams() as { clientId: string, buildingId: string };
   const { clientId, buildingId } = params;
   const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +61,8 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
 
   useEffect(() => {
     async function fetchData() {
+      if (!clientId || !buildingId) return;
+
         try {
             setIsLoading(true);
             const data = await getExtinguishersByBuilding(clientId, buildingId);

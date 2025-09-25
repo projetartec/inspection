@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { getClientById, getBuildingsByClient } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -28,8 +27,10 @@ import {
 import { deleteBuildingAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 
-export default function ClientPage({ params }: { params: { clientId: string } }) {
-  const { clientId } = params;
+export default function ClientPage() {
+  const params = useParams() as { clientId: string };
+  const clientId = params.clientId;
+
   const [client, setClient] = useState<Client | null>(null);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +64,9 @@ export default function ClientPage({ params }: { params: { clientId: string } })
   };
 
   useEffect(() => {
-    fetchClientAndBuildings();
+    if (clientId) {
+      fetchClientAndBuildings();
+    }
   }, [clientId]);
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {

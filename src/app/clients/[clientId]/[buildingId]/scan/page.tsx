@@ -1,8 +1,13 @@
+
+'use client';
+
 import { QrScanner } from '@/components/qr-scanner';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useParams } from 'next/navigation';
 
-export default function ScanPage({ params }: { params: { clientId: string, buildingId: string } }) {
+export default function ScanPage() {
+  const params = useParams() as { clientId: string, buildingId: string };
   const { clientId, buildingId } = params;
 
   return (

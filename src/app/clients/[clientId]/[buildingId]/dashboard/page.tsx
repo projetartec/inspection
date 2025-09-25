@@ -50,6 +50,8 @@ export default function DashboardPage() {
 
     useEffect(() => {
         async function fetchData() {
+            if (!clientId || !buildingId) return;
+
             try {
                 setIsLoading(true);
 
@@ -170,4 +172,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
