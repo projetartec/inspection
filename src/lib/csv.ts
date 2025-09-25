@@ -45,7 +45,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += `Gerado em:,${escapeCsvCell(format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR }))}\n\n`;
 
     csvContent += `"Extintores"\n`;
-    const extHeader = ['ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
+    const extHeader = ['ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
     csvContent += extHeader.map(escapeCsvCell).join(',') + '\n';
     extinguishers.forEach(e => {
         const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
@@ -67,7 +67,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += '\n';
 
     csvContent += `"Hidrantes"\n`;
-    const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
+    const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
     csvContent += hoseHeader.map(escapeCsvCell).join(',') + '\n';
     hoses.forEach(h => {
         const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);

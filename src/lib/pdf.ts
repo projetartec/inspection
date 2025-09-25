@@ -66,7 +66,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
         doc.autoTable({
             ...tableStyles,
             startY: finalY,
-            head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
+            head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: extinguishers.map(e => {
                 const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
                 return [
@@ -100,7 +100,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
         doc.autoTable({
             ...tableStyles,
             startY: finalY,
-            head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
+            head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: hoses.map(h => {
                 const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                 return [
