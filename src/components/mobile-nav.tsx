@@ -2,13 +2,42 @@
 
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useInspectionSession } from "@/hooks/use-inspection-session.tsx";
+import { Button } from "./ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function MobileNav() {
   const pathname = usePathname();
   const params = useParams() as { clientId?: string, buildingId?: string };
   const { clientId, buildingId } = params;
+  const { session, endInspection } = useInspectionSession();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleEndInspection = async () => {
+    setIsSubmitting(true);
+    try {
+        await endInspection();
+        toast({
+            title: 'Inspeção Finalizada',
+            description: 'A sessão de inspeção foi salva com sucesso.',
+        });
+    } catch (error) {
+        console.error(error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: 'Não foi possível salvar a sessão de inspeção.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+  
+  const isInspectionActive = session && session.buildingId === buildingId;
 
   if (!clientId) {
     // Root page (client list)
@@ -53,7 +82,7 @@ export function MobileNav() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-      <nav className="grid grid-cols-6 items-center justify-around h-full">
+      <nav className="grid grid-cols-7 items-center justify-around h-full">
         {menuItems.map((item) => {
           const isActive = pathname.startsWith(item.href) && item.href.length > (buildingBasePath.length - 2);
           return (
@@ -69,6 +98,17 @@ export function MobileNav() {
             </Link>
           );
         })}
+        {isInspectionActive ? (
+            <Button
+                variant="ghost"
+                className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center text-primary"
+                onClick={handleEndInspection}
+                disabled={isSubmitting}
+                size="icon"
+            >
+                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Flag className="h-6 w-6" />}
+            </Button>
+        ) : <div />}
       </nav>
     </div>
   );

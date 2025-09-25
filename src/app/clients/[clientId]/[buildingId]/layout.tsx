@@ -3,7 +3,6 @@ import { Sidebar, SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { InspectionProvider } from "@/hooks/use-inspection-session.tsx";
-import { InspectionFooter } from "@/components/inspection-footer";
 
 export default function BuildingLayout({
   children,
@@ -24,7 +23,6 @@ export default function BuildingLayout({
           </main>
           <div className="h-16 md:hidden" /> {/* Spacer for mobile nav */}
           <MobileNav />
-          <InspectionFooter />
         </SidebarInset>
       </SidebarProvider>
     </InspectionProvider>

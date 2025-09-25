@@ -16,7 +16,17 @@
               "hydrostaticTestYear": 2027,
               "observations": "FRENTE",
               "qrCodeValue": "fireguard-ext-456",
-              "inspections": []
+              "inspections": [
+                {
+                  "id": "insp-1758797740409-0.009694816941312911",
+                  "date": "2025-09-25T10:55:14.196Z",
+                  "location": {
+                    "latitude": -22.7901723,
+                    "longitude": -47.1909263
+                  },
+                  "notes": "Ok"
+                }
+              ]
             }
           ],
           "hoses": []
