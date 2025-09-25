@@ -29,7 +29,7 @@ function formatLastInspectionForCsv(inspection: any) {
     const date = parseISO(inspection.date);
     return {
         date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
-        time: format(date, 'HH:mm:ss', { locale: ptBR }),
+        time: format(date, 'HH:mm', { locale: ptBR }),
         gps: inspection.location ? `${inspection.location.latitude}, ${inspection.location.longitude}` : 'N/A',
         status: inspection.status || 'N/A',
     };
@@ -67,7 +67,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += '\n';
 
     csvContent += `"Hidrantes"\n`;
-    const hoseHeader = ['Hidrante', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
+    const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.'];
     csvContent += hoseHeader.map(escapeCsvCell).join(',') + '\n';
     hoses.forEach(h => {
         const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);

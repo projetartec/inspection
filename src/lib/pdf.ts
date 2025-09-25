@@ -37,7 +37,7 @@ function formatLastInspectionForCsv(inspection: any) {
     const date = parseISO(inspection.date);
     return {
         date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
-        time: format(date, 'HH:mm:ss', { locale: ptBR }),
+        time: format(date, 'HH:mm', { locale: ptBR }),
         gps: inspection.location ? `${inspection.location.latitude.toFixed(4)}, ${inspection.location.longitude.toFixed(4)}` : 'N/A',
         status: inspection.status || 'N/A',
     };
@@ -103,7 +103,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     if (hoses.length > 0) {
         doc.autoTable({
             startY: finalY,
-            head: [['Hidrante', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
+            head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status Últ. Insp.', 'Data Últ. Inspeção', 'Hora', 'GPS']],
             body: hoses.map(h => {
                 const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
                 return [

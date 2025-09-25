@@ -37,7 +37,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
 
   const lastInspectionDetails = lastInspection ? [
       { label: 'Data da Última Inspeção', value: format(parseISO(lastInspection.date), 'dd/MM/yyyy', { locale: ptBR }) },
-      { label: 'Horário da Última Inspeção', value: format(parseISO(lastInspection.date), 'HH:mm:ss', { locale: ptBR }) },
+      { label: 'Horário da Última Inspeção', value: format(parseISO(lastInspection.date), 'HH:mm', { locale: ptBR }) },
       { label: 'Localização (GPS)', value: lastInspection.location ? `${lastInspection.location.latitude.toFixed(4)}, ${lastInspection.location.longitude.toFixed(4)}` : 'N/A' },
   ] : [];
 

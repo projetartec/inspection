@@ -1,4 +1,3 @@
-
 {
   "clients": [
     {
@@ -27,6 +26,16 @@
                   },
                   "notes": "Ok",
                   "status": "OK"
+                },
+                {
+                  "id": "insp-1758820298238-0.7489584459732628",
+                  "date": "2025-09-25T17:10:42.122Z",
+                  "location": {
+                    "latitude": -22.7902372,
+                    "longitude": -47.1910511
+                  },
+                  "notes": "",
+                  "status": "OK"
                 }
               ]
             },
@@ -38,21 +47,87 @@
               "hydrostaticTestYear": 2025,
               "observations": "Recepção",
               "qrCodeValue": "fireguard-ext-041",
-              "inspections": []
+              "inspections": [
+                {
+                  "id": "insp-1758820298238-0.6368549557637346",
+                  "date": "2025-09-25T17:10:50.326Z",
+                  "location": {
+                    "latitude": -22.7902363,
+                    "longitude": -47.1910241
+                  },
+                  "notes": "",
+                  "status": "N/C"
+                }
+              ]
+            },
+            {
+              "id": "012",
+              "type": "CO2",
+              "weight": 6,
+              "expiryDate": "2025-09-09",
+              "hydrostaticTestYear": 2024,
+              "observations": "",
+              "qrCodeValue": "fireguard-ext-012",
+              "inspections": [
+                {
+                  "id": "insp-1758820298238-0.035897980218144276",
+                  "date": "2025-09-25T17:11:07.871Z",
+                  "location": {
+                    "latitude": -22.7902427,
+                    "longitude": -47.1910454
+                  },
+                  "notes": "",
+                  "status": "OK"
+                }
+              ]
             }
           ],
           "hoses": [
             {
-              "id": "HID-01-T",
-              "location": "Térreo - Ala Norte",
-              "quantity": 2,
+              "id": "H21",
+              "location": "EXTERNO",
+              "quantity": 4,
               "hoseType": "2",
-              "diameter": "1 1/2",
+              "diameter": "2 1/2",
               "keyQuantity": 2,
               "nozzleQuantity": 2,
-              "hydrostaticTestDate": "2026-05-20",
-              "qrCodeValue": "fireguard-hose-HID-01-T",
-              "inspections": []
+              "hydrostaticTestDate": "2025-09-17",
+              "qrCodeValue": "fireguard-hose-H21",
+              "inspections": [
+                {
+                  "id": "insp-1758820298238-0.5895089194276182",
+                  "date": "2025-09-25T17:11:24.231Z",
+                  "location": {
+                    "latitude": -22.7902431,
+                    "longitude": -47.1910353
+                  },
+                  "notes": "Falta esguicho",
+                  "status": "N/C"
+                }
+              ]
+            },
+            {
+              "id": "H12",
+              "location": "RECEPÇÃO",
+              "quantity": 2,
+              "hoseType": "2",
+              "diameter": "2 1/2",
+              "keyQuantity": 2,
+              "nozzleQuantity": 1,
+              "hydrostaticTestDate": "2025-10-09",
+              "qrCodeValue": "fireguard-hose-H12",
+              "inspections": [
+                {
+                  "id": "insp-1758820298238-0.746113911670476",
+                  "date": "2025-09-25T17:11:31.797Z",
+                  "location": {
+                    "latitude": -22.7902409,
+                    "longitude": -47.1910229
+                  },
+                  "notes": "",
+                  "status": "OK"
+                }
+              ]
             }
           ]
         },

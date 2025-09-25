@@ -105,7 +105,7 @@ export default function HosesPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Hidrante (ID)</TableHead>
+                        <TableHead>ID</TableHead>
                         <TableHead>Local</TableHead>
                         <TableHead className="hidden md:table-cell">Tipo</TableHead>
                         <TableHead className="hidden md:table-cell">Diâmetro</TableHead>

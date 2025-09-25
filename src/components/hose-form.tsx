@@ -82,7 +82,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
-                <Label htmlFor="id-input">Hidrante (ID)</Label>
+                <Label htmlFor="id-input">ID do Hidrante</Label>
                 <Input 
                     id="id-input"
                     name="id"
