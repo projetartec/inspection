@@ -3,53 +3,30 @@
 
 import type { Extinguisher, Hydrant, Inspection, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import * as fs from 'fs/promises';
-import path from 'path';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore'; // Only for type checking
 import { HydrantFormValues, ExtinguisherFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
-
-const dbPath = path.join(process.cwd(), 'src', 'db.json');
+import initialDb from '@/db.json';
 
 // In-memory cache for the database
 let dbCache: { clients: Client[] } | null = null;
-let dbWriteTimeout: NodeJS.Timeout | null = null;
 
 async function readDb(): Promise<{ clients: Client[] }> {
-    // For development, always read from the file to see changes from actions.
-    // In a real DB, this would hit the DB.
-    try {
-        const data = await fs.readFile(dbPath, 'utf-8');
-        dbCache = JSON.parse(data);
-        return dbCache as { clients: Client[] };
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            console.log('db.json not found, initializing with empty list.');
-            dbCache = { clients: [] };
-            await fs.writeFile(dbPath, JSON.stringify(dbCache, null, 2), 'utf-8');
-            return dbCache;
-        }
-        console.error('Error reading db.json:', error);
-        throw error;
+    if (dbCache) {
+        return dbCache;
     }
+    // In production, we use the imported JSON directly.
+    // In dev, this structure allows for "hot-reloading" of sorts if we were still using fs.
+    // For Vercel, direct import is the only way.
+    dbCache = JSON.parse(JSON.stringify(initialDb));
+    return dbCache as { clients: Client[] };
 }
 
 
 function scheduleWriteDb(): void {
-    if (dbWriteTimeout) {
-        clearTimeout(dbWriteTimeout);
-    }
-    dbWriteTimeout = setTimeout(async () => {
-        if (dbCache) {
-            try {
-                await fs.writeFile(dbPath, JSON.stringify(dbCache, null, 2), 'utf-8');
-            } catch (error) {
-                console.error('Error writing to db.json:', error);
-            }
-        }
-        dbWriteTimeout = null;
-    }, 500); // Debounce write operations
+    // This function is now a no-op in a serverless environment like Vercel.
+    // Data modifications will only exist in memory for the lifecycle of the request.
 }
 
 // --- Client Functions ---
@@ -301,4 +278,16 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
     });
 
     scheduleWriteDb();
+}
+
+// --- Report Action ---
+export async function getReportDataAction(clientId: string, buildingId: string) {
+    const [client, building, extinguishers, hoses] = await Promise.all([
+        getClientById(clientId),
+        getBuildingById(clientId, buildingId),
+        getExtinguishersByBuilding(clientId, buildingId),
+        getHosesByBuilding(clientId, buildingId)
+    ]);
+
+    return { client, building, extinguishers, hoses };
 }
