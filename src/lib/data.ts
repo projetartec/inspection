@@ -3,17 +3,17 @@
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
 import {
-  doc,
-  getDoc,
-  getDocs,
-  collection,
-  setDoc,
-  deleteDoc,
-  writeBatch,
-  Timestamp,
-  runTransaction,
-  query,
-  where
+    doc,
+    getDoc,
+    getDocs,
+    collection,
+    setDoc,
+    deleteDoc,
+    writeBatch,
+    Timestamp,
+    runTransaction,
+    query,
+    where
 } from 'firebase/firestore';
 import { db } from './firebase'; 
 import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
@@ -35,11 +35,8 @@ function docToClient(doc: any): Client {
 export async function getClients(): Promise<Client[]> {
   try {
     const querySnapshot = await getDocs(collection(db, CLIENTS_COLLECTION));
-    if (querySnapshot.empty) {
-        await seedInitialData();
-        const seededSnapshot = await getDocs(collection(db, CLIENTS_COLLECTION));
-        return seededSnapshot.docs.map(docToClient);
-    }
+    // The seeding logic is removed from here to prevent errors in server components.
+    // If the database is empty, it will return an empty array, and the UI should handle it.
     return querySnapshot.docs.map(docToClient);
   } catch (error) {
     console.error("Error fetching clients: ", error);
@@ -100,7 +97,7 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
 }
 
 export async function addBuilding(clientId: string, newBuildingData: { name: string }): Promise<void> {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
+    const clientRef = doc(db, CLIENTS_COLlection, clientId);
     await runTransaction(db, async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
         if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
@@ -336,8 +333,9 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
 
 
 // --- Initial Data Seeding ---
+// This function can be called manually or from a separate script if needed.
 async function seedInitialData() {
-    console.log("Nenhum cliente encontrado, semeando dados iniciais...");
+    console.log("Seeding initial data...");
     const batch = writeBatch(db);
     initialDbData.clients.forEach((client: any) => {
         const docRef = doc(db, CLIENTS_COLLECTION, client.id);
@@ -347,7 +345,5 @@ async function seedInitialData() {
         });
     });
     await batch.commit();
-    console.log("Dados iniciais semeados com sucesso.");
+    console.log("Initial data seeded successfully.");
 }
-
-    
