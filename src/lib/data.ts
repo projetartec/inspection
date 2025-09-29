@@ -2,12 +2,9 @@
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { adminDb } from './firebase-admin'; 
 import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
-import { adminDb } from './firebase-admin'; 
-import initialDbData from '@/db.json';
 
 const CLIENTS_COLLECTION = 'clients';
 
@@ -26,8 +23,6 @@ export async function getClients(): Promise<Client[]> {
     const querySnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
     
     if (querySnapshot.empty) {
-        // When running for the first time, you might want to seed the database.
-        // For this app, we will let the user create the first client.
         console.log("No clients found in Firestore.");
         return [];
     }
@@ -325,19 +320,4 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
     ]);
 
     return { client, building, extinguishers, hoses };
-}
-
-// Used to populate the database with initial data
-export async function seedInitialData() {
-    console.log("Seeding initial data...");
-    const batch = adminDb.batch();
-    initialDbData.clients.forEach((client: any) => {
-        const docRef = adminDb.collection(CLIENTS_COLLECTION).doc(client.id);
-        batch.set(docRef, {
-            name: client.name,
-            buildings: client.buildings || []
-        });
-    });
-    await batch.commit();
-    console.log("Initial data seeded successfully.");
 }
