@@ -7,13 +7,6 @@ import { redirect } from 'next/navigation';
 import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
-    getClients,
-    getClientById,
-    getBuildingById,
-    getExtinguishersByBuilding,
-    getHosesByBuilding,
-    getExtinguisherById,
-    getHoseById,
     addClient as addClientData,
     updateClient as updateClientData,
     deleteClient as deleteClientData,
@@ -28,6 +21,8 @@ import {
     deleteHose as deleteHoseData,
     addInspectionBatch
 } from './data';
+import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from './data';
+
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {

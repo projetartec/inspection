@@ -12,14 +12,16 @@ const firebaseConfig = {
   measurementId: ""
 };
 
-
 let app: FirebaseApp;
-if (!getApps().length) {
+let db: Firestore;
+
+if (typeof window !== "undefined" && !getApps().length) {
   app = initializeApp(firebaseConfig);
-} else {
+  db = getFirestore(app);
+} else if (typeof window !== "undefined") {
   app = getApp();
+  db = getFirestore(app);
 }
 
-const db = getFirestore(app);
-
+// @ts-ignore
 export { db };

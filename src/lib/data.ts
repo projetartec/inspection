@@ -10,33 +10,38 @@ import {
     setDoc,
     deleteDoc,
     writeBatch,
-    Timestamp,
     runTransaction,
     query,
     where
-} from 'firebase/firestore';
-import { db } from './firebase'; 
+} from 'firebase-admin/firestore';
+import { adminDb } from './firebase-admin'; 
 import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import initialDbData from '@/db.json';
 
 const CLIENTS_COLLECTION = 'clients';
 
-function docToClient(doc: any): Client {
+function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
   const data = doc.data();
   return {
     id: doc.id,
-    name: data.name,
-    buildings: data.buildings || [],
+    name: data?.name || '',
+    buildings: data?.buildings || [],
   };
 }
 
 // --- Client Functions ---
 export async function getClients(): Promise<Client[]> {
   try {
-    const querySnapshot = await getDocs(collection(db, CLIENTS_COLLECTION));
-    // The seeding logic is removed from here to prevent errors in server components.
-    // If the database is empty, it will return an empty array, and the UI should handle it.
+    const querySnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
+    
+    if (querySnapshot.empty) {
+        console.log("No clients found, seeding initial data...");
+        await seedInitialData();
+        const seededSnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
+        return seededSnapshot.docs.map(docToClient);
+    }
+    
     return querySnapshot.docs.map(docToClient);
   } catch (error) {
     console.error("Error fetching clients: ", error);
@@ -46,9 +51,9 @@ export async function getClients(): Promise<Client[]> {
 
 export async function getClientById(clientId: string): Promise<Client | null> {
   try {
-    const docRef = doc(db, CLIENTS_COLLECTION, clientId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
+    const docRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
       return docToClient(docSnap);
     }
     return null;
@@ -59,29 +64,29 @@ export async function getClientById(clientId: string): Promise<Client | null> {
 }
 
 export async function addClient(newClientData: { name: string }): Promise<string> {
-    const q = query(collection(db, CLIENTS_COLLECTION), where("name", "==", newClientData.name));
-    const querySnapshot = await getDocs(q);
+    const q = adminDb.collection(CLIENTS_COLLECTION).where("name", "==", newClientData.name);
+    const querySnapshot = await q.get();
     if (!querySnapshot.empty) {
         throw new Error('Um cliente com este nome já existe.');
     }
     
     const id = `client-${Date.now()}`;
-    const newClient: Omit<Client, 'id'> = {
+    const newClient: Omit<Client, 'id' | 'buildings'> & { buildings: Building[] } = {
         name: newClientData.name,
         buildings: []
     };
-    await setDoc(doc(db, CLIENTS_COLLECTION, id), newClient);
+    await adminDb.collection(CLIENTS_COLLECTION).doc(id).set(newClient);
     return id;
 }
 
 export async function updateClient(id: string, updatedData: Partial<Omit<Client, 'id'>>) {
-  const docRef = doc(db, CLIENTS_COLLECTION, id);
-  await setDoc(docRef, updatedData, { merge: true });
+  const docRef = adminDb.collection(CLIENTS_COLLECTION).doc(id);
+  await docRef.set(updatedData, { merge: true });
 }
 
 export async function deleteClient(id: string) {
-  const docRef = doc(db, CLIENTS_COLLECTION, id);
-  await deleteDoc(docRef);
+  const docRef = adminDb.collection(CLIENTS_COLLECTION).doc(id);
+  await docRef.delete();
 }
 
 
@@ -97,10 +102,10 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
 }
 
 export async function addBuilding(clientId: string, newBuildingData: { name: string }): Promise<void> {
-    const clientRef = doc(db, CLIENTS_COLlection, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const nameExists = client.buildings.some(b => b.name.toLowerCase() === newBuildingData.name.toLowerCase());
@@ -120,10 +125,10 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
 }
 
 export async function updateBuilding(clientId: string, buildingId: string, updatedData: Partial<Building>) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-     await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+     await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
 
         const client = docToClient(clientDoc);
         const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
@@ -135,10 +140,10 @@ export async function updateBuilding(clientId: string, buildingId: string, updat
 }
 
 export async function deleteBuilding(clientId: string, buildingId: string) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         client.buildings = client.buildings.filter(b => b.id !== buildingId);
@@ -168,10 +173,10 @@ export async function getHoseById(clientId: string, buildingId: string, id: stri
 }
 
 export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: ExtinguisherFormValues) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -192,10 +197,10 @@ export async function addExtinguisher(clientId: string, buildingId: string, newE
 }
 
 export async function updateExtinguisher(clientId: string, buildingId: string, id: string, updatedData: Partial<ExtinguisherFormValues>) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -210,10 +215,10 @@ export async function updateExtinguisher(clientId: string, buildingId: string, i
 }
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, id: string) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -225,10 +230,10 @@ export async function deleteExtinguisher(clientId: string, buildingId: string, i
 }
 
 export async function addHose(clientId: string, buildingId: string, newHoseData: HydrantFormValues) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -249,10 +254,10 @@ export async function addHose(clientId: string, buildingId: string, newHoseData:
 }
 
 export async function updateHose(clientId: string, buildingId: string, id: string, updatedData: Partial<HydrantFormValues>) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -267,10 +272,10 @@ export async function updateHose(clientId: string, buildingId: string, id: strin
 }
 
 export async function deleteHose(clientId: string, buildingId: string, id: string) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado.');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
         
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -284,10 +289,10 @@ export async function deleteHose(clientId: string, buildingId: string, id: strin
 
 // --- Inspection Action ---
 export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    const clientRef = doc(db, CLIENTS_COLLECTION, clientId);
-    await runTransaction(db, async (transaction) => {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists()) throw new Error('Cliente não encontrado');
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado');
 
         const client = docToClient(clientDoc);
         const building = client.buildings.find(b => b.id === buildingId);
@@ -319,26 +324,13 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
     });
 }
 
-// --- Report Action ---
-export async function getReportDataAction(clientId: string, buildingId: string) {
-    const [client, building, extinguishers, hoses] = await Promise.all([
-        getClientById(clientId),
-        getBuildingById(clientId, buildingId),
-        getExtinguishersByBuilding(clientId, buildingId),
-        getHosesByBuilding(clientId, buildingId)
-    ]);
-
-    return { client, building, extinguishers, hoses };
-}
-
 
 // --- Initial Data Seeding ---
-// This function can be called manually or from a separate script if needed.
 async function seedInitialData() {
     console.log("Seeding initial data...");
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     initialDbData.clients.forEach((client: any) => {
-        const docRef = doc(db, CLIENTS_COLLECTION, client.id);
+        const docRef = adminDb.collection(CLIENTS_COLLECTION).doc(client.id);
         batch.set(docRef, {
             name: client.name,
             buildings: client.buildings || []
