@@ -20,32 +20,24 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
 } else {
     // Fallback for local development if env var is not set
     console.warn("FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set. Using fallback credentials.");
+    // This is a placeholder and will not work. Set the env var.
     serviceAccount = {
-      "projectId": "studio-8357723187-fe66d",
+      "projectId": "your-project-id",
       "privateKey": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n".replace(/\\n/g, '\n'),
-      "clientEmail": "firebase-adminsdk-...@studio-8357723187-fe66d.iam.gserviceaccount.com"
+      "clientEmail": "your-service-account-email@your-project-id.iam.gserviceaccount.com"
     }
 }
 
 
 if (!getApps().length) {
-  try {
     app = initializeApp({
       credential: cert(serviceAccount)
     });
-  } catch(e) {
-    console.error('Failed to initialize Firebase Admin SDK.', e);
-    // This will prevent the app from crashing and log a more useful error.
-    // The data functions will then fail, but we'll know why.
-  }
 } else {
   app = getApps()[0];
 }
 
-// @ts-ignore
-if (app) {
-    adminDb = getFirestore(app);
-}
+adminDb = getFirestore(app);
 
 
 export { adminDb };

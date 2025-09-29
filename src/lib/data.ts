@@ -2,21 +2,11 @@
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
-import {
-    doc,
-    getDoc,
-    getDocs,
-    collection,
-    setDoc,
-    deleteDoc,
-    writeBatch,
-    runTransaction,
-    query,
-    where
-} from 'firebase-admin/firestore';
-import { adminDb } from './firebase-admin'; 
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import { adminDb } from './firebase-admin'; 
 import initialDbData from '@/db.json';
 
 const CLIENTS_COLLECTION = 'clients';
@@ -36,10 +26,10 @@ export async function getClients(): Promise<Client[]> {
     const querySnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
     
     if (querySnapshot.empty) {
-        console.log("No clients found, seeding initial data...");
-        await seedInitialData();
-        const seededSnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
-        return seededSnapshot.docs.map(docToClient);
+        // When running for the first time, you might want to seed the database.
+        // For this app, we will let the user create the first client.
+        console.log("No clients found in Firestore.");
+        return [];
     }
     
     return querySnapshot.docs.map(docToClient);
@@ -325,8 +315,20 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
 }
 
 
-// --- Initial Data Seeding ---
-async function seedInitialData() {
+// --- Report Action ---
+export async function getReportDataAction(clientId: string, buildingId: string) {
+    const [client, building, extinguishers, hoses] = await Promise.all([
+        getClientById(clientId),
+        getBuildingById(clientId, buildingId),
+        getExtinguishersByBuilding(clientId, buildingId),
+        getHosesByBuilding(clientId, buildingId)
+    ]);
+
+    return { client, building, extinguishers, hoses };
+}
+
+// Used to populate the database with initial data
+export async function seedInitialData() {
     console.log("Seeding initial data...");
     const batch = adminDb.batch();
     initialDbData.clients.forEach((client: any) => {
