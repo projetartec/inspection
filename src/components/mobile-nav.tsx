@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInspectionSession } from "@/hooks/use-inspection-session.tsx";
@@ -16,8 +17,10 @@ export function MobileNav() {
   const { session, endInspection } = useInspectionSession();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
   const handleEndInspection = async () => {
+    if (!session) return;
     setIsSubmitting(true);
     try {
         await endInspection();
@@ -25,6 +28,8 @@ export function MobileNav() {
             title: 'Inspeção Finalizada',
             description: 'A sessão de inspeção foi salva com sucesso.',
         });
+        router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
+        router.refresh();
     } catch (error) {
         console.error(error);
         toast({
