@@ -136,6 +136,12 @@ export async function deleteBuilding(clientId: string, buildingId: string) {
     });
 }
 
+export async function updateBuildingOrder(clientId: string, orderedBuildings: Building[]) {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await clientRef.update({ buildings: orderedBuildings });
+}
+
+
 // --- Equipment Functions ---
 export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
     const building = await getBuildingById(clientId, buildingId);

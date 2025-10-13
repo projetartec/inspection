@@ -13,6 +13,7 @@ import {
     addBuilding as addBuildingData,
     updateBuilding as updateBuildingData,
     deleteBuilding as deleteBuildingData,
+    updateBuildingOrder as updateBuildingOrderData,
     addExtinguisher as addExtinguisherData,
     updateExtinguisher as updateExtinguisherData,
     deleteExtinguisher as deleteExtinguisherData,
@@ -81,6 +82,11 @@ export async function updateBuildingAction(clientId: string, buildingId: string,
 
 export async function deleteBuildingAction(clientId: string, buildingId: string) {
     await deleteBuildingData(clientId, buildingId);
+    revalidatePath(`/clients/${clientId}`);
+}
+
+export async function updateBuildingOrderAction(clientId: string, orderedBuildings: Building[]) {
+    await updateBuildingOrderData(clientId, orderedBuildings);
     revalidatePath(`/clients/${clientId}`);
 }
 
