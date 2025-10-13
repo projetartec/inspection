@@ -19,7 +19,8 @@ import {
     addHose as addHoseData,
     updateHose as updateHoseData,
     deleteHose as deleteHoseData,
-    addInspectionBatch
+    addInspectionBatch,
+    updateEquipmentOrder
 } from './data';
 import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from './data';
 
@@ -160,4 +161,10 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
     ]);
 
     return { client, building, extinguishers, hoses };
+}
+
+// --- Reorder Action ---
+export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
+    await updateEquipmentOrder(clientId, buildingId, equipmentType, orderedItems);
+    revalidatePath(`/clients/${clientId}/${buildingId}/${equipmentType}`);
 }

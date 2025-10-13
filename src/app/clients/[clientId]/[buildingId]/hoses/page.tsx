@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
-import { PlusCircle, Pencil, Trash2, QrCode } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, QrCode, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { getHosesByBuilding } from "@/lib/data";
@@ -22,14 +21,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteHoseAction } from "@/lib/actions";
+import { deleteHoseAction, updateEquipmentOrderAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
 import type { Hydrant } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useParams } from 'next/navigation';
-
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 function TableSkeleton() {
   return (
@@ -52,7 +51,6 @@ function TableSkeleton() {
     ))
   );
 }
-
 
 export default function HosesPage() {
   const params = useParams() as { clientId: string, buildingId: string };
@@ -87,6 +85,35 @@ export default function HosesPage() {
     });
   };
 
+  const onDragEnd = async (result: any) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    if (destination.index === source.index) return;
+
+    const reorderedHoses = Array.from(hoses);
+    const [removed] = reorderedHoses.splice(source.index, 1);
+    reorderedHoses.splice(destination.index, 0, removed);
+    
+    setHoses(reorderedHoses);
+
+    try {
+        await updateEquipmentOrderAction(clientId, buildingId, 'hoses', reorderedHoses);
+        toast({
+            title: "Ordem atualizada",
+            description: "A nova ordem dos hidrantes foi salva.",
+        });
+    } catch (error) {
+        console.error("Failed to update order:", error);
+        setHoses(hoses); // Revert on error
+        toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Não foi possível salvar a nova ordem.",
+        });
+    }
+  };
+
+
   return (
     <>
       <PageHeader title="Hidrantes">
@@ -100,12 +127,14 @@ export default function HosesPage() {
       <Card>
         <CardHeader>
             <CardTitle>Hidrantes Registrados</CardTitle>
-            <CardDescription>Uma lista de todos os hidrantes neste local.</CardDescription>
+            <CardDescription>Uma lista de todos os hidrantes neste local. Arraste e solte para reordenar.</CardDescription>
         </CardHeader>
         <CardContent>
+          <DragDropContext onDragEnd={onDragEnd}>
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="w-12"></TableHead>
                         <TableHead>ID</TableHead>
                         <TableHead>Local</TableHead>
                         <TableHead className="hidden md:table-cell">Tipo</TableHead>
@@ -115,79 +144,97 @@ export default function HosesPage() {
                         <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>
-                <TableBody>
-                     {isLoading ? (
-                        <TableSkeleton />
-                    ) : hoses.length > 0 ? hoses.map((hose) => {
-                        const dateValue = hose.hydrostaticTestDate ? parseISO(hose.hydrostaticTestDate) : null;
-                        const isValidDate = dateValue && !isNaN(dateValue.getTime());
-                        const isExpired = isValidDate ? dateValue < new Date() : false;
-                        const lastInspection = hose.inspections?.[hose.inspections.length - 1];
-                        
-                        return (
-                        <TableRow key={hose.id}>
-                            <TableCell className="font-medium">
-                               <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
-                            </TableCell>
-                            <TableCell>{hose.location}</TableCell>
-                            <TableCell className="hidden md:table-cell">Tipo {hose.hoseType}</TableCell>
-                            <TableCell className="hidden md:table-cell">{hose.diameter}"</TableCell>
-                            <TableCell className="hidden lg:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
-                            <TableCell>
-                                <Badge variant={isExpired || lastInspection?.status === 'N/C' ? 'destructive' : 'secondary'}>
-                                    {isExpired ? 'Vencido' : (lastInspection?.status || 'N/A')}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex items-center justify-end space-x-1 md:space-x-2">
-                                    <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
-                                        <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}/edit`}>
-                                            <Pencil className="h-5 w-5 md:h-4 md:w-4" />
-                                            <span className="sr-only">Editar</span>
-                                        </Link>
-                                    </Button>
+                <Droppable droppableId="hoses-list" direction="vertical">
+                    {(provided) => (
+                      <TableBody ref={provided.innerRef} {...provided.droppableProps}>
+                          {isLoading ? (
+                              <TableSkeleton />
+                          ) : hoses.length > 0 ? hoses.map((hose, index) => (
+                            <Draggable key={hose.id} draggableId={hose.id} index={index}>
+                                {(provided, snapshot) => {
+                                    const dateValue = hose.hydrostaticTestDate ? parseISO(hose.hydrostaticTestDate) : null;
+                                    const isValidDate = dateValue && !isNaN(dateValue.getTime());
+                                    const isExpired = isValidDate ? dateValue < new Date() : false;
+                                    const lastInspection = hose.inspections?.[hose.inspections.length - 1];
                                     
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 md:h-8 md:w-8">
-                                            <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
-                                            <span className="sr-only">Deletar</span>
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Esta ação não pode ser desfeita. Isso irá deletar permanentemente o hidrante{' '}
-                                            <span className="font-bold">{hose.id}</span>.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.id)} onSuccess={() => handleDeleteSuccess(hose.id)} />
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
+                                    return (
+                                    <TableRow 
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className={snapshot.isDragging ? "bg-muted" : ""}
+                                    >
+                                        <TableCell className="text-muted-foreground cursor-grab">
+                                          <GripVertical />
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                          <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
+                                        </TableCell>
+                                        <TableCell>{hose.location}</TableCell>
+                                        <TableCell className="hidden md:table-cell">Tipo {hose.hoseType}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{hose.diameter}"</TableCell>
+                                        <TableCell className="hidden lg:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={isExpired || lastInspection?.status === 'N/C' ? 'destructive' : 'secondary'}>
+                                                {isExpired ? 'Vencido' : (lastInspection?.status || 'N/A')}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end space-x-1 md:space-x-2">
+                                                <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
+                                                    <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}/edit`}>
+                                                        <Pencil className="h-5 w-5 md:h-4 md:w-4" />
+                                                        <span className="sr-only">Editar</span>
+                                                    </Link>
+                                                </Button>
+                                                
+                                                <AlertDialog>
+                                                  <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-10 w-10 md:h-8 md:w-8">
+                                                        <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
+                                                        <span className="sr-only">Deletar</span>
+                                                    </Button>
+                                                  </AlertDialogTrigger>
+                                                  <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta ação não pode ser desfeita. Isso irá deletar permanentemente o hidrante{' '}
+                                                        <span className="font-bold">{hose.id}</span>.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.id)} onSuccess={() => handleDeleteSuccess(hose.id)} />
+                                                    </AlertDialogFooter>
+                                                  </AlertDialogContent>
+                                                </AlertDialog>
 
-                                    <QrCodeDialog value={hose.qrCodeValue} label={hose.id}>
-                                        <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
-                                            <QrCode className="h-5 w-5 md:h-4 md:w-4" />
-                                            <span className="sr-only">Ver QR Code</span>
-                                        </Button>
-                                    </QrCodeDialog>
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                        );
-                    }) : (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center h-24">
-                                Nenhum hidrante encontrado.
-                            </TableCell>
-                        </TableRow>
+                                                <QrCodeDialog value={hose.qrCodeValue} label={hose.id}>
+                                                    <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
+                                                        <QrCode className="h-5 w-5 md:h-4 md:w-4" />
+                                                        <span className="sr-only">Ver QR Code</span>
+                                                    </Button>
+                                                </QrCodeDialog>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    );
+                                }}
+                            </Draggable>
+                          )) : (
+                              <TableRow>
+                                  <TableCell colSpan={8} className="text-center h-24">
+                                      Nenhum hidrante encontrado.
+                                  </TableCell>
+                              </TableRow>
+                          )}
+                          {provided.placeholder}
+                      </TableBody>
                     )}
-                </TableBody>
+                </Droppable>
             </Table>
+          </DragDropContext>
         </CardContent>
       </Card>
     </>

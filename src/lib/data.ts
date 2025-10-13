@@ -321,3 +321,24 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
 
     return { client, building, extinguishers, hoses };
 }
+
+// --- Reorder Action ---
+export async function updateEquipmentOrder(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
+        const clientDoc = await transaction.get(clientRef);
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+        
+        const client = docToClient(clientDoc);
+        const building = client.buildings.find(b => b.id === buildingId);
+        if (!building) throw new Error('Local não encontrado.');
+
+        if (equipmentType === 'extinguishers') {
+            building.extinguishers = orderedItems as Extinguisher[];
+        } else if (equipmentType === 'hoses') {
+            building.hoses = orderedItems as Hydrant[];
+        }
+
+        transaction.update(clientRef, { buildings: client.buildings });
+    });
+}
