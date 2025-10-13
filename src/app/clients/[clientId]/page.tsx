@@ -29,6 +29,7 @@ import { deleteBuildingAction, updateBuildingOrderAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { InspectionProvider } from '@/hooks/use-inspection-session.tsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { ClientReportGenerator } from '@/components/client-report-generator';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -141,7 +142,9 @@ export default function ClientPage() {
         <SidebarInset>
           <main className="p-4 sm:p-6 lg:p-8">
             <div className="space-y-8">
-              <PageHeader title={`Cliente: ${client.name}`} href="/" />
+              <PageHeader title={`Cliente: ${client.name}`} href="/">
+                <ClientReportGenerator clientId={clientId} />
+              </PageHeader>
 
               <div className="w-full max-w-2xl mx-auto">
                 {buildings.length > 0 ? (

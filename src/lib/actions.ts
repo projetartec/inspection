@@ -23,7 +23,7 @@ import {
     addInspectionBatch,
     updateEquipmentOrder
 } from './data';
-import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from './data';
+import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding, getBuildingsByClient } from './data';
 
 
 // --- Client Actions ---
@@ -167,6 +167,15 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
     ]);
 
     return { client, building, extinguishers, hoses };
+}
+
+export async function getClientReportDataAction(clientId: string) {
+    const [client, buildings] = await Promise.all([
+        getClientById(clientId),
+        getBuildingsByClient(clientId)
+    ]);
+
+    return { client, buildings };
 }
 
 // --- Reorder Action ---

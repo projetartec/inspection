@@ -129,3 +129,66 @@ export function generatePdfReport(client: Client, building: Building, extinguish
     const fileName = `Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
     doc.save(fileName);
 }
+
+export function generateClientPdfReport(client: Client, buildings: Building[]) {
+    const doc = new jsPDF({
+        orientation: 'landscape',
+    }) as jsPDFWithAutoTable;
+
+    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    let finalY = 20;
+
+    // --- Header ---
+    doc.setFontSize(20);
+    doc.text("Relatório Consolidado de Extintores", 14, finalY);
+    finalY += 10;
+    doc.setFontSize(11);
+    doc.text(`Cliente: ${client.name}`, 14, finalY);
+    finalY += 5;
+    doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+    finalY += 10;
+    
+    const tableStyles = {
+        theme: 'striped',
+        headStyles: { fillColor: [0, 128, 128] },
+        bodyStyles: { halign: 'center' },
+        styles: { halign: 'center' },
+    };
+
+    const extHeader = [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']];
+    
+    const allExtinguishers = buildings.flatMap(building => 
+        building.extinguishers.map(ext => ({...ext, buildingName: building.name}))
+    );
+
+    if (allExtinguishers.length > 0) {
+        doc.autoTable({
+            ...tableStyles,
+            startY: finalY,
+            head: extHeader,
+            body: allExtinguishers.map(e => {
+                const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                return [
+                    e.id,
+                    e.buildingName,
+                    e.observations || '',
+                    e.type,
+                    e.weight + ' kg',
+                    formatDate(e.expiryDate),
+                    e.hydrostaticTestYear,
+                    insp.status,
+                    insp.date,
+                    insp.notes,
+                ];
+            }),
+            didDrawPage: (data: any) => {
+                // You can add headers/footers for each page if needed
+            }
+        });
+    } else {
+        doc.text("Nenhum extintor registrado para este cliente.", 14, finalY);
+    }
+    
+    const fileName = `Relatorio_Extintores_${client.name.replace(/ /g, '_')}.pdf`;
+    doc.save(fileName);
+}
