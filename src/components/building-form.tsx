@@ -66,13 +66,20 @@ export function BuildingForm({ clientId, building, onSuccess }: BuildingFormProp
         <Card>
             <CardHeader>
                 <CardTitle>Editar Local</CardTitle>
-                <CardDescription>Modifique o nome do local abaixo.</CardDescription>
+                <CardDescription>Modifique os dados do local abaixo.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
                         <Label htmlFor="name">Nome do Local (Prédio)</Label>
                         <Input id="name" name="name" placeholder="Ex: Matriz, Filial Campinas" required defaultValue={building.name}/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="gpsLink">Link do Google Maps (GPS)</Label>
+                        <Input id="gpsLink" name="gpsLink" placeholder="https://maps.app.goo.gl/..." defaultValue={building.gpsLink || ''} />
+                        <p className="text-sm text-muted-foreground">
+                            Cole aqui o link de compartilhamento do Google Maps.
+                        </p>
                     </div>
                     <SubmitButton isSubmitting={isSubmitting} className="w-full">
                         Salvar Alterações
