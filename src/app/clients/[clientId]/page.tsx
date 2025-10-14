@@ -185,13 +185,13 @@ export default function ClientPage() {
                                       <Button
                                         asChild
                                         variant="link"
-                                        className="justify-start flex-grow text-lg p-0"
+                                        className="justify-start flex-grow text-lg p-0 overflow-hidden"
                                       >
-                                        <Link href={`/clients/${client.id}/${building.id}/dashboard`}>
+                                        <Link href={`/clients/${client.id}/${building.id}/dashboard`} className="truncate">
                                           {building.name}
                                         </Link>
                                       </Button>
-                                      <div className="flex items-center space-x-1">
+                                      <div className="flex items-center space-x-1 flex-shrink-0">
                                         <GpsLinkManager 
                                             clientId={client.id}
                                             building={building}
