@@ -8,25 +8,38 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CameraOff, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Loader2, CameraOff, ThumbsUp, ThumbsDown, Edit } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import type { Inspection } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface QrScannerProps {
   clientId: string;
   buildingId: string;
 }
 
+enum ScanMode {
+  Scanning,
+  ManualEntry,
+  Result,
+}
+
 export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
+  
+  const [mode, setMode] = useState<ScanMode>(ScanMode.Scanning);
+  
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [manualId, setManualId] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<Inspection['status'] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  
   const router = useRouter();
   const { toast } = useToast();
   const { session, addItemToInspection, startInspection } = useInspectionSession();
@@ -39,13 +52,14 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   }, [session, startInspection, clientId, buildingId]);
 
   useEffect(() => {
-    if (!readerRef.current || scanResult) return;
+    if (mode !== ScanMode.Scanning || !readerRef.current || scanResult) return;
 
     const scanner = new Html5Qrcode('qr-reader-container');
     scannerRef.current = scanner;
 
     const onScanSuccess = (decodedText: string) => {
       setScanResult(decodedText);
+      setMode(ScanMode.Result);
       if (scanner.getState() === Html5QrcodeScannerState.SCANNING) {
         scanner.stop().catch(err => console.error("Falha ao parar o scanner", err));
       }
@@ -65,7 +79,6 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
       }
     }
 
-    // Only start if not already scanning and element is in DOM
     if (scanner.getState() === Html5QrcodeScannerState.NOT_STARTED) {
       startScanner();
     }
@@ -75,25 +88,48 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         scannerRef.current.stop().catch(err => {/* ignore */});
       }
     };
-  }, [scanResult]);
+  }, [mode, scanResult]);
+
+  const resetState = () => {
+    setScanResult(null);
+    setManualId('');
+    setNotes('');
+    setStatus(null);
+    setIsSubmitting(false);
+    setMode(ScanMode.Scanning);
+  };
 
   const handleLogInspection = async () => {
-    if (!scanResult || !status) {
+    if (mode === ScanMode.Result && !scanResult) return;
+    if (mode === ScanMode.ManualEntry && !manualId) {
         toast({
+            variant: 'destructive',
+            title: 'ID Manual Obrigatório',
+            description: 'Por favor, insira o ID do equipamento.'
+        });
+        return;
+    }
+
+    const effectiveStatus = mode === ScanMode.ManualEntry ? 'N/C' : status;
+    if (!effectiveStatus) {
+         toast({
             variant: 'destructive',
             title: 'Status Obrigatório',
             description: 'Por favor, selecione "OK" ou "Não Conforme".'
         });
         return;
     }
+
     setIsSubmitting(true);
     
     const processInspection = (location?: GeolocationCoordinates) => {
+        const itemIdentifier = mode === ScanMode.ManualEntry ? `manual:${manualId}` : scanResult;
+        
         const itemData: InspectedItem = {
-            qrCodeValue: scanResult,
+            qrCodeValue: itemIdentifier!,
             date: new Date().toISOString(),
-            notes,
-            status,
+            notes: mode === ScanMode.ManualEntry ? `[REGISTRO MANUAL] ${notes}` : notes,
+            status: effectiveStatus,
             location: location ? {
                 latitude: location.latitude,
                 longitude: location.longitude,
@@ -104,14 +140,10 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         
         toast({
             title: 'Item Registrado',
-            description: `Item ${scanResult} adicionado à inspeção com status ${status}.`,
+            description: `Registro adicionado à inspeção.`,
         });
 
-        // Reset for next scan
-        setScanResult(null);
-        setNotes('');
-        setStatus(null);
-        setIsSubmitting(false);
+        resetState();
     };
 
     if (navigator.geolocation) {
@@ -143,11 +175,11 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     );
   }
 
-  if (scanResult) {
+  if (mode === ScanMode.Result) {
     return (
       <Card className="w-full max-w-md animate-in fade-in">
         <CardHeader>
-          <CardTitle>Registrar Item</CardTitle>
+          <CardTitle>Registrar Item Escaneado</CardTitle>
           <CardDescription>
             ID do Equipamento: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult}</span>
           </CardDescription>
@@ -170,7 +202,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                  </Button>
             </div>
             <Textarea 
-                placeholder="Adicionar notas de observação (opcional)..."
+                placeholder="Adicionar notas (opcional)..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
@@ -181,7 +213,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar e Continuar
           </Button>
-          <Button variant="outline" onClick={() => { setScanResult(null); setStatus(null); }} className="w-full">
+          <Button variant="outline" onClick={resetState} className="w-full">
             Escanear Novamente
           </Button>
         </CardFooter>
@@ -189,5 +221,57 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     );
   }
 
-  return <div id="qr-reader-container" ref={readerRef} className="w-full max-w-md aspect-square bg-muted rounded-lg" />;
+  if (mode === ScanMode.ManualEntry) {
+     return (
+        <Card className="w-full max-w-md animate-in fade-in">
+            <CardHeader>
+                <CardTitle>Registro Manual de Item</CardTitle>
+                <CardDescription>
+                    Use quando não for possível ler o QR code ou o item estiver faltando.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="manual-id">ID do Equipamento</Label>
+                    <Input 
+                        id="manual-id"
+                        placeholder="Ex: EXT-102 ou Hidrante Corredor"
+                        value={manualId}
+                        onChange={(e) => setManualId(e.target.value)}
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="manual-notes">Motivo / Observações</Label>
+                    <Textarea 
+                        id="manual-notes"
+                        placeholder="Ex: QR code danificado, Extintor faltando"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows={3}
+                        required
+                    />
+                </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-2">
+                <Button onClick={handleLogInspection} disabled={isSubmitting || !notes || !manualId} className="w-full">
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar Registro Manual
+                </Button>
+                <Button variant="outline" onClick={resetState} className="w-full">
+                    Voltar para o Scanner
+                </Button>
+            </CardFooter>
+        </Card>
+     );
+  }
+
+  return (
+    <div className="w-full max-w-md flex flex-col gap-4">
+        <div id="qr-reader-container" ref={readerRef} className="w-full aspect-square bg-muted rounded-lg" />
+        <Button variant="outline" onClick={() => setMode(ScanMode.ManualEntry)}>
+            <Edit className="mr-2" />
+            Não foi possível ler / Item Faltando
+        </Button>
+    </div>
+  );
 }

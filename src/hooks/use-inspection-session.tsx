@@ -5,7 +5,7 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import type { Inspection } from '@/lib/types';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
-    qrCodeValue: string;
+    qrCodeValue: string; // Can be a real QR code or a manual identifier like "manual:EXT-01"
 }
 
 interface InspectionSession {

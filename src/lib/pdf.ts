@@ -5,7 +5,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection } from '@/lib/types';
 
 // Extend jsPDF with autoTable
 interface jsPDFWithAutoTable extends jsPDF {
@@ -57,10 +57,15 @@ export function generatePdfReport(client: Client, building: Building, extinguish
 
     const tableStyles = {
         theme: 'striped',
-        headStyles: { fillColor: [0, 128, 128] },
+        headStyles: { fillColor: [0, 128, 128] }, // Teal
         bodyStyles: { halign: 'center' },
-        styles: { halign: 'center' },
+        styles: { halign: 'center', fontSize: 8 },
     };
+    
+    const manualEntryTableStyles = {
+        ...tableStyles,
+        headStyles: { fillColor: [255, 99, 71] }, // Tomato Red
+    }
 
     // --- Extinguishers Table ---
     if (extinguishers.length > 0) {
@@ -88,9 +93,10 @@ export function generatePdfReport(client: Client, building: Building, extinguish
         finalY = (doc as any).lastAutoTable.finalY;
     } else {
         doc.text("Nenhum extintor registrado.", 14, finalY);
+        finalY += 10;
     }
 
-     finalY += 15;
+     finalY += 10;
 
     if (finalY > pageHeight - 30) {
         doc.addPage();
@@ -122,8 +128,41 @@ export function generatePdfReport(client: Client, building: Building, extinguish
                 ];
             }),
         });
+         finalY = (doc as any).lastAutoTable.finalY;
     } else {
          doc.text("Nenhum hidrante registrado.", 14, finalY);
+         finalY += 10;
+    }
+
+    finalY += 10;
+
+    if (finalY > pageHeight - 30) {
+        doc.addPage();
+        finalY = 20;
+    }
+
+    // --- Manual/Failed Inspections Table ---
+    if (building.manualInspections && building.manualInspections.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
+        finalY += 8;
+
+        doc.autoTable({
+            ...manualEntryTableStyles,
+            startY: finalY,
+            head: [['ID Manual', 'Data', 'Hora', 'GPS', 'Status', 'Observações']],
+            body: building.manualInspections.map(insp => {
+                 const formattedInsp = formatLastInspection(insp);
+                 return [
+                    (insp as ManualInspection).manualId,
+                    formattedInsp.date,
+                    formattedInsp.time,
+                    formattedInsp.gps,
+                    formattedInsp.status,
+                    formattedInsp.notes,
+                 ]
+            })
+        })
     }
     
     const fileName = `Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
@@ -152,7 +191,7 @@ export function generateClientPdfReport(client: Client, buildings: Building[]) {
         theme: 'striped',
         headStyles: { fillColor: [0, 128, 128] },
         bodyStyles: { halign: 'center' },
-        styles: { halign: 'center' },
+        styles: { halign: 'center', fontSize: 8 },
     };
 
     const extHeader = [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']];

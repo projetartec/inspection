@@ -145,15 +145,17 @@ export async function addInspectionBatchAction(clientId: string, buildingId: str
         if (item.qrCodeValue.startsWith('fireguard-ext-')) {
             const extId = item.qrCodeValue.replace('fireguard-ext-', '');
             revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${extId}`);
-        }
-        if (item.qrCodeValue.startsWith('fireguard-hose-')) {
+        } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
             const hoseId = item.qrCodeValue.replace('fireguard-hose-', '');
             revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
         }
+        // Manual entries don't have a specific page to revalidate, but they affect the dashboard.
     });
 
     revalidatedPaths.forEach(p => revalidatePath(p));
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
 }
 
 

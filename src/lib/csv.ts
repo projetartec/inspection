@@ -3,7 +3,7 @@
 
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection } from '@/lib/types';
 
 function escapeCsvCell(cell: string | number | null | undefined): string {
     const cellStr = String(cell ?? '');
@@ -90,6 +90,26 @@ export function generateCsvReport(client: Client, building: Building, extinguish
         ];
         csvContent += row.map(escapeCsvCell).join(',') + '\n';
     });
+
+    csvContent += '\n';
+
+    if(building.manualInspections && building.manualInspections.length > 0) {
+        csvContent += `"Registros Manuais e Falhas de Leitura"\n`;
+        const manualHeader = ['ID Manual', 'Data', 'Hora', 'GPS', 'Status', 'Observações'];
+        csvContent += manualHeader.map(escapeCsvCell).join(',') + '\n';
+        building.manualInspections.forEach(insp => {
+             const formattedInsp = formatLastInspectionForCsv(insp);
+             const row = [
+                (insp as ManualInspection).manualId,
+                formattedInsp.date,
+                formattedInsp.time,
+                formattedInsp.gps,
+                formattedInsp.status,
+                formattedInsp.notes,
+             ];
+             csvContent += row.map(escapeCsvCell).join(',') + '\n';
+        });
+    }
 
     const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

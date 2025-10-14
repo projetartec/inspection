@@ -57,12 +57,14 @@ export type Hydrant = {
   inspections: Inspection[];
 };
 
+export type ManualInspection = Inspection & { manualId: string };
 
 export type Building = {
   id: string;
   name: string;
   extinguishers: Extinguisher[];
-  hoses: Hydrant[]; // Renamed from hoses to hydrants
+  hoses: Hydrant[];
+  manualInspections?: ManualInspection[];
 };
 
 export type Client = {

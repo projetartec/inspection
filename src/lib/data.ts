@@ -20,7 +20,7 @@ function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
 // --- Client Functions ---
 export async function getClients(): Promise<Client[]> {
   try {
-    const querySnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
+    const querySnapshot = await adminDb.collection(CLIENTS_COLLECTION).orderBy("name").get();
     
     if (querySnapshot.empty) {
         console.log("No clients found in Firestore.");
@@ -298,16 +298,33 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
                 status: item.status,
             };
 
-            const extinguisher = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);
-            if (extinguisher) {
-                if (!extinguisher.inspections) extinguisher.inspections = [];
-                extinguisher.inspections.push(newInspection);
-            }
+            let targetEquipment: Extinguisher | Hydrant | undefined;
 
-            const hose = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
-            if (hose) {
-                if (!hose.inspections) hose.inspections = [];
-                hose.inspections.push(newInspection);
+            if (item.qrCodeValue.startsWith('fireguard-ext-')) {
+                targetEquipment = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);
+            } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
+                targetEquipment = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
+            } else if (item.qrCodeValue.startsWith('manual:')) {
+                // For manual entries, we create a temporary "ghost" record.
+                // We'll add it to a new field in the building to not pollute the real equipment list.
+                if (!building.manualInspections) {
+                    building.manualInspections = [];
+                }
+                const manualId = item.qrCodeValue.replace('manual:', '');
+                building.manualInspections.push({ ...newInspection, manualId: manualId });
+                return; // Skip the rest of the loop for manual entries
+            }
+            
+            if (targetEquipment) {
+                if (!targetEquipment.inspections) targetEquipment.inspections = [];
+                // Replace last inspection for the same session to avoid duplicates
+                targetEquipment.inspections = targetEquipment.inspections.filter(i => {
+                    const inspDate = new Date(i.date);
+                    const itemDate = new Date(item.date);
+                    // This is a simple way to check if it's from the same "session", might need improvement
+                    return Math.abs(inspDate.getTime() - itemDate.getTime()) > 2000; 
+                });
+                targetEquipment.inspections.push(newInspection);
             }
         });
 
