@@ -65,6 +65,7 @@ export type Building = {
   extinguishers: Extinguisher[];
   hoses: Hydrant[];
   manualInspections?: ManualInspection[];
+  gpsLink?: string;
 };
 
 export type Client = {

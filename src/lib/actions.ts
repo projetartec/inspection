@@ -70,11 +70,26 @@ export async function createBuildingAction(clientId: string, formData: FormData)
 
 export async function updateBuildingAction(clientId: string, buildingId: string, formData: FormData) {
     const name = formData.get('name') as string;
-    if (!name || name.trim().length < 2) {
+    const gpsLink = formData.get('gpsLink') as string | null;
+
+    const updatedData: Partial<Building> = {};
+
+    if (name && name.trim().length >= 2) {
+        updatedData.name = name;
+    } else if (name !== null) { // if name is on formData but invalid
         throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
     }
+
+    if (gpsLink !== null) { // gpsLink can be an empty string to clear it
+        updatedData.gpsLink = gpsLink;
+    }
     
-    await updateBuildingData(clientId, buildingId, { name });
+    if (Object.keys(updatedData).length === 0) {
+        // Nothing to update
+        return;
+    }
+
+    await updateBuildingData(clientId, buildingId, updatedData);
 
     revalidatePath(`/clients/${clientId}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/edit`);

@@ -30,6 +30,7 @@ import { DeleteButton } from '@/components/delete-button';
 import { InspectionProvider } from '@/hooks/use-inspection-session.tsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { ClientReportGenerator } from '@/components/client-report-generator';
+import { GpsLinkManager } from '@/components/gps-link-manager';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -85,6 +86,12 @@ export default function ClientPage() {
 
   const handleCreateSuccess = () => {
     fetchClientAndBuildings();
+  }
+
+  const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
+    setBuildings(prevBuildings => 
+        prevBuildings.map(b => b.id === buildingId ? {...b, gpsLink: newLink} : b)
+    );
   }
 
   const onDragEnd = async (result: any) => {
@@ -185,6 +192,11 @@ export default function ClientPage() {
                                         </Link>
                                       </Button>
                                       <div className="flex items-center space-x-1">
+                                        <GpsLinkManager 
+                                            clientId={client.id}
+                                            building={building}
+                                            onUpdate={handleGpsLinkUpdate}
+                                        />
                                         <Button asChild variant="ghost" size="icon">
                                           <Link href={`/clients/${client.id}/${building.id}/edit`}>
                                             <Pencil className="h-5 w-5" />
