@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -139,6 +140,7 @@ export default function HosesPage() {
                         <TableHead>Local</TableHead>
                         <TableHead className="hidden md:table-cell">Tipo</TableHead>
                         <TableHead className="hidden md:table-cell">Diâmetro</TableHead>
+                        <TableHead className="hidden lg:table-cell">Medida</TableHead>
                         <TableHead className="hidden lg:table-cell">Próx. Teste Hidr.</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead><span className="sr-only">Ações</span></TableHead>
@@ -173,6 +175,7 @@ export default function HosesPage() {
                                         <TableCell>{hose.location}</TableCell>
                                         <TableCell className="hidden md:table-cell">Tipo {hose.hoseType}</TableCell>
                                         <TableCell className="hidden md:table-cell">{hose.diameter}"</TableCell>
+                                        <TableCell className="hidden lg:table-cell">{hose.hoseLength}m</TableCell>
                                         <TableCell className="hidden lg:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
                                         <TableCell>
                                             <Badge variant={isExpired || lastInspection?.status === 'N/C' ? 'destructive' : 'secondary'}>
@@ -224,7 +227,7 @@ export default function HosesPage() {
                             </Draggable>
                           )) : (
                               <TableRow>
-                                  <TableCell colSpan={8} className="text-center h-24">
+                                  <TableCell colSpan={9} className="text-center h-24">
                                       Nenhum hidrante encontrado.
                                   </TableCell>
                               </TableRow>

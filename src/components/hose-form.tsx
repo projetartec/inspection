@@ -10,6 +10,7 @@ import {
     hydrantQuantities, 
     hydrantTypes,
     hydrantDiameters,
+    hydrantHoseLengths,
     hydrantKeyQuantities,
     hydrantNozzleQuantities,
     type Hydrant 
@@ -104,7 +105,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
             </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
                 <Label htmlFor="quantity">Qtd. Mangueiras</Label>
                 <Select name="quantity" defaultValue={String(hydrant?.quantity)} required>
@@ -124,6 +125,13 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
                 <Select name="diameter" defaultValue={hydrant?.diameter} required>
                     <SelectTrigger id="diameter"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>{hydrantDiameters.map(d => <SelectItem key={d} value={d}>{d}"</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="hoseLength">Medida (metros)</Label>
+                <Select name="hoseLength" defaultValue={String(hydrant?.hoseLength)} required>
+                  <SelectTrigger id="hoseLength"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{hydrantHoseLengths.map(q => <SelectItem key={q} value={String(q)}>{q}m</SelectItem>)}</SelectContent>
                 </Select>
             </div>
         </div>

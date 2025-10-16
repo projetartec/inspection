@@ -69,7 +69,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += '\n';
 
     csvContent += `"Hidrantes"\n`;
-    const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.', 'Observações'];
+    const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.', 'Observações'];
     csvContent += hoseHeader.map(escapeCsvCell).join(',') + '\n';
     hoses.forEach(h => {
         const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
@@ -79,6 +79,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
             h.quantity,
             'Tipo ' + h.hoseType,
             h.diameter + '"',
+            h.hoseLength,
             h.keyQuantity,
             h.nozzleQuantity,
             formatDate(h.hydrostaticTestDate),

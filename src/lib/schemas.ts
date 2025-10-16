@@ -6,6 +6,7 @@ import {
     hydrantQuantities,
     hydrantTypes,
     hydrantDiameters,
+    hydrantHoseLengths,
     hydrantKeyQuantities,
     hydrantNozzleQuantities
 } from '@/lib/types';
@@ -38,6 +39,7 @@ export const HydrantFormSchema = z.object({
   quantity: z.coerce.number().min(1, 'A quantidade de mangueiras é obrigatória.'),
   hoseType: z.enum(hydrantTypes, { required_error: 'Por favor, selecione um tipo de mangueira.' }),
   diameter: z.enum(hydrantDiameters, { required_error: 'Por favor, selecione um diâmetro.' }),
+  hoseLength: z.coerce.number({ required_error: 'Por favor, selecione uma medida de mangueira.' }),
   keyQuantity: z.coerce.number().min(0, 'A quantidade de chaves é obrigatória.'),
   nozzleQuantity: z.coerce.number().min(0, 'A quantidade de esguichos é obrigatória.'),
   hydrostaticTestDate: z.string().min(1, 'A data do próximo teste hidrostático é obrigatória.'),

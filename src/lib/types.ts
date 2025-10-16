@@ -37,6 +37,9 @@ export type HydrantType = (typeof hydrantTypes)[number];
 export const hydrantDiameters = ["1 1/2", "2 1/2"] as const;
 export type HydrantDiameter = (typeof hydrantDiameters)[number];
 
+export const hydrantHoseLengths = [10, 15, 20, 30, 40, 50] as const;
+export type HydrantHoseLength = (typeof hydrantHoseLengths)[number];
+
 export const hydrantKeyQuantities = [0, 1, 2, 3, 4] as const;
 export type HydrantKeyQuantity = (typeof hydrantKeyQuantities)[number];
 
@@ -51,6 +54,7 @@ export type Hydrant = {
   quantity: HydrantQuantity; // QTD MANG.
   hoseType: HydrantType; // TIPO
   diameter: HydrantDiameter; // DIAMETRO
+  hoseLength: HydrantHoseLength; // MEDIDA MANGUEIRAS
   keyQuantity: HydrantKeyQuantity; // CHAVE
   nozzleQuantity: HydrantNozzleQuantity; // ESG (Esguicho)
   hydrostaticTestDate: string; // PROX. TESTE HIDR.

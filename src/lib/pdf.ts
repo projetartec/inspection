@@ -108,7 +108,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
         doc.autoTable({
             ...tableStyles,
             startY: finalY,
-            head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
+            head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
             body: hoses.map(h => {
                 const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                 return [
@@ -117,6 +117,7 @@ export function generatePdfReport(client: Client, building: Building, extinguish
                     h.quantity,
                     'Tipo ' + h.hoseType,
                     h.diameter + '"',
+                    h.hoseLength + 'm',
                     h.keyQuantity,
                     h.nozzleQuantity,
                     formatDate(h.hydrostaticTestDate),

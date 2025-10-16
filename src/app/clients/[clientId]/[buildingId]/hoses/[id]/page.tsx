@@ -32,6 +32,7 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
     { label: 'Qtd. Mangueiras', value: hose.quantity },
     { label: 'Tipo', value: `Tipo ${hose.hoseType}` },
     { label: 'Diâmetro', value: `${hose.diameter}"` },
+    { label: 'Medida', value: `${hose.hoseLength}m` },
     { label: 'Qtd. Chaves', value: hose.keyQuantity },
     { label: 'Qtd. Esguichos', value: hose.nozzleQuantity },
     { label: 'Próx. Teste Hidr.', value: isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida' },
