@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { UnloadPrompt } from '@/components/unload-prompt';
 
 export const metadata: Metadata = {
   title: 'FireGuard Inspector',
@@ -33,6 +34,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-muted/40">
+        <UnloadPrompt />
         {children}
         <Toaster />
       </body>
