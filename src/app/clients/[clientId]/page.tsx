@@ -9,9 +9,6 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
-import { Sidebar, SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { MainNav } from '@/components/main-nav';
-import { MobileNav } from '@/components/mobile-nav';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, GripVertical, Search } from 'lucide-react';
@@ -27,7 +24,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteBuildingAction, updateBuildingOrderAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
-import { InspectionProvider } from '@/hooks/use-inspection-session.tsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { ClientReportGenerator } from '@/components/client-report-generator';
 import { GpsLinkManager } from '@/components/gps-link-manager';
@@ -146,155 +142,133 @@ export default function ClientPage() {
 
 
   if (isLoading || !client) {
-    return (
-      <SidebarProvider>
-        <Sidebar>
-          <MainNav />
-        </Sidebar>
-        <SidebarInset>
-          <main className="p-4 sm:p-6 lg:p-8">
-            <PageHeader title="Carregando..." />
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
-    );
+    return <PageHeader title="Carregando..." />;
   }
 
   return (
-    <InspectionProvider>
-      <SidebarProvider>
-        <Sidebar>
-          <MainNav />
-        </Sidebar>
-        <SidebarInset>
-          <main className="p-4 sm:p-6 lg:p-8">
-            <div className="space-y-8">
-              <PageHeader title={`Cliente: ${client.name}`} href="/">
-                <ClientReportGenerator clientId={clientId} />
-              </PageHeader>
+    <>
+      <div className="space-y-8">
+        <PageHeader title={`Cliente: ${client.name}`} href="/">
+          <ClientReportGenerator clientId={clientId} />
+        </PageHeader>
 
-              <div className="w-full max-w-2xl mx-auto">
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <CardTitle>Selecione um Local</CardTitle>
-                                <CardDescription className="mt-1">
-                                    Escolha um local para gerenciar ou adicione um novo. Arraste para reordenar.
-                                </CardDescription>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Input 
-                                    type="text"
-                                    placeholder="Buscar local..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="h-9 max-w-xs"
-                                />
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                      {filteredBuildings.length > 0 ? (
-                        <DragDropContext onDragEnd={onDragEnd}>
-                          <Droppable droppableId="buildings-list">
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.droppableProps}
-                                className="flex flex-col gap-2"
-                              >
-                                {filteredBuildings.map((building, index) => (
-                                  <Draggable key={building.id} draggableId={building.id} index={index}>
-                                    {(provided, snapshot) => (
-                                      <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        className={`flex items-center p-2 rounded-lg border ${snapshot.isDragging ? 'bg-muted' : ''}`}
-                                      >
-                                        <div {...provided.dragHandleProps} className="p-2 cursor-grab text-muted-foreground">
-                                          <GripVertical className="h-5 w-5" />
-                                        </div>
+        <div className="w-full max-w-2xl mx-auto">
+          <Card>
+              <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                          <CardTitle>Selecione um Local</CardTitle>
+                          <CardDescription className="mt-1">
+                              Escolha um local para gerenciar ou adicione um novo. Arraste para reordenar.
+                          </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <Input 
+                              type="text"
+                              placeholder="Buscar local..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="h-9 max-w-xs"
+                          />
+                      </div>
+                  </div>
+              </CardHeader>
+              <CardContent>
+                {filteredBuildings.length > 0 ? (
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId="buildings-list">
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className="flex flex-col gap-2"
+                        >
+                          {filteredBuildings.map((building, index) => (
+                            <Draggable key={building.id} draggableId={building.id} index={index}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`flex items-center p-2 rounded-lg border ${snapshot.isDragging ? 'bg-muted' : ''}`}
+                                >
+                                  <div {...provided.dragHandleProps} className="p-2 cursor-grab text-muted-foreground">
+                                    <GripVertical className="h-5 w-5" />
+                                  </div>
+                                  <Button
+                                    asChild
+                                    variant="link"
+                                    className="justify-start flex-grow text-lg p-0 overflow-hidden"
+                                  >
+                                    <Link href={`/clients/${client.id}/${building.id}/dashboard`} className="truncate">
+                                      {building.name}
+                                    </Link>
+                                  </Button>
+                                  <div className="flex items-center space-x-1 flex-shrink-0">
+                                    <GpsLinkManager 
+                                        clientId={client.id}
+                                        building={building}
+                                        onUpdate={handleGpsLinkUpdate}
+                                    />
+                                    <Button asChild variant="ghost" size="icon">
+                                      <Link href={`/clients/${client.id}/${building.id}/edit`}>
+                                        <Pencil className="h-5 w-5" />
+                                        <span className="sr-only">Editar Local</span>
+                                      </Link>
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
                                         <Button
-                                          asChild
-                                          variant="link"
-                                          className="justify-start flex-grow text-lg p-0 overflow-hidden"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="text-destructive hover:text-destructive"
                                         >
-                                          <Link href={`/clients/${client.id}/${building.id}/dashboard`} className="truncate">
-                                            {building.name}
-                                          </Link>
+                                          <Trash2 className="h-5 w-5" />
+                                          <span className="sr-only">Deletar Local</span>
                                         </Button>
-                                        <div className="flex items-center space-x-1 flex-shrink-0">
-                                          <GpsLinkManager 
-                                              clientId={client.id}
-                                              building={building}
-                                              onUpdate={handleGpsLinkUpdate}
-                                          />
-                                          <Button asChild variant="ghost" size="icon">
-                                            <Link href={`/clients/${client.id}/${building.id}/edit`}>
-                                              <Pencil className="h-5 w-5" />
-                                              <span className="sr-only">Editar Local</span>
-                                            </Link>
-                                          </Button>
-                                          <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive hover:text-destructive"
-                                              >
-                                                <Trash2 className="h-5 w-5" />
-                                                <span className="sr-only">Deletar Local</span>
-                                              </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                                  <AlertDialogDescription>
-                                                    Esta ação não pode ser desfeita. Isso irá deletar
-                                                    permanentemente o local{' '}
-                                                    <span className="font-bold">{building.name}</span> e
-                                                    todos os seus equipamentos.
-                                                  </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                  <DeleteButton
-                                                      action={() => deleteBuildingAction(client.id, building.id)}
-                                                      onSuccess={() => handleDeleteSuccess(building.id)}
-                                                    />
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                          </AlertDialog>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </Draggable>
-                                ))}
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
-                        </DragDropContext>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            {searchTerm ? `Nenhum local encontrado para "${searchTerm}".` : "Nenhum local cadastrado."}
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Esta ação não pode ser desfeita. Isso irá deletar
+                                              permanentemente o local{' '}
+                                              <span className="font-bold">{building.name}</span> e
+                                              todos os seus equipamentos.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <DeleteButton
+                                                action={() => deleteBuildingAction(client.id, building.id)}
+                                                onSuccess={() => handleDeleteSuccess(building.id)}
+                                              />
+                                          </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                
+                    </Droppable>
+                  </DragDropContext>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                      {searchTerm ? `Nenhum local encontrado para "${searchTerm}".` : "Nenhum local cadastrado."}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          
 
-                <div className="mt-8">
-                  <BuildingForm clientId={client.id} onSuccess={handleCreateSuccess} />
-                </div>
-              </div>
-            </div>
-          </main>
-          <div className="h-16 md:hidden" /> {/* Spacer for mobile nav */}
-          <MobileNav />
-        </SidebarInset>
-      </SidebarProvider>
-    </InspectionProvider>
+          <div className="mt-8">
+            <BuildingForm clientId={client.id} onSuccess={handleCreateSuccess} />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
