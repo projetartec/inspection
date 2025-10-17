@@ -85,7 +85,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
       }
 
       const itemData: InspectedItem = {
-        qrCodeValue: selectedItem.qrCodeValue,
+        qrCodeValue: selectedItem.qrCodeValue, // Use the actual qrCodeValue of the item
         date: new Date().toISOString(),
         notes: finalNotes,
         status,
@@ -108,6 +108,11 @@ export function InspectionList({ items, type }: InspectionListProps) {
           (position) => processInspection(position.coords),
           (error) => {
             console.warn("Could not get GPS location, logging without it.", error);
+            toast({
+              variant: 'default',
+              title: 'Aviso de Localização',
+              description: 'Não foi possível obter a localização GPS. Registrando item sem ela.'
+            });
             processInspection();
           },
           { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
