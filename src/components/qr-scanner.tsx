@@ -15,6 +15,8 @@ import type { Inspection } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Checkbox } from './ui/checkbox';
+
 
 interface QrScannerProps {
   clientId: string;
@@ -27,6 +29,17 @@ enum ScanMode {
   Result,
 }
 
+const extinguisherIssues = [
+    "Pintura de solo", "Sinalização", "Fixação", "Obstrução", "Lacre", 
+    "Manômetro", "Rotulo", "Mangueira", "Anel"
+];
+
+const hoseIssues = [
+    "Chave", "Esguicho", "Mangueira", "Abrigo", "Pintura de solo", 
+    "Acrílico", "Sinalização"
+];
+
+
 export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const readerRef = useRef<HTMLDivElement>(null);
@@ -37,6 +50,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const [manualId, setManualId] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<Inspection['status'] | null>(null);
+  const [checkedIssues, setCheckedIssues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   
@@ -95,9 +109,24 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     setManualId('');
     setNotes('');
     setStatus(null);
+    setCheckedIssues([]);
     setIsSubmitting(false);
     setMode(ScanMode.Scanning);
   };
+
+  const handleStatusChange = (newStatus: Inspection['status']) => {
+    setStatus(newStatus);
+    if (newStatus === 'OK') {
+        setCheckedIssues([]); // Clear issues if status is OK
+    }
+  };
+
+  const handleCheckboxChange = (issue: string, checked: boolean) => {
+    setCheckedIssues(prev => 
+        checked ? [...prev, issue] : prev.filter(i => i !== issue)
+    );
+  };
+
 
   const handleLogInspection = async () => {
     if (mode === ScanMode.Result && !scanResult) return;
@@ -125,10 +154,21 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     const processInspection = (location?: GeolocationCoordinates) => {
         const itemIdentifier = mode === ScanMode.ManualEntry ? `manual:${manualId}` : scanResult;
         
+        let finalNotes = notes;
+        const isResultModeNC = mode === ScanMode.Result && status === 'N/C';
+        const isManualMode = mode === ScanMode.ManualEntry;
+
+        if (isResultModeNC && checkedIssues.length > 0) {
+            const issuesText = `Itens não conformes: ${checkedIssues.join(', ')}.`;
+            finalNotes = notes ? `${issuesText} | ${notes}` : issuesText;
+        } else if (isManualMode) {
+            finalNotes = `[REGISTRO MANUAL] ${notes}`;
+        }
+        
         const itemData: InspectedItem = {
             qrCodeValue: itemIdentifier!,
             date: new Date().toISOString(),
-            notes: mode === ScanMode.ManualEntry ? `[REGISTRO MANUAL] ${notes}` : notes,
+            notes: finalNotes,
             status: effectiveStatus,
             location: location ? {
                 latitude: location.latitude,
@@ -176,6 +216,9 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   }
 
   if (mode === ScanMode.Result) {
+    const itemType = scanResult?.includes('ext') ? 'extinguisher' : scanResult?.includes('hose') ? 'hose' : null;
+    const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
+
     return (
       <Card className="w-full max-w-md animate-in fade-in">
         <CardHeader>
@@ -184,23 +227,44 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             ID do Equipamento: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult}</span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-3">
             <div className="grid grid-cols-2 gap-4">
                  <Button 
                     variant={status === 'OK' ? 'default' : 'outline'}
-                    onClick={() => setStatus('OK')}
+                    onClick={() => handleStatusChange('OK')}
                     className={cn("h-16 text-lg", status === 'OK' && "bg-green-600 hover:bg-green-700")}
                  >
                     <ThumbsUp className="mr-2" /> OK
                  </Button>
                  <Button 
                     variant={status === 'N/C' ? 'destructive' : 'outline'}
-                    onClick={() => setStatus('N/C')}
+                    onClick={() => handleStatusChange('N/C')}
                     className="h-16 text-lg"
                 >
                     <ThumbsDown className="mr-2" /> N/C
                  </Button>
             </div>
+
+            {status === 'N/C' && itemType && (
+                <div className="space-y-3 p-4 border rounded-md">
+                    <h4 className="font-medium text-sm">Selecione os itens não conformes:</h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        {issuesList.map(issue => (
+                            <div key={issue} className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id={`issue-${issue.replace(/\s+/g, '-')}`} 
+                                    onCheckedChange={(checked) => handleCheckboxChange(issue, !!checked)}
+                                    checked={checkedIssues.includes(issue)}
+                                />
+                                <Label htmlFor={`issue-${issue.replace(/\s+/g, '-')}`} className="text-sm font-normal cursor-pointer">
+                                    {issue}
+                                </Label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <Textarea 
                 placeholder="Adicionar notas (opcional)..."
                 value={notes}
@@ -227,7 +291,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             <CardHeader>
                 <CardTitle>Registro Manual de Item</CardTitle>
                 <CardDescription>
-                    Use quando não for possível ler o QR code ou o item estiver faltando.
+                    Use quando não for possível ler o QR code ou o item estiver faltando. O status será 'N/C'.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
