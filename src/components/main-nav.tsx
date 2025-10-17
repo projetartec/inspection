@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft } from "lucide-react";
+import { usePathname, useParams, useRouter } from "next/navigation";
+import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2 } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import {
   SidebarHeader,
@@ -15,11 +15,44 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ReportGenerator } from "@/components/report-generator";
+import { useInspectionSession } from "@/hooks/use-inspection-session.tsx";
+import { Button } from "./ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function MainNav() {
   const pathname = usePathname();
   const params = useParams() as { clientId?: string, buildingId?: string };
   const { clientId, buildingId } = params;
+  const { session, endInspection } = useInspectionSession();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isInspectionActive = session && session.buildingId === buildingId;
+
+  const handleEndInspection = async () => {
+    if (!session) return;
+    setIsSubmitting(true);
+    try {
+        await endInspection();
+        toast({
+            title: 'Inspeção Finalizada',
+            description: 'A sessão de inspeção foi salva com sucesso.',
+        });
+        router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
+        router.refresh();
+    } catch (error) {
+        console.error(error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: 'Não foi possível salvar a sessão de inspeção.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   if (!clientId) {
     // Root page - Client List
@@ -119,6 +152,17 @@ export function MainNav() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
+        {isInspectionActive && (
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={handleEndInspection}
+            disabled={isSubmitting}
+            >
+            {isSubmitting ? <Loader2 className="animate-spin" /> : <Flag />}
+            <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
+          </Button>
+        )}
         <ReportGenerator clientId={clientId} buildingId={buildingId} />
       </SidebarFooter>
     </>
