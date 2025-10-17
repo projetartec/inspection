@@ -5,7 +5,7 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import type { Inspection } from '@/lib/types';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
-    qrCodeValue: string; // Can be a real QR code or a manual identifier like "manual:EXT-01"
+    qrCodeValue: string; // Can be a real QR code or a manual/visual identifier
 }
 
 interface InspectionSession {
@@ -22,6 +22,7 @@ interface InspectionContextType {
     endInspection: () => Promise<void>;
     clearSession: () => void;
     isLoading: boolean;
+    isItemInspected: (qrCodeValue: string) => boolean;
 }
 
 const InspectionContext = createContext<InspectionContextType | null>(null);
@@ -75,6 +76,11 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
     };
 
     const startInspection = (clientId: string, buildingId: string) => {
+        // Only start a new session if one isn't active for the same building
+        if (session && session.clientId === clientId && session.buildingId === buildingId) {
+            return;
+        }
+
         const newSession: InspectionSession = {
             clientId,
             buildingId,
@@ -95,21 +101,21 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
             updateSession(newSession);
         }
     };
+
+    const isItemInspected = (qrCodeValue: string) => {
+        return session?.inspectedItems.some(item => item.qrCodeValue === qrCodeValue) || false;
+    };
     
     const endInspection = async () => {
         if (!session) return;
         
-        // This is where you would make the API call to save the session
-        // For now, we just clear it
         console.log("Ending and saving inspection:", session);
         
-        // Example: Call a server action
         const { addInspectionBatchAction } = await import('@/lib/actions');
         try {
             await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
-            // Re-throw to be caught by the caller
             throw e;
         }
 
@@ -129,6 +135,7 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
         endInspection,
         clearSession,
         isLoading,
+        isItemInspected,
     };
 
     return (

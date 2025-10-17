@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Droplets, AlertTriangle, Play } from "lucide-react";
+import { Flame, Droplets, AlertTriangle, Play, Eye } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -101,12 +101,18 @@ export default function DashboardPage() {
         fetchData();
     }, [clientId, buildingId]);
 
-    const handleStartInspection = () => {
+    const handleStartQrInspection = () => {
         startInspection(clientId, buildingId);
-        router.push(scanUrl);
+        router.push(qrScanUrl);
     };
+    
+    const handleStartVisualInspection = () => {
+        startInspection(clientId, buildingId);
+        router.push(visualInspectionUrl);
+    }
 
-    const scanUrl = `/clients/${clientId}/${buildingId}/scan`;
+    const qrScanUrl = `/clients/${clientId}/${buildingId}/scan`;
+    const visualInspectionUrl = `/clients/${clientId}/${buildingId}/visual-inspection`;
 
     const isInspectionActive = inspectionSession && inspectionSession.buildingId === buildingId;
 
@@ -154,19 +160,30 @@ export default function DashboardPage() {
                 <CardContent>
                     <p className="text-muted-foreground mb-4">
                        {isInspectionActive 
-                            ? 'Continue escaneando os equipamentos ou finalize a inspeção.'
+                            ? 'Continue inspecionando os equipamentos ou finalize a inspeção.'
                             : 'Inicie uma nova inspeção para registrar as condições dos equipamentos.'
                        }
                     </p>
                     {isInspectionActive ? (
-                         <Button asChild size="lg">
-                            <Link href={scanUrl}>Continuar Escaneando</Link>
-                        </Button>
+                         <div className="flex justify-center gap-4">
+                            <Button asChild size="lg" variant="outline">
+                                <Link href={qrScanUrl}>Continuar Leitura</Link>
+                            </Button>
+                             <Button asChild size="lg" variant="outline">
+                                <Link href={visualInspectionUrl}>Continuar Inspeção Visual</Link>
+                            </Button>
+                        </div>
                     ) : (
-                        <Button size="lg" onClick={handleStartInspection}>
-                            <Play className="mr-2" />
-                            Iniciar Nova Inspeção
-                        </Button>
+                        <div className="flex justify-center gap-4">
+                            <Button size="lg" onClick={handleStartQrInspection}>
+                                <Play className="mr-2" />
+                                Iniciar Leitura
+                            </Button>
+                             <Button size="lg" variant="secondary" onClick={handleStartVisualInspection}>
+                                <Eye className="mr-2" />
+                                Inspeção Visual
+                            </Button>
+                        </div>
                     )}
                 </CardContent>
             </Card>
