@@ -35,97 +35,112 @@ export const useInspectionSession = () => {
     return context;
 };
 
-export const InspectionProvider = ({ children }: { children: React.ReactNode }) => {
-    const [session, setSession] = useState<InspectionSession | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const getStorageKey = useCallback(() => {
-        if (typeof window !== 'undefined') {
-            // This will only run on the client
-            return 'inspectionSession';
+// This function needs to be outside the component to be accessible in the initial state.
+const getSessionFromStorage = (): InspectionSession | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const storedSession = localStorage.getItem('inspectionSession');
+        if (storedSession) {
+            return JSON.parse(storedSession) as InspectionSession;
         }
-        return null;
+    } catch (error) {
+        console.error("Failed to parse inspection session from localStorage", error);
+        localStorage.removeItem('inspectionSession');
+    }
+    return null;
+}
+
+
+export const InspectionProvider = ({ children }: { children: React.ReactNode }) => {
+    const [session, setSession] = useState<InspectionSession | null>(getSessionFromStorage);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    useEffect(() => {
+        // The initial state is now set directly, so we just handle loading.
+        setIsLoading(false);
+    }, []);
+    
+    // Listen for storage changes from other tabs/windows
+    useEffect(() => {
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === 'inspectionSession') {
+                setSession(getSessionFromStorage());
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }, []);
 
-    useEffect(() => {
-        const key = getStorageKey();
-        if (key) {
-            try {
-                const storedSession = localStorage.getItem(key);
-                if (storedSession) {
-                    setSession(JSON.parse(storedSession));
-                }
-            } catch (error) {
-                console.error("Failed to parse inspection session from localStorage", error);
-                localStorage.removeItem(key);
+
+    const updateSession = useCallback((newSession: InspectionSession | null) => {
+        setSession(newSession);
+        if (typeof window !== 'undefined') {
+            if (newSession) {
+                localStorage.setItem('inspectionSession', JSON.stringify(newSession));
+            } else {
+                localStorage.removeItem('inspectionSession');
             }
         }
-        setIsLoading(false);
-    }, [getStorageKey]);
+    }, []);
 
-    const updateSession = (newSession: InspectionSession | null) => {
-        const key = getStorageKey();
-        if (!key) return;
-
-        setSession(newSession);
-        if (newSession) {
-            localStorage.setItem(key, JSON.stringify(newSession));
-        } else {
-            localStorage.removeItem(key);
-        }
-    };
-
-    const startInspection = (clientId: string, buildingId: string) => {
-        // Only start a new session if one isn't active for the same building
-        if (session && session.clientId === clientId && session.buildingId === buildingId) {
-            return;
-        }
-
-        const newSession: InspectionSession = {
-            clientId,
-            buildingId,
-            startTime: new Date().toISOString(),
-            inspectedItems: [],
-        };
-        updateSession(newSession);
-    };
+    const startInspection = useCallback((clientId: string, buildingId: string) => {
+        setSession(currentSession => {
+             if (currentSession && currentSession.clientId === clientId && currentSession.buildingId === buildingId) {
+                return currentSession;
+            }
+            const newSession: InspectionSession = {
+                clientId,
+                buildingId,
+                startTime: new Date().toISOString(),
+                inspectedItems: [],
+            };
+            updateSession(newSession);
+            return newSession;
+        });
+    }, [updateSession]);
     
-    const addItemToInspection = (item: InspectedItem) => {
-        if (session) {
-            // Remove previous inspection for the same item if it exists
-            const otherItems = session.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
+    const addItemToInspection = useCallback((item: InspectedItem) => {
+        setSession(currentSession => {
+            if (!currentSession) return null;
+
+            const otherItems = currentSession.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
             const newSession = {
-                ...session,
+                ...currentSession,
                 inspectedItems: [...otherItems, item],
             };
             updateSession(newSession);
-        }
-    };
+            return newSession;
+        });
+    }, [updateSession]);
 
-    const isItemInspected = (qrCodeValue: string) => {
+    const isItemInspected = useCallback((qrCodeValue: string) => {
         return session?.inspectedItems.some(item => item.qrCodeValue === qrCodeValue) || false;
-    };
+    }, [session]);
     
-    const endInspection = async () => {
+    const endInspection = useCallback(async () => {
         if (!session) return;
         
         console.log("Ending and saving inspection:", session);
         
+        // Dynamically import server action
         const { addInspectionBatchAction } = await import('@/lib/actions');
         try {
             await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
+            // Clear session only after successful save
+            updateSession(null);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
+            // Re-throw to be caught by the UI component
             throw e;
         }
+    }, [session, updateSession]);
 
-
-        clearSession();
-    };
-
-    const clearSession = () => {
+    const clearSession = useCallback(() => {
         updateSession(null);
-    };
+    }, [updateSession]);
     
 
     const value = {

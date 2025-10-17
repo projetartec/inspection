@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -29,7 +30,7 @@ export function MainNav() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isInspectionActive = session && session.buildingId === buildingId;
+  const isInspectionActive = !!session && session.buildingId === buildingId;
 
   const handleEndInspection = async () => {
     if (!session) return;
@@ -40,6 +41,7 @@ export function MainNav() {
             title: 'Inspeção Finalizada',
             description: 'A sessão de inspeção foi salva com sucesso.',
         });
+        // The redirect should still work, but the hook now clears the session
         router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
         router.refresh();
     } catch (error) {
@@ -153,15 +155,17 @@ export function MainNav() {
       </SidebarContent>
       <SidebarFooter>
         {isInspectionActive && (
-          <Button
-            variant="destructive"
-            className="w-full"
-            onClick={handleEndInspection}
-            disabled={isSubmitting}
-            >
-            {isSubmitting ? <Loader2 className="animate-spin" /> : <Flag />}
-            <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="destructive"
+              className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
+              onClick={handleEndInspection}
+              disabled={isSubmitting}
+              >
+              {isSubmitting ? <Loader2 className="animate-spin" /> : <Flag />}
+              <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
+            </Button>
+          </div>
         )}
         <ReportGenerator clientId={clientId} buildingId={buildingId} />
       </SidebarFooter>
