@@ -198,7 +198,7 @@ export function generateClientPdfReport(client: Client, buildings: Building[]) {
     const extHeader = [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']];
     
     const allExtinguishers = buildings.flatMap(building => 
-        building.extinguishers.map(ext => ({...ext, buildingName: building.name}))
+        (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
     );
 
     if (allExtinguishers.length > 0) {

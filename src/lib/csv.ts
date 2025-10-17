@@ -48,7 +48,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += `"Extintores"\n`;
     const extHeader = ['ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.', 'Observações'];
     csvContent += extHeader.map(escapeCsvCell).join(',') + '\n';
-    extinguishers.forEach(e => {
+    (extinguishers || []).forEach(e => {
         const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
         const row = [
             e.id,
@@ -71,7 +71,7 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     csvContent += `"Hidrantes"\n`;
     const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Insp.', 'Hora Últ. Insp.', 'GPS Últ. Insp.', 'Observações'];
     csvContent += hoseHeader.map(escapeCsvCell).join(',') + '\n';
-    hoses.forEach(h => {
+    (hoses || []).forEach(h => {
         const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
         const row = [
             h.id,
