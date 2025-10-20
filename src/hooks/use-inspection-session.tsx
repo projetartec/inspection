@@ -3,12 +3,14 @@
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import type { Inspection } from '@/lib/types';
+import { db } from '@/lib/firebase-client';
+import { doc, onSnapshot, getDoc, setDoc, deleteDoc, Unsubscribe, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
     qrCodeValue: string; // Can be a real QR code or a manual/visual identifier
 }
 
-interface InspectionSession {
+export interface InspectionSession {
     clientId: string;
     buildingId: string;
     startTime: string;
@@ -35,112 +37,113 @@ export const useInspectionSession = () => {
     return context;
 };
 
-// This function needs to be outside the component to be accessible in the initial state.
-const getSessionFromStorage = (): InspectionSession | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-        const storedSession = localStorage.getItem('inspectionSession');
-        if (storedSession) {
-            return JSON.parse(storedSession) as InspectionSession;
-        }
-    } catch (error) {
-        console.error("Failed to parse inspection session from localStorage", error);
-        localStorage.removeItem('inspectionSession');
-    }
-    return null;
-}
+// --- Firestore Session Management ---
+const SESSIONS_COLLECTION = 'inspectionSessions';
 
+const getSessionRef = (buildingId: string) => doc(db, SESSIONS_COLLECTION, buildingId);
 
 export const InspectionProvider = ({ children }: { children: React.ReactNode }) => {
-    const [session, setSession] = useState<InspectionSession | null>(getSessionFromStorage);
+    const [session, setSession] = useState<InspectionSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    
+    const [currentBuildingId, setCurrentBuildingId] = useState<string | null>(null);
+
+    // Subscribe to Firestore session changes for the current building
     useEffect(() => {
-        // The initial state is now set directly, so we just handle loading.
-        setIsLoading(false);
-    }, []);
-    
-    // Listen for storage changes from other tabs/windows
-    useEffect(() => {
-        const handleStorageChange = (event: StorageEvent) => {
-            if (event.key === 'inspectionSession') {
-                setSession(getSessionFromStorage());
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-        };
-    }, []);
-
-
-    const updateSession = useCallback((newSession: InspectionSession | null) => {
-        setSession(newSession);
-        if (typeof window !== 'undefined') {
-            if (newSession) {
-                localStorage.setItem('inspectionSession', JSON.stringify(newSession));
-            } else {
-                localStorage.removeItem('inspectionSession');
-            }
+        if (!currentBuildingId) {
+            setSession(null);
+            setIsLoading(false);
+            return;
         }
-    }, []);
 
-    const startInspection = useCallback((clientId: string, buildingId: string) => {
-        setSession(currentSession => {
-             if (currentSession && currentSession.clientId === clientId && currentSession.buildingId === buildingId) {
-                return currentSession;
+        setIsLoading(true);
+        const sessionRef = getSessionRef(currentBuildingId);
+        const unsubscribe = onSnapshot(sessionRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setSession(docSnap.data() as InspectionSession);
+            } else {
+                setSession(null);
             }
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error listening to session changes:", error);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [currentBuildingId]);
+
+
+    const startInspection = useCallback(async (clientId: string, buildingId: string) => {
+        setCurrentBuildingId(buildingId); // This will trigger the useEffect to listen for this building's session.
+        
+        const sessionRef = getSessionRef(buildingId);
+        const docSnap = await getDoc(sessionRef);
+
+        if (!docSnap.exists()) {
             const newSession: InspectionSession = {
                 clientId,
                 buildingId,
                 startTime: new Date().toISOString(),
                 inspectedItems: [],
             };
-            updateSession(newSession);
-            return newSession;
-        });
-    }, [updateSession]);
+            await setDoc(sessionRef, newSession);
+            // The onSnapshot listener will update the state
+        }
+        // If it exists, the onSnapshot listener will handle setting the state.
+    }, []);
     
-    const addItemToInspection = useCallback((item: InspectedItem) => {
-        setSession(currentSession => {
-            if (!currentSession) return null;
+    const addItemToInspection = useCallback(async (item: InspectedItem) => {
+        if (!currentBuildingId) return;
 
+        const sessionRef = getSessionRef(currentBuildingId);
+        
+        // This is a read-modify-write operation. For high concurrency, a transaction is better,
+        // but for this use case, it's generally fine.
+        const currentDoc = await getDoc(sessionRef);
+        if (currentDoc.exists()) {
+            const currentSession = currentDoc.data() as InspectionSession;
             const otherItems = currentSession.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
-            const newSession = {
-                ...currentSession,
-                inspectedItems: [...otherItems, item],
-            };
-            updateSession(newSession);
-            return newSession;
-        });
-    }, [updateSession]);
+            const updatedItems = [...otherItems, item];
+            
+            await updateDoc(sessionRef, { inspectedItems: updatedItems });
+            // The onSnapshot listener will update the local state.
+        }
+    }, [currentBuildingId]);
 
     const isItemInspected = useCallback((qrCodeValue: string) => {
         return session?.inspectedItems.some(item => item.qrCodeValue === qrCodeValue) || false;
     }, [session]);
     
     const endInspection = useCallback(async () => {
-        if (!session) return;
+        if (!session || !currentBuildingId) return;
         
-        console.log("Ending and saving inspection:", session);
+        // We read the latest session state directly before ending it.
+        const sessionRef = getSessionRef(currentBuildingId);
+        const finalSessionDoc = await getDoc(sessionRef);
         
-        // Dynamically import server action
+        if (!finalSessionDoc.exists()) return; // Session already ended elsewhere
+
+        const finalSession = finalSessionDoc.data() as InspectionSession;
+        
+        // Dynamically import server action to save the data
         const { addInspectionBatchAction } = await import('@/lib/actions');
         try {
-            await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
-            // Clear session only after successful save
-            updateSession(null);
+            await addInspectionBatchAction(finalSession.clientId, finalSession.buildingId, finalSession.inspectedItems);
+            // Clear session by deleting the document from Firestore
+            await deleteDoc(sessionRef);
+            setSession(null); // Clear local state immediately
         } catch(e) {
             console.error("Failed to save inspection batch", e);
-            // Re-throw to be caught by the UI component
-            throw e;
+            throw e; // Re-throw to be caught by the UI component
         }
-    }, [session, updateSession]);
+    }, [session, currentBuildingId]);
 
-    const clearSession = useCallback(() => {
-        updateSession(null);
-    }, [updateSession]);
+    const clearSession = useCallback(async () => {
+        if (currentBuildingId) {
+            await deleteDoc(getSessionRef(currentBuildingId));
+        }
+        setSession(null);
+    }, [currentBuildingId]);
     
 
     const value = {

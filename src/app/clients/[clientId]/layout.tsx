@@ -6,8 +6,10 @@ import { InspectionProvider } from "@/hooks/use-inspection-session.tsx";
 
 export default function ClientLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: { clientId: string };
 }) {
   return (
     <InspectionProvider>
