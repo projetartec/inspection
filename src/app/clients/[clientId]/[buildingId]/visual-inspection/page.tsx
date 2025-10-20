@@ -36,13 +36,13 @@ export default function VisualInspectionPage() {
     const [hoses, setHoses] = useState<Hydrant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { session, startInspection } = useInspectionSession();
+    const { startInspection } = useInspectionSession();
 
     useEffect(() => {
-        if (!session) {
-            startInspection(clientId, buildingId);
+        if (clientId && buildingId) {
+            startInspection(clientId, buildingId, true); // force create if not exists
         }
-    }, [session, startInspection, clientId, buildingId]);
+    }, [startInspection, clientId, buildingId]);
 
     useEffect(() => {
         async function fetchData() {

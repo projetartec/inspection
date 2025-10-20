@@ -5,10 +5,20 @@ import { QrScanner } from '@/components/qr-scanner';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useParams } from 'next/navigation';
+import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
+import { useEffect } from 'react';
 
 export default function ScanPage() {
   const params = useParams() as { clientId: string, buildingId: string };
   const { clientId, buildingId } = params;
+  const { startInspection } = useInspectionSession();
+
+  // Ensure the session is started for this building when the page loads
+  useEffect(() => {
+    if (clientId && buildingId) {
+      startInspection(clientId, buildingId, true); // force create if not exists
+    }
+  }, [startInspection, clientId, buildingId]);
 
   return (
     <div className="flex flex-col items-center gap-8">

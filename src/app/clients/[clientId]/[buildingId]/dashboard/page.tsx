@@ -46,7 +46,14 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<Stat[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { session: inspectionSession, startInspection } = useInspectionSession();
+    const { session: inspectionSession, startInspection, isLoading: isSessionLoading } = useInspectionSession();
+
+    // Set the building context for the session hook
+    useEffect(() => {
+        if (buildingId) {
+            startInspection(clientId, buildingId, false); // Just listen, don't force create
+        }
+    }, [clientId, buildingId, startInspection]);
 
     useEffect(() => {
         async function fetchData() {
@@ -102,12 +109,12 @@ export default function DashboardPage() {
     }, [clientId, buildingId]);
 
     const handleStartQrInspection = () => {
-        startInspection(clientId, buildingId);
+        startInspection(clientId, buildingId, true); // Force create session
         router.push(qrScanUrl);
     };
     
     const handleStartVisualInspection = () => {
-        startInspection(clientId, buildingId);
+        startInspection(clientId, buildingId, true); // Force create session
         router.push(visualInspectionUrl);
     }
 

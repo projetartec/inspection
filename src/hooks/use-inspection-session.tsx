@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import type { Inspection } from '@/lib/types';
 import { db } from '@/lib/firebase-client';
-import { doc, onSnapshot, getDoc, setDoc, deleteDoc, Unsubscribe, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
-    qrCodeValue: string; // Can be a real QR code or a manual/visual identifier
+    qrCodeValue: string;
 }
 
 export interface InspectionSession {
@@ -19,7 +19,7 @@ export interface InspectionSession {
 
 interface InspectionContextType {
     session: InspectionSession | null;
-    startInspection: (clientId: string, buildingId: string) => void;
+    startInspection: (clientId: string, buildingId: string, forceCreate?: boolean) => void;
     addItemToInspection: (item: InspectedItem) => void;
     endInspection: () => Promise<void>;
     clearSession: () => void;
@@ -37,7 +37,6 @@ export const useInspectionSession = () => {
     return context;
 };
 
-// --- Firestore Session Management ---
 const SESSIONS_COLLECTION = 'inspectionSessions';
 
 const getSessionRef = (buildingId: string) => doc(db, SESSIONS_COLLECTION, buildingId);
@@ -46,18 +45,32 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
     const [session, setSession] = useState<InspectionSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [currentBuildingId, setCurrentBuildingId] = useState<string | null>(null);
+    const unsubscribeRef = useRef<(() => void) | null>(null);
 
-    // Subscribe to Firestore session changes for the current building
     useEffect(() => {
-        if (!currentBuildingId) {
-            setSession(null);
-            setIsLoading(false);
+        // Cleanup previous subscription when component unmounts or buildingId changes
+        return () => {
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+            }
+        };
+    }, []);
+
+    const startInspection = useCallback(async (clientId: string, buildingId: string, forceCreate = false) => {
+        if (currentBuildingId === buildingId && !forceCreate) {
             return;
         }
 
         setIsLoading(true);
-        const sessionRef = getSessionRef(currentBuildingId);
-        const unsubscribe = onSnapshot(sessionRef, (docSnap) => {
+        setCurrentBuildingId(buildingId);
+
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+        }
+
+        const sessionRef = getSessionRef(buildingId);
+
+        unsubscribeRef.current = onSnapshot(sessionRef, (docSnap) => {
             if (docSnap.exists()) {
                 setSession(docSnap.data() as InspectionSession);
             } else {
@@ -68,37 +81,26 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
             console.error("Error listening to session changes:", error);
             setIsLoading(false);
         });
-
-        return () => unsubscribe();
-    }, [currentBuildingId]);
-
-
-    const startInspection = useCallback(async (clientId: string, buildingId: string) => {
-        setCurrentBuildingId(buildingId); // This will trigger the useEffect to listen for this building's session.
         
-        const sessionRef = getSessionRef(buildingId);
-        const docSnap = await getDoc(sessionRef);
-
-        if (!docSnap.exists()) {
-            const newSession: InspectionSession = {
-                clientId,
-                buildingId,
-                startTime: new Date().toISOString(),
-                inspectedItems: [],
-            };
-            await setDoc(sessionRef, newSession);
-            // The onSnapshot listener will update the state
+        if (forceCreate) {
+            const docSnap = await getDoc(sessionRef);
+            if (!docSnap.exists()) {
+                const newSession: InspectionSession = {
+                    clientId,
+                    buildingId,
+                    startTime: new Date().toISOString(),
+                    inspectedItems: [],
+                };
+                await setDoc(sessionRef, newSession);
+            }
         }
-        // If it exists, the onSnapshot listener will handle setting the state.
-    }, []);
+    }, [currentBuildingId]);
     
     const addItemToInspection = useCallback(async (item: InspectedItem) => {
         if (!currentBuildingId) return;
 
         const sessionRef = getSessionRef(currentBuildingId);
         
-        // This is a read-modify-write operation. For high concurrency, a transaction is better,
-        // but for this use case, it's generally fine.
         const currentDoc = await getDoc(sessionRef);
         if (currentDoc.exists()) {
             const currentSession = currentDoc.data() as InspectionSession;
@@ -106,7 +108,6 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
             const updatedItems = [...otherItems, item];
             
             await updateDoc(sessionRef, { inspectedItems: updatedItems });
-            // The onSnapshot listener will update the local state.
         }
     }, [currentBuildingId]);
 
@@ -117,24 +118,21 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
     const endInspection = useCallback(async () => {
         if (!session || !currentBuildingId) return;
         
-        // We read the latest session state directly before ending it.
         const sessionRef = getSessionRef(currentBuildingId);
         const finalSessionDoc = await getDoc(sessionRef);
         
-        if (!finalSessionDoc.exists()) return; // Session already ended elsewhere
+        if (!finalSessionDoc.exists()) return;
 
         const finalSession = finalSessionDoc.data() as InspectionSession;
         
-        // Dynamically import server action to save the data
         const { addInspectionBatchAction } = await import('@/lib/actions');
         try {
             await addInspectionBatchAction(finalSession.clientId, finalSession.buildingId, finalSession.inspectedItems);
-            // Clear session by deleting the document from Firestore
             await deleteDoc(sessionRef);
-            setSession(null); // Clear local state immediately
+            setSession(null);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
-            throw e; // Re-throw to be caught by the UI component
+            throw e;
         }
     }, [session, currentBuildingId]);
 
