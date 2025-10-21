@@ -153,7 +153,7 @@ export function MainNav() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="flex-col gap-2">
+      <SidebarFooter className="flex flex-col gap-2">
         {isInspectionActive && (
             <Button
               variant="destructive"
