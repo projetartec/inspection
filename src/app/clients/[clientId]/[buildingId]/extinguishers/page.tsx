@@ -104,10 +104,6 @@ export default function ExtinguishersPage() {
 
     try {
         await updateEquipmentOrderAction(clientId, buildingId, 'extinguishers', reorderedExtinguishers);
-        toast({
-            title: "Ordem atualizada",
-            description: "A nova ordem dos extintores foi salva.",
-        });
     } catch (error) {
         console.error("Failed to update order:", error);
         setExtinguishers(extinguishers); // Revert on error

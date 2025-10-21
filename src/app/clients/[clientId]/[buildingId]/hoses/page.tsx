@@ -104,10 +104,6 @@ export default function HosesPage() {
 
     try {
         await updateEquipmentOrderAction(clientId, buildingId, 'hoses', reorderedHoses);
-        toast({
-            title: "Ordem atualizada",
-            description: "A nova ordem dos hidrantes foi salva.",
-        });
     } catch (error) {
         console.error("Failed to update order:", error);
         setHoses(hoses); // Revert on error

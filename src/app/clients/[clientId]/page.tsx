@@ -125,10 +125,6 @@ export default function ClientPage() {
     
     try {
       await updateBuildingOrderAction(clientId, newMasterOrder);
-      toast({
-        title: 'Ordem atualizada',
-        description: 'A nova ordem dos locais foi salva.',
-      });
     } catch (error) {
       console.error("Failed to update building order:", error);
       fetchClientAndBuildings(); // Revert on error by refetching
