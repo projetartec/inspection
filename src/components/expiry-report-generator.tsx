@@ -106,38 +106,36 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
     label: new Date(0, i).toLocaleString('pt-BR', { month: 'long', timeZone: 'UTC' })
   }));
 
-  const buttonClasses = "justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0";
-
   return (
     <>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button disabled={isLoading} variant="secondary" className={buttonClasses}>
+                <Button disabled={isLoading} className="bg-report-expiry-current hover:bg-report-expiry-current/90">
                      {isLoading ? (
                         <Loader2 className="animate-spin h-4 w-4" />
                      ) : (
                         <>
-                            <FileDown className="h-4 w-4" />
-                            <span className="group-data-[collapsible=icon]:hidden ml-2">Vencem este Mês</span>
-                            <ChevronDown className="h-4 w-4 group-data-[collapsible=icon]:hidden ml-auto" />
+                            <FileDown className="h-4 w-4 mr-2" />
+                            <span>Vencem este Mês</span>
+                            <ChevronDown className="h-4 w-4 ml-2" />
                         </>
                      )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-52" align="end">
+            <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleCurrentMonthReport('pdf')}>Gerar PDF</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleCurrentMonthReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button disabled={isLoading} variant="secondary" onClick={() => setIsModalOpen(true)} className={buttonClasses}>
+        <Button disabled={isLoading} onClick={() => setIsModalOpen(true)} className="bg-report-expiry-future hover:bg-report-expiry-future/90">
              {isLoading ? (
                 <Loader2 className="animate-spin h-4 w-4" />
              ) : (
                 <>
-                    <CalendarClock className="h-4 w-4" />
-                    <span className="group-data-[collapsible=icon]:hidden ml-2">Vencimentos Futuros</span>
+                    <CalendarClock className="h-4 w-4 mr-2" />
+                    <span>Vencimentos Futuros</span>
                 </>
              )}
         </Button>

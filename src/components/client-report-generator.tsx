@@ -58,13 +58,12 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       <DropdownMenu>
           <DropdownMenuTrigger asChild>
               <Button
                   disabled={isLoading}
-                  variant="outline"
-                  className="w-full justify-center"
+                  className="bg-report-consolidated hover:bg-report-consolidated/90"
               >
                   {isLoading ? (
                       <Loader2 className="animate-spin h-4 w-4 mr-2" />
@@ -72,10 +71,10 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
                       <FileText className="h-4 w-4 mr-2" />
                   )}
                   Relatório Consolidado
-                  <ChevronDown className="h-4 w-4 ml-auto" />
+                  <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
             Gerar Relatório PDF
           </DropdownMenuItem>

@@ -148,9 +148,11 @@ export default function ClientPage() {
   return (
     <>
       <div className="space-y-8">
-        <PageHeader title={`Cliente: ${client.name}`} href="/">
+        <PageHeader title={`Cliente: ${client.name}`} href="/" />
+
+        <div className="flex flex-wrap items-center justify-center gap-2 p-4 border-b">
           <ClientReportGenerator clientId={clientId} />
-        </PageHeader>
+        </div>
 
         <div className="w-full max-w-2xl mx-auto">
           <Card>
