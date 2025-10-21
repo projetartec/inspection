@@ -79,12 +79,12 @@ export async function generatePdfReport(client: Client, building: Building, exti
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
+                head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações']],
                 body: extinguishers.map(e => {
                     const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
                     return [
                         e.id, e.observations || '', e.type, e.weight + ' kg', formatDate(e.expiryDate), e.hydrostaticTestYear,
-                        insp.status, insp.date, insp.time, insp.gps, insp.notes,
+                        insp.status, insp.date, insp.gps, insp.notes,
                     ];
                 }),
                 didParseCell: (data) => {
@@ -122,13 +122,13 @@ export async function generatePdfReport(client: Client, building: Building, exti
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
+                head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações']],
                 body: hoses.map(h => {
                     const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
                         h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        insp.status, insp.date, insp.time, insp.gps, insp.notes,
+                        insp.status, insp.date, insp.gps, insp.notes,
                     ];
                 }),
                  didParseCell: (data) => {
@@ -170,13 +170,12 @@ export async function generatePdfReport(client: Client, building: Building, exti
             doc.autoTable({
                 ...manualEntryTableStyles,
                 startY: finalY,
-                head: [['ID Manual', 'Data', 'Hora', 'GPS', 'Status', 'Observações']],
+                head: [['ID Manual', 'Data', 'GPS', 'Status', 'Observações']],
                 body: building.manualInspections.map(insp => {
                      const formattedInsp = formatLastInspection(insp);
                      return [
                         (insp as ManualInspection).manualId,
                         formattedInsp.date,
-                        formattedInsp.time,
                         formattedInsp.gps,
                         formattedInsp.status,
                         formattedInsp.notes,
@@ -400,3 +399,5 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
         resolve();
     });
 }
+
+    
