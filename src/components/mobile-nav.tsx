@@ -82,12 +82,13 @@ export function MobileNav() {
     { href: `${buildingBasePath}/hoses`, icon: Droplets },
     { href: `${buildingBasePath}/scan`, icon: ScanLine },
     { href: `/clients/${clientId}`, icon: Building },
-    { href: `/`, icon: Users },
   ];
+
+  const gridColsClass = isInspectionActive ? 'grid-cols-6' : 'grid-cols-5';
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-      <nav className="grid grid-cols-7 items-center justify-around h-full">
+      <nav className={cn("grid items-center justify-around h-full", gridColsClass)}>
         {menuItems.map((item) => {
           const isActive = pathname.startsWith(item.href) && item.href.length > (buildingBasePath.length - 2);
           return (
@@ -103,17 +104,16 @@ export function MobileNav() {
             </Link>
           );
         })}
-        {isInspectionActive ? (
+        {isInspectionActive && (
             <Button
                 variant="ghost"
-                className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center text-primary"
+                className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center text-primary p-0"
                 onClick={handleEndInspection}
                 disabled={isSubmitting}
-                size="icon"
             >
                 {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Flag className="h-6 w-6" />}
             </Button>
-        ) : <div />}
+        )}
       </nav>
     </div>
   );
