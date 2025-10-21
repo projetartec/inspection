@@ -93,3 +93,4 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
   );
 }
 
+

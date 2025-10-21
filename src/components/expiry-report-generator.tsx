@@ -24,6 +24,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from '@/lib/utils';
 
 interface ExpiryReportGeneratorProps {
   clientId: string;
@@ -47,8 +48,8 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
       if (!client || !buildings) throw new Error("Dados do cliente ou locais não encontrados.");
       
       const expiringItems = buildings.flatMap(b => [
-        ...(b.extinguishers || []).filter(e => new Date(e.expiryDate).getMonth() === month && new Date(e.expiryDate).getFullYear() === year),
-        ...(b.hoses || []).filter(h => new Date(h.hydrostaticTestDate).getMonth() === month && new Date(h.hydrostaticTestDate).getFullYear() === year)
+        ...(b.extinguishers || []).filter(e => e.expiryDate && new Date(e.expiryDate).getUTCMonth() === month && new Date(e.expiryDate).getUTCFullYear() === year),
+        ...(b.hoses || []).filter(h => h.hydrostaticTestDate && new Date(h.hydrostaticTestDate).getUTCMonth() === month && new Date(h.hydrostaticTestDate).getUTCFullYear() === year)
       ]);
 
       if (expiringItems.length === 0) {
@@ -88,7 +89,7 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
 
   const handleCurrentMonthReport = (format: 'pdf' | 'xlsx') => {
     const now = new Date();
-    handleGenerateReport(now.getMonth(), now.getFullYear(), format);
+    handleGenerateReport(now.getUTCMonth(), now.getUTCFullYear(), format);
   };
   
   const handleFutureMonthReport = (format: 'pdf' | 'xlsx') => {
@@ -102,18 +103,26 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i);
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: i.toString(),
-    label: new Date(0, i).toLocaleString('pt-BR', { month: 'long' })
+    label: new Date(0, i).toLocaleString('pt-BR', { month: 'long', timeZone: 'UTC' })
   }));
+
+  const buttonClasses = "justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0";
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col gap-2">
          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button disabled={isLoading} variant="secondary" className="w-full justify-center">
-                    {isLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
-                    Vencem este Mês
-                    <ChevronDown className="h-4 w-4 ml-auto" />
+                <Button disabled={isLoading} variant="secondary" className={buttonClasses}>
+                     {isLoading ? (
+                        <Loader2 className="animate-spin h-4 w-4" />
+                     ) : (
+                        <>
+                            <FileDown className="h-4 w-4" />
+                            <span className="group-data-[collapsible=icon]:hidden ml-2">Vencem este Mês</span>
+                            <ChevronDown className="h-4 w-4 group-data-[collapsible=icon]:hidden ml-auto" />
+                        </>
+                     )}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-52" align="end">
@@ -122,9 +131,15 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
             </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button disabled={isLoading} variant="secondary" onClick={() => setIsModalOpen(true)} className="w-full justify-center">
-            {isLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CalendarClock className="h-4 w-4 mr-2" />}
-            Vencimentos Futuros
+        <Button disabled={isLoading} variant="secondary" onClick={() => setIsModalOpen(true)} className={buttonClasses}>
+             {isLoading ? (
+                <Loader2 className="animate-spin h-4 w-4" />
+             ) : (
+                <>
+                    <CalendarClock className="h-4 w-4" />
+                    <span className="group-data-[collapsible=icon]:hidden ml-2">Vencimentos Futuros</span>
+                </>
+             )}
         </Button>
       </div>
 
@@ -140,7 +155,7 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
             <Select onValueChange={setSelectedMonth} value={selectedMonth ?? undefined}>
               <SelectTrigger><SelectValue placeholder="Selecione o Mês" /></SelectTrigger>
               <SelectContent>
-                {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label.charAt(0).toUpperCase() + m.label.slice(1)}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select onValueChange={setSelectedYear} value={selectedYear ?? undefined}>

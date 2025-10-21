@@ -153,9 +153,8 @@ export function MainNav() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="flex-col gap-2">
         {isInspectionActive && (
-          <div className="flex flex-col gap-2">
             <Button
               variant="destructive"
               className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
@@ -165,7 +164,6 @@ export function MainNav() {
               {isSubmitting ? <Loader2 className="animate-spin" /> : <Flag />}
               <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
             </Button>
-          </div>
         )}
         <ReportGenerator clientId={clientId} buildingId={buildingId} />
       </SidebarFooter>
