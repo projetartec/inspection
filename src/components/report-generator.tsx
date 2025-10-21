@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FileText, Loader2, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getReportDataAction } from '@/lib/actions';
-import { generateCsvReport } from '@/lib/csv';
+import { generateXlsxReport } from '@/lib/csv';
 import { generatePdfReport } from '@/lib/pdf';
 import {
   DropdownMenu,
@@ -24,13 +24,13 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleGenerateReport = async (format: 'csv' | 'pdf') => {
+  const handleGenerateReport = async (format: 'xlsx' | 'pdf') => {
     setIsLoading(true);
     try {
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
-        if (format === 'csv') {
-          generateCsvReport(client, building, extinguishers, hoses);
+        if (format === 'xlsx') {
+          generateXlsxReport(client, building, extinguishers, hoses);
         } else {
           generatePdfReport(client, building, extinguishers, hoses);
         }
@@ -73,8 +73,8 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
             </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuItem onClick={() => handleGenerateReport('csv')}>
-          Gerar Relatório CSV
+        <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>
+          Gerar Excel (XLSX)
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
           Gerar Relatório PDF
