@@ -12,6 +12,10 @@ interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDFWithAutoTable;
 }
 
+const NC_BG_COLOR = [255, 250, 205]; // LemonChiffon
+const EXPIRING_BG_COLOR = [255, 105, 97]; // Light Coral / FF6969
+const HEADER_BG_COLOR = [0, 128, 128]; // Teal
+
 function formatDate(dateInput: string | null | undefined): string {
     if (!dateInput) return 'N/A';
     try {
@@ -42,6 +46,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
 
+        const generationDate = new Date();
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
         let finalY = 20; 
 
@@ -54,14 +59,14 @@ export async function generatePdfReport(client: Client, building: Building, exti
         finalY += 5;
         doc.text(`Local: ${building.name}`, 14, finalY);
         finalY += 5;
-        doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
         finalY += 10;
 
         const tableStyles = {
             theme: 'striped',
-            headStyles: { fillColor: [0, 128, 128] }, // Teal
+            headStyles: { fillColor: HEADER_BG_COLOR },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8 },
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
         };
         
         const manualEntryTableStyles = {
@@ -78,19 +83,26 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 body: extinguishers.map(e => {
                     const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
                     return [
-                        e.id,
-                        e.observations || '',
-                        e.type,
-                        e.weight + ' kg',
-                        formatDate(e.expiryDate),
-                        e.hydrostaticTestYear,
-                        insp.status,
-                        insp.date,
-                        insp.time,
-                        insp.gps,
-                        insp.notes,
+                        e.id, e.observations || '', e.type, e.weight + ' kg', formatDate(e.expiryDate), e.hydrostaticTestYear,
+                        insp.status, insp.date, insp.time, insp.gps, insp.notes,
                     ];
                 }),
+                didParseCell: (data) => {
+                     const item = extinguishers[data.row.index];
+                     if (!item) return;
+                     const lastInsp = item.inspections?.[item.inspections.length - 1];
+
+                    if (lastInsp?.status === 'N/C') {
+                        data.cell.styles.fontStyle = 'bold';
+                        if (data.column.dataKey === 'Observações') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                        }
+                    }
+                    
+                    if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                         data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                    }
+                }
             });
             finalY = (doc as any).lastAutoTable.finalY;
         } else {
@@ -114,22 +126,27 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 body: hoses.map(h => {
                     const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                     return [
-                        h.id,
-                        h.location,
-                        h.quantity,
-                        'Tipo ' + h.hoseType,
-                        h.diameter + '"',
-                        h.hoseLength + 'm',
-                        h.keyQuantity,
-                        h.nozzleQuantity,
-                        formatDate(h.hydrostaticTestDate),
-                        insp.status,
-                        insp.date,
-                        insp.time,
-                        insp.gps,
-                        insp.notes,
+                        h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
+                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
+                        insp.status, insp.date, insp.time, insp.gps, insp.notes,
                     ];
                 }),
+                 didParseCell: (data) => {
+                     const item = hoses[data.row.index];
+                     if (!item) return;
+                     const lastInsp = item.inspections?.[item.inspections.length - 1];
+
+                    if (lastInsp?.status === 'N/C') {
+                        data.cell.styles.fontStyle = 'bold';
+                        if (data.column.dataKey === 'Observações') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                        }
+                    }
+                    
+                    if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
+                         data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                    }
+                }
             });
              finalY = (doc as any).lastAutoTable.finalY;
         } else {
@@ -175,7 +192,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
 }
 
 export async function generateClientPdfReport(client: Client, buildings: Building[]) {
-    // Wrap in promise to make it async and unblock UI thread
     return new Promise<void>((resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -197,19 +213,9 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
         
         const tableStyles = {
             theme: 'striped',
-            headStyles: { fillColor: [0, 128, 128] }, // Teal
+            headStyles: { fillColor: HEADER_BG_COLOR },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8 },
-        };
-
-        const isExpiringThisMonth = (dateStr: string) => {
-            if (!dateStr) return false;
-            try {
-                const date = parseISO(dateStr);
-                return isSameMonth(date, generationDate) && isSameYear(date, generationDate);
-            } catch {
-                return false;
-            }
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
         };
 
         // --- Extinguishers Table ---
@@ -233,11 +239,13 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                         formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
                     ];
                 }),
-                willDrawCell: (data) => {
+                didDrawCell: (data) => {
                     if (data.section === 'body') {
-                        const expiryDateStr = allExtinguishers[data.row.index].expiryDate;
-                        if (isExpiringThisMonth(expiryDateStr)) {
-                            doc.setFillColor("#FF6969"); // Light Red
+                        const item = allExtinguishers[data.row.index];
+                        if (!item) return;
+
+                        if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                            doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
                             doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
                         }
                     }
@@ -277,12 +285,14 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                         insp.status, insp.date, insp.notes
                     ];
                 }),
-                willDrawCell: (data) => {
-                    if (data.section === 'body') {
-                        const testDateStr = allHoses[data.row.index].hydrostaticTestDate;
-                        if (isExpiringThisMonth(testDateStr)) {
-                            doc.setFillColor("#FF6969"); // Light Red
-                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                didDrawCell: (data) => {
+                     if (data.section === 'body') {
+                        const item = allHoses[data.row.index];
+                        if (!item) return;
+                        
+                        if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
+                           doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
+                           doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
                         }
                     }
                 }
@@ -294,6 +304,98 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
         }
         
         const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
+}
+
+
+// --- EXPIRY REPORT GENERATORS ---
+
+export async function generateExpiryPdfReport(client: Client, buildings: Building[], month: number, year: number) {
+    return new Promise<void>((resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
+
+        let finalY = 20;
+
+        const targetMonthName = format(new Date(year, month), 'MMMM', { locale: ptBR });
+
+        // --- Header ---
+        doc.setFontSize(20);
+        doc.text(`Relatório de Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
+        finalY += 10;
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${client.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        finalY += 10;
+
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: HEADER_BG_COLOR },
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+        };
+        
+        const filterByMonthYear = (dateStr: string) => {
+            if (!dateStr) return false;
+            try {
+                const date = parseISO(dateStr);
+                return date.getMonth() === month && date.getFullYear() === year;
+            } catch { return false; }
+        };
+
+        // --- Expiring Extinguishers ---
+        const expiringExtinguishers = buildings
+            .flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })))
+            .filter(e => filterByMonthYear(e.expiryDate));
+
+        if (expiringExtinguishers.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Extintores a Vencer", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Data de Recarga', 'Ano Test. Hidro.']],
+                body: expiringExtinguishers.map(e => [
+                    e.id, e.buildingName, e.observations || '', e.type, e.weight,
+                    formatDate(e.expiryDate), e.hydrostaticTestYear,
+                ]),
+            });
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        // --- Expiring Hoses ---
+        const expiringHoses = buildings
+            .flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })))
+            .filter(h => filterByMonthYear(h.hydrostaticTestDate));
+        
+        if (expiringHoses.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Hidrantes a Vencer", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Próx. Teste Hidr.']],
+                body: expiringHoses.map(h => [
+                    h.id, h.buildingName, h.location, h.quantity, h.hoseType,
+                    h.diameter, h.hoseLength, formatDate(h.hydrostaticTestDate),
+                ]),
+            });
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        if (expiringExtinguishers.length === 0 && expiringHoses.length === 0) {
+            doc.text(`Nenhum item encontrado com vencimento em ${targetMonthName}/${year}.`, 14, finalY);
+        }
+        
+        const fileName = `Relatorio_Vencimentos_${String(month + 1).padStart(2, '0')}-${year}_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
         resolve();
     });

@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ExpiryReportGenerator } from './expiry-report-generator';
 
 interface ClientReportGeneratorProps {
     clientId: string;
@@ -57,30 +58,33 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
   };
 
   return (
-    <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-            <Button
-                disabled={isLoading}
-                variant="outline"
-                className="w-full justify-center"
-            >
-                {isLoading ? (
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                )}
-                Gerar Relatório Consolidado
-                <ChevronDown className="h-4 w-4 ml-auto" />
-            </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
-          Gerar Relatório PDF
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>
-          Gerar Excel (XLSX)
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex flex-col sm:flex-row gap-2">
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button
+                  disabled={isLoading}
+                  variant="outline"
+                  className="w-full justify-center"
+              >
+                  {isLoading ? (
+                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  Relatório Consolidado
+                  <ChevronDown className="h-4 w-4 ml-auto" />
+              </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
+            Gerar Relatório PDF
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>
+            Gerar Excel (XLSX)
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ExpiryReportGenerator clientId={clientId} />
+    </div>
   );
 }

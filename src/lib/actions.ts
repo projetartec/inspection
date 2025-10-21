@@ -174,7 +174,7 @@ export async function addInspectionBatchAction(clientId: string, buildingId: str
 }
 
 
-// --- Report Action ---
+// --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
     const [client, building, extinguishers, hoses] = await Promise.all([
         getClientById(clientId),
@@ -192,8 +192,41 @@ export async function getClientReportDataAction(clientId: string) {
         getBuildingsByClient(clientId)
     ]);
 
-    return { client, buildings };
+    // This is heavy, but necessary to get all equipment data for all buildings
+    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
+        const [extinguishers, hoses] = await Promise.all([
+            getExtinguishersByBuilding(clientId, b.id),
+            getHosesByBuilding(clientId, b.id)
+        ]);
+        return { ...b, extinguishers, hoses };
+    }));
+
+
+    return { client, buildings: buildingsWithEquipment };
 }
+
+export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
+    const client = await getClientById(clientId);
+    let buildings: Building[] = [];
+
+    if (buildingId) {
+        const building = await getBuildingById(clientId, buildingId);
+        if (building) buildings.push(building);
+    } else {
+        buildings = await getBuildingsByClient(clientId);
+    }
+    
+    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
+        const [extinguishers, hoses] = await Promise.all([
+            getExtinguishersByBuilding(clientId, b.id),
+            getHosesByBuilding(clientId, b.id)
+        ]);
+        return { ...b, extinguishers, hoses };
+    }));
+
+    return { client, buildings: buildingsWithEquipment };
+}
+
 
 // --- Reorder Action ---
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {

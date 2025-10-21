@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ExpiryReportGenerator } from './expiry-report-generator';
 
 interface ReportGeneratorProps {
     clientId: string;
@@ -59,32 +60,36 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
   };
 
   return (
-    <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-            <Button
-                disabled={isLoading}
-                className="justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
-                variant="outline"
-            >
-                {isLoading ? (
-                    <Loader2 className="animate-spin h-4 w-4" />
-                ) : (
-                    <>
-                        <FileText className="h-4 w-4" />
-                        <span className="group-data-[collapsible=icon]:hidden ml-2">Gerar Relatório</span>
-                        <ChevronDown className="h-4 w-4 group-data-[collapsible=icon]:hidden ml-auto" />
-                    </>
-                )}
-            </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>
-          Gerar Excel (XLSX)
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
-          Gerar Relatório PDF
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="space-y-2">
+      <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+              <Button
+                  disabled={isLoading}
+                  className="justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
+                  variant="outline"
+              >
+                  {isLoading ? (
+                      <Loader2 className="animate-spin h-4 w-4" />
+                  ) : (
+                      <>
+                          <FileText className="h-4 w-4" />
+                          <span className="group-data-[collapsible=icon]:hidden ml-2">Relatório do Local</span>
+                          <ChevronDown className="h-4 w-4 group-data-[collapsible=icon]:hidden ml-auto" />
+                      </>
+                  )}
+              </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
+            Gerar Relatório PDF
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>
+            Gerar Excel (XLSX)
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ExpiryReportGenerator clientId={clientId} buildingId={buildingId} />
+    </div>
   );
 }
+
