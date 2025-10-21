@@ -122,3 +122,53 @@ export function generateCsvReport(client: Client, building: Building, extinguish
     link.click();
     document.body.removeChild(link);
 }
+
+export function generateClientCsvReport(client: Client, buildings: Building[]) {
+    let csvContent = '';
+
+    csvContent += `"Relatório Consolidado"\n`;
+    csvContent += `Cliente:,${escapeCsvCell(client.name)}\n`;
+    csvContent += `Gerado em:,${escapeCsvCell(format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR }))}\n\n`;
+    
+    // --- Extinguishers Section ---
+    csvContent += `"Extintores"\n`;
+    const extHeader = ['ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
+    csvContent += extHeader.map(escapeCsvCell).join(',') + '\n';
+
+    const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+    allExtinguishers.forEach(e => {
+        const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
+        const row = [
+            e.id, e.buildingName, e.observations, e.type, e.weight,
+            formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
+        ];
+        csvContent += row.map(escapeCsvCell).join(',') + '\n';
+    });
+    csvContent += '\n';
+
+    // --- Hoses Section ---
+    csvContent += `"Hidrantes"\n`;
+    const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
+    csvContent += hoseHeader.map(escapeCsvCell).join(',') + '\n';
+
+    const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
+    allHoses.forEach(h => {
+        const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
+        const row = [
+            h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength,
+            h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
+            insp.status, insp.date, insp.notes,
+        ];
+        csvContent += row.map(escapeCsvCell).join(',') + '\n';
+    });
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
