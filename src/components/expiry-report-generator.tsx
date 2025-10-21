@@ -111,7 +111,7 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
       <div className="flex flex-wrap items-center justify-center gap-2">
          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button disabled={isLoading} className="bg-report-expiry-current hover:bg-report-expiry-current/90">
+                <Button disabled={isLoading} className="bg-report-expiry-current hover:bg-report-expiry-current/90 text-black">
                      {isLoading ? (
                         <Loader2 className="animate-spin h-4 w-4" />
                      ) : (
@@ -129,7 +129,7 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
             </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button disabled={isLoading} onClick={() => setIsModalOpen(true)} className="bg-report-expiry-future hover:bg-report-expiry-future/90">
+        <Button disabled={isLoading} onClick={() => setIsModalOpen(true)} className="bg-report-expiry-future hover:bg-report-expiry-future/90 text-black">
              {isLoading ? (
                 <Loader2 className="animate-spin h-4 w-4" />
              ) : (

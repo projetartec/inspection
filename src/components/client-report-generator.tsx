@@ -63,7 +63,7 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
           <DropdownMenuTrigger asChild>
               <Button
                   disabled={isLoading}
-                  className="bg-report-consolidated hover:bg-report-consolidated/90"
+                  className="bg-report-consolidated hover:bg-report-consolidated/90 text-black"
               >
                   {isLoading ? (
                       <Loader2 className="animate-spin h-4 w-4 mr-2" />
