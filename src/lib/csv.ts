@@ -23,7 +23,6 @@ function formatLastInspectionForCsv(inspection: any) {
     const date = parseISO(inspection.date);
     return {
         date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
-        time: format(date, 'HH:mm', { locale: ptBR }),
         gps: inspection.location ? `${inspection.location.latitude}, ${inspection.location.longitude}` : 'N/A',
         status: inspection.status || 'N/A',
         notes: inspection.notes || '',
@@ -184,5 +183,3 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
         resolve();
     });
 }
-
-    

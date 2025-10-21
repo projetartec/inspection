@@ -12,8 +12,8 @@ interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDFWithAutoTable;
 }
 
-const NC_BG_COLOR = [255, 250, 205]; // LemonChiffon
-const EXPIRING_BG_COLOR = [255, 105, 97]; // Light Coral / FF6969
+const NC_BG_COLOR = [252, 250, 152]; // #FCFA98
+const EXPIRING_BG_COLOR = [255, 105, 97]; // #FF6969
 const HEADER_BG_COLOR = [0, 128, 128]; // Teal
 
 function formatDate(dateInput: string | null | undefined): string {
@@ -27,11 +27,10 @@ function formatDate(dateInput: string | null | undefined): string {
 }
 
 function formatLastInspection(inspection: any) {
-    if (!inspection?.date) return { date: 'N/A', time: 'N/A', gps: 'N/A', status: 'N/A', notes: '' };
+    if (!inspection?.date) return { date: 'N/A', gps: 'N/A', status: 'N/A', notes: '' };
     const date = parseISO(inspection.date);
     return {
         date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
-        time: format(date, 'HH:mm', { locale: ptBR }),
         gps: inspection.location ? `${inspection.location.latitude.toFixed(4)}, ${inspection.location.longitude.toFixed(4)}` : 'N/A',
         status: inspection.status || 'N/A',
         notes: inspection.notes || '',
@@ -399,5 +398,3 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
         resolve();
     });
 }
-
-    
