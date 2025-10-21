@@ -40,7 +40,6 @@ function TableSkeleton() {
         <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
         <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
         <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
-        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end space-x-1 md:space-x-2">
             <Skeleton className="h-8 w-8 rounded-md" />
@@ -144,7 +143,6 @@ export default function HosesPage() {
                         <TableHead className="hidden md:table-cell">Diâmetro</TableHead>
                         <TableHead className="hidden lg:table-cell">Medida</TableHead>
                         <TableHead className="hidden lg:table-cell">Próx. Teste Hidr.</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -179,11 +177,6 @@ export default function HosesPage() {
                                         <TableCell className="hidden md:table-cell">{hose.diameter}"</TableCell>
                                         <TableCell className="hidden lg:table-cell">{hose.hoseLength}m</TableCell>
                                         <TableCell className="hidden lg:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'Data inválida'}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={isExpired || lastInspection?.status === 'N/C' ? 'destructive' : 'secondary'}>
-                                                {isExpired ? 'Vencido' : (lastInspection?.status || 'N/A')}
-                                            </Badge>
-                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end space-x-1 md:space-x-2">
                                                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
@@ -229,7 +222,7 @@ export default function HosesPage() {
                             </Draggable>
                           )) : (
                               <TableRow>
-                                  <TableCell colSpan={9} className="text-center h-24">
+                                  <TableCell colSpan={8} className="text-center h-24">
                                       Nenhum hidrante encontrado.
                                   </TableCell>
                               </TableRow>
