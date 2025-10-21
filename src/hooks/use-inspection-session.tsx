@@ -142,7 +142,9 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
     }, [session]);
     
     const endInspection = useCallback(async () => {
-        if (!session || !currentBuildingId) return;
+        if (!session || !currentBuildingId) {
+            throw new Error("Nenhuma sessão de inspeção ativa para finalizar.");
+        };
         
         const sessionRef = getSessionRef(currentBuildingId);
         const finalSessionDoc = await getDoc(sessionRef);
@@ -160,7 +162,7 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
             setSession(null); // Clear local state immediately
         } catch(e) {
             console.error("Failed to save inspection batch", e);
-            throw e;
+            throw e; // Rethrow to be caught by the UI
         }
     }, [session, currentBuildingId]);
 
@@ -171,9 +173,14 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
                 unsubscribeRef.current();
                 unsubscribeRef.current = null;
             }
-            await deleteDoc(sessionRef);
-            setSession(null);
-            setCurrentBuildingId(null);
+            try {
+                await deleteDoc(sessionRef);
+            } catch (error) {
+                console.log("No session to clear or error clearing session:", error);
+            } finally {
+                setSession(null);
+                setCurrentBuildingId(null);
+            }
         }
     }, [currentBuildingId]);
     

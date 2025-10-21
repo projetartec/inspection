@@ -44,12 +44,12 @@ export function MainNav() {
         // The redirect should still work, but the hook now clears the session
         router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
         router.refresh();
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
         toast({
             variant: 'destructive',
             title: 'Erro ao Salvar',
-            description: 'Não foi possível salvar a sessão de inspeção.',
+            description: error.message || 'Não foi possível salvar a sessão de inspeção.',
         });
     } finally {
         setIsSubmitting(false);
@@ -165,7 +165,7 @@ export function MainNav() {
               <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
             </Button>
         )}
-        <ReportGenerator clientId={clientId} buildingId={buildingId} />
+        {buildingId && <ReportGenerator clientId={clientId} buildingId={buildingId} />}
       </SidebarFooter>
     </>
   );

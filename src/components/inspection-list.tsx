@@ -111,7 +111,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
             toast({
               variant: 'default',
               title: 'Aviso de Localização',
-              description: 'Não foi possível obter a localização GPS. Registrando item sem ela.'
+              description: 'Não foi possível obter la localização GPS. Registrando item sem ela.'
             });
             processInspection();
           },
