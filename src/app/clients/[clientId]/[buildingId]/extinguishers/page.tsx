@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -5,7 +6,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getExtinguishersByBuilding } from "@/lib/data";
+import { getExtinguishersByBuilding, getBuildingById } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ export default function ExtinguishersPage() {
   const params = useParams() as { clientId: string, buildingId: string };
   const { clientId, buildingId } = params;
   const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
+  const [buildingName, setBuildingName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -64,10 +66,14 @@ export default function ExtinguishersPage() {
 
       try {
           setIsLoading(true);
-          const data = await getExtinguishersByBuilding(clientId, buildingId);
-          setExtinguishers(data);
+          const [extinguishersData, buildingData] = await Promise.all([
+            getExtinguishersByBuilding(clientId, buildingId),
+            getBuildingById(clientId, buildingId)
+          ]);
+          setExtinguishers(extinguishersData);
+          setBuildingName(buildingData?.name || '');
       } catch (error) {
-          console.error("Failed to fetch extinguishers:", error);
+          console.error("Failed to fetch data:", error);
       } finally {
           setIsLoading(false);
       }
@@ -113,9 +119,11 @@ export default function ExtinguishersPage() {
     }
   };
 
+  const pageTitle = isLoading ? "Carregando..." : `Extintores - ${buildingName}`;
+
   return (
     <>
-      <PageHeader title="Extintores">
+      <PageHeader title={pageTitle}>
         <Button asChild>
           <Link href={`/clients/${clientId}/${buildingId}/extinguishers/new`}>
             <PlusCircle className="mr-2" />
