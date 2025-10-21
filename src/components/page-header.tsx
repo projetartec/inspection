@@ -23,7 +23,7 @@ export function PageHeader({ title, href, children }: PageHeaderProps) {
             {title}
         </TitleComponent>
       </div>
-      <div className="flex items-center gap-2">{children}</div>
+      <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">{children}</div>
     </div>
   );
 }

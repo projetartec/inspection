@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, Search } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -164,14 +164,25 @@ export default function ClientPage() {
                               Escolha um local para gerenciar ou adicione um novo. Arraste para reordenar.
                           </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="relative flex items-center">
                           <Input 
                               type="text"
                               placeholder="Buscar local..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
-                              className="h-9 max-w-xs"
+                              className="h-9 max-w-xs pr-8"
                           />
+                          {searchTerm && (
+                              <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setSearchTerm('')}
+                              >
+                                  <X className="h-4 w-4" />
+                                  <span className="sr-only">Limpar busca</span>
+                              </Button>
+                          )}
                       </div>
                   </div>
               </CardHeader>
