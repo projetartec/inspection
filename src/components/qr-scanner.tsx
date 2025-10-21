@@ -177,11 +177,6 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         };
         
         addItemToInspection(itemData);
-        
-        toast({
-            title: 'Item Registrado',
-            description: `Registro adicionado à inspeção.`,
-        });
 
         resetState();
     };

@@ -94,11 +94,6 @@ export function InspectionList({ items, type }: InspectionListProps) {
 
       addItemToInspection(itemData);
       
-      toast({
-        title: 'Item Registrado',
-        description: `${selectedItem.id} foi adicionado à inspeção.`,
-      });
-
       setIsSubmitting(false);
       handleCloseDialog();
     };
