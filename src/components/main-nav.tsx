@@ -41,7 +41,6 @@ export function MainNav() {
             title: 'Inspeção Finalizada',
             description: 'A sessão de inspeção foi salva com sucesso.',
         });
-        // The redirect should still work, but the hook now clears the session
         router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
         router.refresh();
     } catch (error: any) {

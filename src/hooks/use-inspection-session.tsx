@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import type { Inspection } from '@/lib/types';
-import { db } from '@/lib/firebase-client';
-import { doc, onSnapshot, getDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { addInspectionBatchAction } from '@/lib/actions';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
     qrCodeValue: string;
@@ -37,153 +36,87 @@ export const useInspectionSession = () => {
     return context;
 };
 
-const SESSIONS_COLLECTION = 'inspectionSessions';
-
-const getSessionRef = (buildingId: string) => doc(db, SESSIONS_COLLECTION, buildingId);
+const SESSION_STORAGE_KEY = 'inspectionSession';
 
 export const InspectionProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<InspectionSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [currentBuildingId, setCurrentBuildingId] = useState<string | null>(null);
-    const unsubscribeRef = useRef<(() => void) | null>(null);
 
-    // Cleanup subscription on unmount
     useEffect(() => {
-        return () => {
-            if (unsubscribeRef.current) {
-                unsubscribeRef.current();
+        setIsLoading(true);
+        try {
+            const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+            if (storedSession) {
+                setSession(JSON.parse(storedSession));
             }
-        };
+        } catch (error) {
+            console.error("Failed to parse session from storage", error);
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
-    const startInspection = useCallback(async (clientId: string, buildingId: string) => {
-        // If we are already subscribed to this building, do nothing.
-        if (currentBuildingId === buildingId) {
-            // But if there's no session, let's ensure it gets created.
-            if (!session) {
-                 const sessionRef = getSessionRef(buildingId);
-                 const docSnap = await getDoc(sessionRef);
-                 if (!docSnap.exists()) {
-                     const newSession: InspectionSession = {
-                         clientId,
-                         buildingId,
-                         startTime: new Date().toISOString(),
-                         inspectedItems: [],
-                     };
-                     await setDoc(sessionRef, newSession);
-                 }
-            }
-            return;
+    const updateSession = (newSession: InspectionSession | null) => {
+        setSession(newSession);
+        if (newSession) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
+        } else {
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+    };
+
+    const startInspection = useCallback((clientId: string, buildingId: string) => {
+        // If a session for a different building is active, clear it first
+        if (session && session.buildingId !== buildingId) {
+            // In a real scenario, you might want to prompt the user
+            console.warn("Starting new inspection, clearing previous session for another building.");
+            updateSession(null); 
         }
 
-        setIsLoading(true);
-        setCurrentBuildingId(buildingId);
-
-        // Unsubscribe from previous listener if it exists
-        if (unsubscribeRef.current) {
-            unsubscribeRef.current();
-            unsubscribeRef.current = null;
-        }
-
-        const sessionRef = getSessionRef(buildingId);
-
-        // Listen for real-time updates
-        unsubscribeRef.current = onSnapshot(sessionRef, (docSnap) => {
-            if (docSnap.exists()) {
-                setSession(docSnap.data() as InspectionSession);
-            } else {
-                setSession(null);
-            }
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Error listening to session changes:", error);
-            setIsLoading(false);
-        });
-
-        // Ensure session document exists
-        const docSnap = await getDoc(sessionRef);
-        if (!docSnap.exists()) {
+        // Only start a new session if there isn't one for the current building
+        if (!session || session.buildingId !== buildingId) {
             const newSession: InspectionSession = {
                 clientId,
                 buildingId,
                 startTime: new Date().toISOString(),
                 inspectedItems: [],
             };
-            try {
-                await setDoc(sessionRef, newSession);
-                // The onSnapshot listener will pick this up and set the session state
-            } catch (error) {
-                console.error("Error creating new session:", error);
-            }
+            updateSession(newSession);
         }
-    }, [currentBuildingId, session]);
+    }, [session]);
     
-    const addItemToInspection = useCallback(async (item: InspectedItem) => {
-        if (!currentBuildingId) return;
+    const addItemToInspection = useCallback((item: InspectedItem) => {
+        if (!session) return;
 
-        const sessionRef = getSessionRef(currentBuildingId);
+        const otherItems = session.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
+        const updatedItems = [...otherItems, item];
         
-        try {
-            const currentDoc = await getDoc(sessionRef);
-            if (currentDoc.exists()) {
-                const currentSession = currentDoc.data() as InspectionSession;
-                const otherItems = currentSession.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
-                const updatedItems = [...otherItems, item];
-                
-                await updateDoc(sessionRef, { inspectedItems: updatedItems });
-            }
-        } catch (error) {
-            console.error("Error adding item to inspection:", error);
-        }
-    }, [currentBuildingId]);
+        updateSession({ ...session, inspectedItems: updatedItems });
+    }, [session]);
 
     const isItemInspected = useCallback((qrCodeValue: string) => {
         return session?.inspectedItems.some(item => item.qrCodeValue === qrCodeValue) || false;
     }, [session]);
     
     const endInspection = useCallback(async () => {
-        if (!session || !currentBuildingId) {
+        if (!session) {
             throw new Error("Nenhuma sessão de inspeção ativa para finalizar.");
         };
         
-        const sessionRef = getSessionRef(currentBuildingId);
-        const finalSessionDoc = await getDoc(sessionRef);
-        
-        if (!finalSessionDoc.exists()) return;
-
-        const finalSession = finalSessionDoc.data() as InspectionSession;
-        
-        // Dynamically import server action
-        const { addInspectionBatchAction } = await import('@/lib/actions');
         try {
-            await addInspectionBatchAction(finalSession.clientId, finalSession.buildingId, finalSession.inspectedItems);
-            // After successfully saving, delete the session doc
-            await deleteDoc(sessionRef);
-            setSession(null); // Clear local state immediately
+            await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
+            // After successfully saving, clear the local session
+            updateSession(null);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
             throw e; // Rethrow to be caught by the UI
         }
-    }, [session, currentBuildingId]);
+    }, [session]);
 
-    const clearSession = useCallback(async () => {
-        if (currentBuildingId) {
-            const sessionRef = getSessionRef(currentBuildingId);
-            if (unsubscribeRef.current) {
-                unsubscribeRef.current();
-                unsubscribeRef.current = null;
-            }
-            try {
-                await deleteDoc(sessionRef);
-            } catch (error) {
-                console.log("No session to clear or error clearing session:", error);
-            } finally {
-                setSession(null);
-                setCurrentBuildingId(null);
-            }
-        }
-    }, [currentBuildingId]);
-    
+    const clearSession = useCallback(() => {
+        updateSession(null);
+    }, []);
 
     const value = {
         session,

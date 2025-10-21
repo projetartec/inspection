@@ -48,13 +48,6 @@ export default function DashboardPage() {
 
     const { session: inspectionSession, startInspection, isLoading: isSessionLoading } = useInspectionSession();
 
-    // Set the building context for the session hook
-    useEffect(() => {
-        if (buildingId) {
-            startInspection(clientId, buildingId);
-        }
-    }, [clientId, buildingId, startInspection]);
-
     useEffect(() => {
         async function fetchData() {
             if (!clientId || !buildingId) return;

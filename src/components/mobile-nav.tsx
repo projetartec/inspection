@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useInspectionSession } from "@/hooks/use-inspection-session.tsx";
+import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +42,7 @@ export function MobileNav() {
     }
   };
   
-  const isInspectionActive = session && session.buildingId === buildingId;
+  const isInspectionActive = !!session && session.buildingId === buildingId;
 
   if (!clientId) {
     // Root page (client list)
