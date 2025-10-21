@@ -142,12 +142,12 @@ export function InspectionList({ items, type }: InspectionListProps) {
             </div>
             <div className="ml-4">
                 {inspected ? (
-                    <Button variant="ghost" className="text-green-600 hover:text-green-700" onClick={() => handleOpenDialog(item)}>
+                    <Button variant="ghost" className="text-green-600 hover:bg-green-600/10 hover:text-green-700" onClick={() => handleOpenDialog(item)}>
                         <CheckCircle2 className="mr-2" /> Inspecionado
                     </Button>
                 ) : (
                     <Button variant="outline" onClick={() => handleOpenDialog(item)}>
-                        <Edit className="mr-2" /> Inspecionar
+                        <Edit className="mr-2 h-4 w-4" /> Inspecionar
                     </Button>
                 )}
             </div>
