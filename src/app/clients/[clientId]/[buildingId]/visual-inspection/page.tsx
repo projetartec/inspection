@@ -40,7 +40,7 @@ export default function VisualInspectionPage() {
 
     useEffect(() => {
         if (clientId && buildingId) {
-            startInspection(clientId, buildingId, true); // force create if not exists
+            startInspection(clientId, buildingId);
         }
     }, [startInspection, clientId, buildingId]);
 

@@ -51,7 +51,7 @@ export default function DashboardPage() {
     // Set the building context for the session hook
     useEffect(() => {
         if (buildingId) {
-            startInspection(clientId, buildingId, false); // Just listen, don't force create
+            startInspection(clientId, buildingId);
         }
     }, [clientId, buildingId, startInspection]);
 
@@ -109,12 +109,12 @@ export default function DashboardPage() {
     }, [clientId, buildingId]);
 
     const handleStartQrInspection = () => {
-        startInspection(clientId, buildingId, true); // Force create session
+        startInspection(clientId, buildingId);
         router.push(qrScanUrl);
     };
     
     const handleStartVisualInspection = () => {
-        startInspection(clientId, buildingId, true); // Force create session
+        startInspection(clientId, buildingId);
         router.push(visualInspectionUrl);
     }
 

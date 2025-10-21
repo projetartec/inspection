@@ -16,7 +16,7 @@ export default function ScanPage() {
   // Ensure the session is started for this building when the page loads
   useEffect(() => {
     if (clientId && buildingId) {
-      startInspection(clientId, buildingId, true); // force create if not exists
+      startInspection(clientId, buildingId);
     }
   }, [startInspection, clientId, buildingId]);
 

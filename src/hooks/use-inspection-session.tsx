@@ -19,7 +19,7 @@ export interface InspectionSession {
 
 interface InspectionContextType {
     session: InspectionSession | null;
-    startInspection: (clientId: string, buildingId: string, forceCreate?: boolean) => void;
+    startInspection: (clientId: string, buildingId: string) => void;
     addItemToInspection: (item: InspectedItem) => void;
     endInspection: () => Promise<void>;
     clearSession: () => void;
@@ -47,8 +47,8 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
     const [currentBuildingId, setCurrentBuildingId] = useState<string | null>(null);
     const unsubscribeRef = useRef<(() => void) | null>(null);
 
+    // Cleanup subscription on unmount
     useEffect(() => {
-        // Cleanup previous subscription when component unmounts or buildingId changes
         return () => {
             if (unsubscribeRef.current) {
                 unsubscribeRef.current();
@@ -56,20 +56,38 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
         };
     }, []);
 
-    const startInspection = useCallback(async (clientId: string, buildingId: string, forceCreate = false) => {
-        if (currentBuildingId === buildingId && !forceCreate) {
+    const startInspection = useCallback(async (clientId: string, buildingId: string) => {
+        // If we are already subscribed to this building, do nothing.
+        if (currentBuildingId === buildingId) {
+            // But if there's no session, let's ensure it gets created.
+            if (!session) {
+                 const sessionRef = getSessionRef(buildingId);
+                 const docSnap = await getDoc(sessionRef);
+                 if (!docSnap.exists()) {
+                     const newSession: InspectionSession = {
+                         clientId,
+                         buildingId,
+                         startTime: new Date().toISOString(),
+                         inspectedItems: [],
+                     };
+                     await setDoc(sessionRef, newSession);
+                 }
+            }
             return;
         }
 
         setIsLoading(true);
         setCurrentBuildingId(buildingId);
 
+        // Unsubscribe from previous listener if it exists
         if (unsubscribeRef.current) {
             unsubscribeRef.current();
+            unsubscribeRef.current = null;
         }
 
         const sessionRef = getSessionRef(buildingId);
 
+        // Listen for real-time updates
         unsubscribeRef.current = onSnapshot(sessionRef, (docSnap) => {
             if (docSnap.exists()) {
                 setSession(docSnap.data() as InspectionSession);
@@ -81,33 +99,41 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
             console.error("Error listening to session changes:", error);
             setIsLoading(false);
         });
-        
-        if (forceCreate) {
-            const docSnap = await getDoc(sessionRef);
-            if (!docSnap.exists()) {
-                const newSession: InspectionSession = {
-                    clientId,
-                    buildingId,
-                    startTime: new Date().toISOString(),
-                    inspectedItems: [],
-                };
+
+        // Ensure session document exists
+        const docSnap = await getDoc(sessionRef);
+        if (!docSnap.exists()) {
+            const newSession: InspectionSession = {
+                clientId,
+                buildingId,
+                startTime: new Date().toISOString(),
+                inspectedItems: [],
+            };
+            try {
                 await setDoc(sessionRef, newSession);
+                // The onSnapshot listener will pick this up and set the session state
+            } catch (error) {
+                console.error("Error creating new session:", error);
             }
         }
-    }, [currentBuildingId]);
+    }, [currentBuildingId, session]);
     
     const addItemToInspection = useCallback(async (item: InspectedItem) => {
         if (!currentBuildingId) return;
 
         const sessionRef = getSessionRef(currentBuildingId);
         
-        const currentDoc = await getDoc(sessionRef);
-        if (currentDoc.exists()) {
-            const currentSession = currentDoc.data() as InspectionSession;
-            const otherItems = currentSession.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
-            const updatedItems = [...otherItems, item];
-            
-            await updateDoc(sessionRef, { inspectedItems: updatedItems });
+        try {
+            const currentDoc = await getDoc(sessionRef);
+            if (currentDoc.exists()) {
+                const currentSession = currentDoc.data() as InspectionSession;
+                const otherItems = currentSession.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
+                const updatedItems = [...otherItems, item];
+                
+                await updateDoc(sessionRef, { inspectedItems: updatedItems });
+            }
+        } catch (error) {
+            console.error("Error adding item to inspection:", error);
         }
     }, [currentBuildingId]);
 
@@ -125,11 +151,13 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
 
         const finalSession = finalSessionDoc.data() as InspectionSession;
         
+        // Dynamically import server action
         const { addInspectionBatchAction } = await import('@/lib/actions');
         try {
             await addInspectionBatchAction(finalSession.clientId, finalSession.buildingId, finalSession.inspectedItems);
+            // After successfully saving, delete the session doc
             await deleteDoc(sessionRef);
-            setSession(null);
+            setSession(null); // Clear local state immediately
         } catch(e) {
             console.error("Failed to save inspection batch", e);
             throw e;
@@ -138,9 +166,15 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
 
     const clearSession = useCallback(async () => {
         if (currentBuildingId) {
-            await deleteDoc(getSessionRef(currentBuildingId));
+            const sessionRef = getSessionRef(currentBuildingId);
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+                unsubscribeRef.current = null;
+            }
+            await deleteDoc(sessionRef);
+            setSession(null);
+            setCurrentBuildingId(null);
         }
-        setSession(null);
     }, [currentBuildingId]);
     
 
