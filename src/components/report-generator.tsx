@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -26,13 +27,17 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
 
   const handleGenerateReport = async (format: 'xlsx' | 'pdf') => {
     setIsLoading(true);
+    
+    // Allow the UI to update (show loader) before the heavy task
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     try {
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
         if (format === 'xlsx') {
-          generateXlsxReport(client, building, extinguishers, hoses);
+          await generateXlsxReport(client, building, extinguishers, hoses);
         } else {
-          generatePdfReport(client, building, extinguishers, hoses);
+          await generatePdfReport(client, building, extinguishers, hoses);
         }
         toast({
             title: 'Sucesso!',

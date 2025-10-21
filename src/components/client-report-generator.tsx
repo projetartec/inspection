@@ -25,13 +25,17 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
 
   const handleGenerateReport = async (format: 'pdf' | 'xlsx') => {
     setIsLoading(true);
+    
+    // Allow the UI to update (show loader) before the heavy task
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     try {
       const { client, buildings } = await getClientReportDataAction(clientId);
       if (client && buildings) {
         if (format === 'pdf') {
-          generateClientPdfReport(client, buildings);
+          await generateClientPdfReport(client, buildings);
         } else {
-          generateClientXlsxReport(client, buildings);
+          await generateClientXlsxReport(client, buildings);
         }
         toast({
             title: 'Sucesso!',

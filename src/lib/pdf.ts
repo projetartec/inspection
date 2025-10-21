@@ -35,254 +35,266 @@ function formatLastInspection(inspection: any) {
 }
 
 
-export function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
-    const doc = new jsPDF({
-        orientation: 'landscape',
-    }) as jsPDFWithAutoTable;
+export async function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
+    // Wrap in promise to make it async and unblock UI thread
+    return new Promise<void>((resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
 
-    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-    let finalY = 20; 
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        let finalY = 20; 
 
-    // --- Header ---
-    doc.setFontSize(20);
-    doc.text("Relatório de Inspeção", 14, finalY);
-    finalY += 10;
-    doc.setFontSize(11);
-    doc.text(`Cliente: ${client.name}`, 14, finalY);
-    finalY += 5;
-    doc.text(`Local: ${building.name}`, 14, finalY);
-    finalY += 5;
-    doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
-    finalY += 10;
-
-    const tableStyles = {
-        theme: 'striped',
-        headStyles: { fillColor: [0, 128, 128] }, // Teal
-        bodyStyles: { halign: 'center' },
-        styles: { halign: 'center', fontSize: 8 },
-    };
-    
-    const manualEntryTableStyles = {
-        ...tableStyles,
-        headStyles: { fillColor: [255, 99, 71] }, // Tomato Red
-    }
-
-    // --- Extinguishers Table ---
-    if (extinguishers.length > 0) {
-        doc.autoTable({
-            ...tableStyles,
-            startY: finalY,
-            head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
-            body: extinguishers.map(e => {
-                const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
-                return [
-                    e.id,
-                    e.observations || '',
-                    e.type,
-                    e.weight + ' kg',
-                    formatDate(e.expiryDate),
-                    e.hydrostaticTestYear,
-                    insp.status,
-                    insp.date,
-                    insp.time,
-                    insp.gps,
-                    insp.notes,
-                ];
-            }),
-        });
-        finalY = (doc as any).lastAutoTable.finalY;
-    } else {
-        doc.text("Nenhum extintor registrado.", 14, finalY);
+        // --- Header ---
+        doc.setFontSize(20);
+        doc.text("Relatório de Inspeção", 14, finalY);
         finalY += 10;
-    }
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${client.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Local: ${building.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        finalY += 10;
 
-     finalY += 10;
-
-    if (finalY > pageHeight - 30) {
-        doc.addPage();
-        finalY = 20; 
-    }
-    
-    // --- Hoses Table ---
-    if (hoses.length > 0) {
-        doc.autoTable({
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: [0, 128, 128] }, // Teal
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8 },
+        };
+        
+        const manualEntryTableStyles = {
             ...tableStyles,
-            startY: finalY,
-            head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
-            body: hoses.map(h => {
-                const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
-                return [
-                    h.id,
-                    h.location,
-                    h.quantity,
-                    'Tipo ' + h.hoseType,
-                    h.diameter + '"',
-                    h.hoseLength + 'm',
-                    h.keyQuantity,
-                    h.nozzleQuantity,
-                    formatDate(h.hydrostaticTestDate),
-                    insp.status,
-                    insp.date,
-                    insp.time,
-                    insp.gps,
-                    insp.notes,
-                ];
-            }),
-        });
-         finalY = (doc as any).lastAutoTable.finalY;
-    } else {
-         doc.text("Nenhum hidrante registrado.", 14, finalY);
+            headStyles: { fillColor: [255, 99, 71] }, // Tomato Red
+        }
+
+        // --- Extinguishers Table ---
+        if (extinguishers.length > 0) {
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
+                body: extinguishers.map(e => {
+                    const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                    return [
+                        e.id,
+                        e.observations || '',
+                        e.type,
+                        e.weight + ' kg',
+                        formatDate(e.expiryDate),
+                        e.hydrostaticTestYear,
+                        insp.status,
+                        insp.date,
+                        insp.time,
+                        insp.gps,
+                        insp.notes,
+                    ];
+                }),
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+        } else {
+            doc.text("Nenhum extintor registrado.", 14, finalY);
+            finalY += 10;
+        }
+
          finalY += 10;
-    }
 
-    finalY += 10;
+        if (finalY > pageHeight - 30) {
+            doc.addPage();
+            finalY = 20; 
+        }
+        
+        // --- Hoses Table ---
+        if (hoses.length > 0) {
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Hora', 'GPS', 'Observações']],
+                body: hoses.map(h => {
+                    const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
+                    return [
+                        h.id,
+                        h.location,
+                        h.quantity,
+                        'Tipo ' + h.hoseType,
+                        h.diameter + '"',
+                        h.hoseLength + 'm',
+                        h.keyQuantity,
+                        h.nozzleQuantity,
+                        formatDate(h.hydrostaticTestDate),
+                        insp.status,
+                        insp.date,
+                        insp.time,
+                        insp.gps,
+                        insp.notes,
+                    ];
+                }),
+            });
+             finalY = (doc as any).lastAutoTable.finalY;
+        } else {
+             doc.text("Nenhum hidrante registrado.", 14, finalY);
+             finalY += 10;
+        }
 
-    if (finalY > pageHeight - 30) {
-        doc.addPage();
-        finalY = 20;
-    }
+        finalY += 10;
 
-    // --- Manual/Failed Inspections Table ---
-    if (building.manualInspections && building.manualInspections.length > 0) {
-        doc.setFontSize(14);
-        doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
-        finalY += 8;
+        if (finalY > pageHeight - 30) {
+            doc.addPage();
+            finalY = 20;
+        }
 
-        doc.autoTable({
-            ...manualEntryTableStyles,
-            startY: finalY,
-            head: [['ID Manual', 'Data', 'Hora', 'GPS', 'Status', 'Observações']],
-            body: building.manualInspections.map(insp => {
-                 const formattedInsp = formatLastInspection(insp);
-                 return [
-                    (insp as ManualInspection).manualId,
-                    formattedInsp.date,
-                    formattedInsp.time,
-                    formattedInsp.gps,
-                    formattedInsp.status,
-                    formattedInsp.notes,
-                 ]
+        // --- Manual/Failed Inspections Table ---
+        if (building.manualInspections && building.manualInspections.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...manualEntryTableStyles,
+                startY: finalY,
+                head: [['ID Manual', 'Data', 'Hora', 'GPS', 'Status', 'Observações']],
+                body: building.manualInspections.map(insp => {
+                     const formattedInsp = formatLastInspection(insp);
+                     return [
+                        (insp as ManualInspection).manualId,
+                        formattedInsp.date,
+                        formattedInsp.time,
+                        formattedInsp.gps,
+                        formattedInsp.status,
+                        formattedInsp.notes,
+                     ]
+                })
             })
-        })
-    }
-    
-    const fileName = `Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
-    doc.save(fileName);
+        }
+        
+        const fileName = `Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
 }
 
-export function generateClientPdfReport(client: Client, buildings: Building[]) {
-    const doc = new jsPDF({
-        orientation: 'landscape',
-    }) as jsPDFWithAutoTable;
+export async function generateClientPdfReport(client: Client, buildings: Building[]) {
+    // Wrap in promise to make it async and unblock UI thread
+    return new Promise<void>((resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
 
-    const generationDate = new Date();
-    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-    let finalY = 20;
+        const generationDate = new Date();
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        let finalY = 20;
 
-    // --- Header ---
-    doc.setFontSize(20);
-    doc.text("Relatório Consolidado", 14, finalY);
-    finalY += 10;
-    doc.setFontSize(11);
-    doc.text(`Cliente: ${client.name}`, 14, finalY);
-    finalY += 5;
-    doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
-    finalY += 10;
-    
-    const tableStyles = {
-        theme: 'striped',
-        headStyles: { fillColor: [0, 128, 128] }, // Teal
-        bodyStyles: { halign: 'center' },
-        styles: { halign: 'center', fontSize: 8 },
-    };
+        // --- Header ---
+        doc.setFontSize(20);
+        doc.text("Relatório Consolidado", 14, finalY);
+        finalY += 10;
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${client.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        finalY += 10;
+        
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: [0, 128, 128] }, // Teal
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8 },
+        };
 
-    const isExpiringThisMonth = (dateStr: string) => {
-        if (!dateStr) return false;
-        try {
-            const date = parseISO(dateStr);
-            return isSameMonth(date, generationDate) && isSameYear(date, generationDate);
-        } catch {
-            return false;
+        const isExpiringThisMonth = (dateStr: string) => {
+            if (!dateStr) return false;
+            try {
+                const date = parseISO(dateStr);
+                return isSameMonth(date, generationDate) && isSameYear(date, generationDate);
+            } catch {
+                return false;
+            }
+        };
+
+        // --- Extinguishers Table ---
+        const allExtinguishers = buildings.flatMap(building => 
+            (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
+        );
+
+        if (allExtinguishers.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Extintores", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                body: allExtinguishers.map(e => {
+                    const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                    return [
+                        e.id, e.buildingName, e.observations || '', e.type, e.weight + ' kg',
+                        formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
+                    ];
+                }),
+                willDrawCell: (data) => {
+                    if (data.section === 'body') {
+                        const expiryDateStr = allExtinguishers[data.row.index].expiryDate;
+                        if (isExpiringThisMonth(expiryDateStr)) {
+                            doc.setFillColor("#FF6969"); // Light Red
+                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                        }
+                    }
+                }
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+        } else {
+            doc.text("Nenhum extintor registrado para este cliente.", 14, finalY);
+            finalY += 10;
         }
-    };
 
-    // --- Extinguishers Table ---
-    const allExtinguishers = buildings.flatMap(building => 
-        (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
-    );
-
-    if (allExtinguishers.length > 0) {
-        doc.setFontSize(14);
-        doc.text("Extintores", 14, finalY);
-        finalY += 8;
-
-        doc.autoTable({
-            ...tableStyles,
-            startY: finalY,
-            head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']],
-            body: allExtinguishers.map(e => {
-                const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
-                return [
-                    e.id, e.buildingName, e.observations || '', e.type, e.weight + ' kg',
-                    formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
-                ];
-            }),
-            willDrawCell: (data) => {
-                const row = data.row.raw as any[];
-                const expiryDateStr = allExtinguishers[data.row.index].expiryDate;
-                if (isExpiringThisMonth(expiryDateStr)) {
-                    doc.setFillColor("#FF6969"); // Light Red
-                }
-            }
-        });
-        finalY = (doc as any).lastAutoTable.finalY;
-    } else {
-        doc.text("Nenhum extintor registrado para este cliente.", 14, finalY);
         finalY += 10;
-    }
+        if (finalY > pageHeight - 40) {
+            doc.addPage();
+            finalY = 20;
+        }
 
-    finalY += 10;
-    if (finalY > pageHeight - 40) {
-        doc.addPage();
-        finalY = 20;
-    }
+        // --- Hoses Table ---
+        const allHoses = buildings.flatMap(building => 
+            (building.hoses || []).map(hose => ({...hose, buildingName: building.name}))
+        );
+        
+        if (allHoses.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Hidrantes", 14, finalY);
+            finalY += 8;
 
-    // --- Hoses Table ---
-    const allHoses = buildings.flatMap(building => 
-        (building.hoses || []).map(hose => ({...hose, buildingName: building.name}))
-    );
-    
-    if (allHoses.length > 0) {
-        doc.setFontSize(14);
-        doc.text("Hidrantes", 14, finalY);
-        finalY += 8;
-
-        doc.autoTable({
-            ...tableStyles,
-            startY: finalY,
-            head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Observações']],
-            body: allHoses.map(h => {
-                const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
-                return [
-                    h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                    h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                    insp.status, insp.date, insp.notes
-                ];
-            }),
-            willDrawCell: (data) => {
-                const row = data.row.raw as any[];
-                const testDateStr = allHoses[data.row.index].hydrostaticTestDate;
-                if (isExpiringThisMonth(testDateStr)) {
-                    doc.setFillColor("#FF6969"); // Light Red
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                body: allHoses.map(h => {
+                    const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
+                    return [
+                        h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
+                        insp.status, insp.date, insp.notes
+                    ];
+                }),
+                willDrawCell: (data) => {
+                    if (data.section === 'body') {
+                        const testDateStr = allHoses[data.row.index].hydrostaticTestDate;
+                        if (isExpiringThisMonth(testDateStr)) {
+                            doc.setFillColor("#FF6969"); // Light Red
+                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                        }
+                    }
                 }
-            }
-        });
-        finalY = (doc as any).lastAutoTable.finalY;
-    } else {
-        doc.text("Nenhum hidrante registrado para este cliente.", 14, finalY);
-        finalY += 10;
-    }
-    
-    const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.pdf`;
-    doc.save(fileName);
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+        } else {
+            doc.text("Nenhum hidrante registrado para este cliente.", 14, finalY);
+            finalY += 10;
+        }
+        
+        const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
 }
