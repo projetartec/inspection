@@ -2,11 +2,11 @@
 "use client";
 
 import { useState } from 'react';
-import { FileText, Loader2, ChevronDown, CalendarClock, FileDown } from 'lucide-react';
+import { FileText, Loader2, ChevronDown, CalendarClock, FileDown, Droplets } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getClientReportDataAction, getExpiryReportDataAction } from '@/lib/actions';
-import { generateClientPdfReport, generateExpiryPdfReport } from '@/lib/pdf';
-import { generateClientXlsxReport, generateExpiryXlsxReport } from '@/lib/csv';
+import { getClientReportDataAction, getExpiryReportDataAction, getHosesReportDataAction } from '@/lib/actions';
+import { generateClientPdfReport, generateExpiryPdfReport, generateHosesPdfReport } from '@/lib/pdf';
+import { generateClientXlsxReport, generateExpiryXlsxReport, generateHosesXlsxReport } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
   DropdownMenuPortal,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -65,6 +66,36 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
         variant: 'destructive',
         title: 'Erro',
         description: `Falha ao gerar relatório.`
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateHosesReport = async (format: 'pdf' | 'xlsx') => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    try {
+      const { client, buildingsWithHoses } = await getHosesReportDataAction(clientId);
+      if (client && buildingsWithHoses) {
+        if (format === 'pdf') {
+          await generateHosesPdfReport(client, buildingsWithHoses);
+        } else {
+          await generateHosesXlsxReport(client, buildingsWithHoses);
+        }
+        toast({
+            title: 'Sucesso!',
+            description: `Relatório de mangueiras em ${format.toUpperCase()} gerado com sucesso.`,
+        });
+      } else {
+        throw new Error("Cliente ou locais com mangueiras não encontrados.");
+      }
+    } catch (error) {
+      console.error(`Falha ao gerar relatório de mangueiras:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: `Falha ao gerar relatório de mangueiras.`
       });
     } finally {
       setIsLoading(false);
@@ -164,6 +195,21 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>
+
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <Droplets className="mr-2 h-4 w-4" />
+                    <span>Relatório de Mangueiras</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleGenerateHosesReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateHosesReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+
+            <DropdownMenuSeparator />
 
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>

@@ -28,7 +28,6 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { ClientReportGenerator } from '@/components/client-report-generator';
 import { GpsLinkManager } from '@/components/gps-link-manager';
 import { Input } from '@/components/ui/input';
-import { HosesReportGenerator } from '@/components/hoses-report-generator';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -144,7 +143,6 @@ export default function ClientPage() {
 
         <div className="flex flex-wrap items-center justify-center gap-2 p-4 border-b">
           <ClientReportGenerator clientId={clientId} />
-          <HosesReportGenerator clientId={clientId} />
         </div>
 
         <div className="w-full max-w-2xl mx-auto">
