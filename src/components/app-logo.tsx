@@ -5,11 +5,10 @@ export function AppLogo() {
     <div className="flex justify-center">
       {/* 
         Este componente agora carrega a imagem do seu logo.
-        Certifique-se de que sua imagem está em 'public/logo.png'.
         Você pode ajustar 'width' e 'height' para o tamanho desejado.
       */}
       <Image
-        src="https://i.imgur.com/39VwZqO.png" // Caminho para a sua imagem na pasta 'public'
+        src="https://i.imgur.com/rN9k4rV.png" // Caminho para a sua imagem na pasta 'public'
         alt="Logo da Empresa"
         width={200} // Largura da imagem em pixels
         height={100} // Altura da imagem em pixels
