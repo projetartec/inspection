@@ -1,15 +1,20 @@
-import { ShieldCheck } from "lucide-react";
+import Image from 'next/image';
 
 export function AppLogo() {
   return (
-    <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
-      <ShieldCheck className="size-7 text-primary" />
-      <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-        <span className="font-headline text-lg font-bold leading-none text-foreground">
-          Brazil Extintores
-        </span>
-        <span className="text-xs text-muted-foreground">Inspeção</span>
-      </div>
+    <div className="flex justify-center">
+      {/* 
+        Este componente agora carrega a imagem do seu logo.
+        Certifique-se de que sua imagem está em 'public/logo.png'.
+        Você pode ajustar 'width' e 'height' para o tamanho desejado.
+      */}
+      <Image
+        src="/logo.png" // Caminho para a sua imagem na pasta 'public'
+        alt="Logo da Empresa"
+        width={200} // Largura da imagem em pixels
+        height={100} // Altura da imagem em pixels
+        priority // Ajuda a carregar a imagem principal mais rápido
+      />
     </div>
   );
 }
