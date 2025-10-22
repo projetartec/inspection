@@ -468,3 +468,72 @@ export async function generateHosesPdfReport(client: Client, buildings: Building
         resolve();
     });
 }
+
+// --- EXTINGUISHERS ONLY REPORT ---
+export async function generateExtinguishersPdfReport(client: Client, buildings: Building[]) {
+    return new Promise<void>((resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
+
+        const generationDate = new Date();
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        let finalY = 20;
+
+        // --- Header ---
+        doc.setFontSize(20);
+        doc.text("Relatório de Extintores", 14, finalY);
+        finalY += 10;
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${client.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        finalY += 10;
+        
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: HEADER_BG_COLOR },
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+        };
+        
+        // --- Extinguishers Table ---
+        const allExtinguishers = buildings.flatMap(building => 
+            (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
+        );
+
+        if (allExtinguishers.length > 0) {
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                body: allExtinguishers.map(e => {
+                    const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                    return [
+                        e.id, e.buildingName, e.observations || '', e.type, e.weight + ' kg',
+                        formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
+                    ];
+                }),
+                didDrawCell: (data) => {
+                    if (data.section === 'body') {
+                        const item = allExtinguishers[data.row.index];
+                        if (!item) return;
+
+                        if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                            doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
+                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                        }
+                    }
+                }
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+        } else {
+            doc.text("Nenhum extintor registrado para este cliente.", 14, finalY);
+            finalY += 10;
+        }
+        
+        const fileName = `Relatorio_Extintores_${client.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
+}

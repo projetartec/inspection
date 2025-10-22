@@ -2,11 +2,26 @@
 "use client";
 
 import { useState } from 'react';
-import { FileText, Loader2, ChevronDown, CalendarClock, FileDown, Droplets } from 'lucide-react';
+import { FileText, Loader2, ChevronDown, CalendarClock, FileDown, Droplets, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getClientReportDataAction, getExpiryReportDataAction, getHosesReportDataAction } from '@/lib/actions';
-import { generateClientPdfReport, generateExpiryPdfReport, generateHosesPdfReport } from '@/lib/pdf';
-import { generateClientXlsxReport, generateExpiryXlsxReport, generateHosesXlsxReport } from '@/lib/csv';
+import { 
+    getClientReportDataAction, 
+    getExpiryReportDataAction, 
+    getHosesReportDataAction,
+    getExtinguishersReportDataAction
+} from '@/lib/actions';
+import { 
+    generateClientPdfReport, 
+    generateExpiryPdfReport, 
+    generateHosesPdfReport,
+    generateExtinguishersPdfReport
+} from '@/lib/pdf';
+import { 
+    generateClientXlsxReport, 
+    generateExpiryXlsxReport, 
+    generateHosesXlsxReport,
+    generateExtinguishersXlsxReport
+} from '@/lib/csv';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -96,6 +111,36 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
         variant: 'destructive',
         title: 'Erro',
         description: `Falha ao gerar relatório de mangueiras.`
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateExtinguishersReport = async (format: 'pdf' | 'xlsx') => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    try {
+      const { client, buildingsWithExtinguishers } = await getExtinguishersReportDataAction(clientId);
+      if (client && buildingsWithExtinguishers) {
+        if (format === 'pdf') {
+          await generateExtinguishersPdfReport(client, buildingsWithExtinguishers);
+        } else {
+          await generateExtinguishersXlsxReport(client, buildingsWithExtinguishers);
+        }
+        toast({
+            title: 'Sucesso!',
+            description: `Relatório de extintores em ${format.toUpperCase()} gerado com sucesso.`,
+        });
+      } else {
+        throw new Error("Cliente ou locais com extintores não encontrados.");
+      }
+    } catch (error) {
+      console.error(`Falha ao gerar relatório de extintores:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: `Falha ao gerar relatório de extintores.`
       });
     } finally {
       setIsLoading(false);
@@ -205,6 +250,19 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
                     <DropdownMenuSubContent>
                         <DropdownMenuItem onClick={() => handleGenerateHosesReport('pdf')}>Gerar PDF</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleGenerateHosesReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+            
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <Flame className="mr-2 h-4 w-4" />
+                    <span>Relatório de Extintores</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleGenerateExtinguishersReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleGenerateExtinguishersReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>

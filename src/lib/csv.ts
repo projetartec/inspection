@@ -212,3 +212,32 @@ export async function generateHosesXlsxReport(client: Client, buildings: Buildin
         resolve();
     });
 }
+
+// --- EXTINGUISHERS ONLY REPORT ---
+
+export async function generateExtinguishersXlsxReport(client: Client, buildings: Building[]) {
+    return new Promise<void>((resolve) => {
+        const wb = XLSX.utils.book_new();
+        const generationDate = new Date();
+       
+        const extHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
+        const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+        const extBody = allExtinguishers.map(e => {
+            const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
+            let alert = '';
+            if (insp.status === 'N/C') alert = 'NÃO CONFORME';
+            if (e.expiryDate && isSameMonth(parseISO(e.expiryDate), generationDate) && isSameYear(parseISO(e.expiryDate), generationDate)) {
+                 alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
+            }
+            return [alert, e.id, e.buildingName, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes];
+        });
+
+        const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
+        applyAutoFilter(wsExt, extHeader.length);
+        XLSX.utils.book_append_sheet(wb, wsExt, 'Relatório de Extintores');
+        
+        const fileName = `Relatorio_Extintores_${client.name.replace(/ /g, '_')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        resolve();
+    });
+}
