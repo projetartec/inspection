@@ -183,3 +183,32 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
         resolve();
     });
 }
+
+// --- HOSES ONLY REPORT ---
+
+export async function generateHosesXlsxReport(client: Client, buildings: Building[]) {
+    return new Promise<void>((resolve) => {
+        const wb = XLSX.utils.book_new();
+        const generationDate = new Date();
+       
+        // --- Hoses Section ---
+        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
+        const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
+        const hoseBody = allHoses.map(h => {
+            const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
+             let alert = '';
+            if (insp.status === 'N/C') alert = 'NÃO CONFORME';
+            if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
+                 alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
+            }
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), insp.status, insp.date, insp.notes ];
+        });
+        const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
+        applyAutoFilter(wsHose, hoseHeader.length);
+        XLSX.utils.book_append_sheet(wb, wsHose, 'Relatório de Mangueiras');
+        
+        const fileName = `Relatorio_Mangueiras_${client.name.replace(/ /g, '_')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        resolve();
+    });
+}

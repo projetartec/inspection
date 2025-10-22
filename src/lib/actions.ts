@@ -227,6 +227,20 @@ export async function getExpiryReportDataAction(clientId: string, buildingId: st
     return { client, buildings: buildingsWithEquipment };
 }
 
+export async function getHosesReportDataAction(clientId: string) {
+    const [client, buildings] = await Promise.all([
+        getClientById(clientId),
+        getBuildingsByClient(clientId)
+    ]);
+
+    const buildingsWithHoses = await Promise.all(buildings.map(async (b) => {
+        const hoses = await getHosesByBuilding(clientId, b.id);
+        return { ...b, hoses };
+    }));
+
+    return { client, buildingsWithHoses };
+}
+
 
 // --- Reorder Action ---
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {

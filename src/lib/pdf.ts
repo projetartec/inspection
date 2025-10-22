@@ -398,3 +398,73 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
         resolve();
     });
 }
+
+// --- HOSES ONLY REPORT ---
+export async function generateHosesPdfReport(client: Client, buildings: Building[]) {
+    return new Promise<void>((resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
+
+        const generationDate = new Date();
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        let finalY = 20;
+
+        // --- Header ---
+        doc.setFontSize(20);
+        doc.text("Relatório de Mangueiras", 14, finalY);
+        finalY += 10;
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${client.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        finalY += 10;
+        
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: HEADER_BG_COLOR },
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+        };
+        
+        // --- Hoses Table ---
+        const allHoses = buildings.flatMap(building => 
+            (building.hoses || []).map(hose => ({...hose, buildingName: building.name}))
+        );
+        
+        if (allHoses.length > 0) {
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                body: allHoses.map(h => {
+                    const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
+                    return [
+                        h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
+                        insp.status, insp.date, insp.notes
+                    ];
+                }),
+                didDrawCell: (data) => {
+                     if (data.section === 'body') {
+                        const item = allHoses[data.row.index];
+                        if (!item) return;
+                        
+                        if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
+                           doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
+                           doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                        }
+                    }
+                }
+            });
+            finalY = (doc as any).lastAutoTable.finalY;
+        } else {
+            doc.text("Nenhum hidrante/mangueira registrado para este cliente.", 14, finalY);
+            finalY += 10;
+        }
+        
+        const fileName = `Relatorio_Mangueiras_${client.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
+}
