@@ -142,7 +142,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
             </DropdownMenuPortal>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
-          <ExpiryReportGenerator clientId={clientId} buildingId={buildingId} />
+          <ExpiryReportGenerator clientId={clientId} buildingId={buildingId} isMenuItem={true} />
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
