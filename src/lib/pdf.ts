@@ -245,11 +245,12 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp) return '';
-                        if (lastInsp.status === 'OK') return 'OK';
-                        return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
-                    });
+
+                    const inspectionStatus = lastInsp
+                      ? EXTINGUISHER_INSPECTION_ITEMS.map(item =>
+                          lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                        )
+                      : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
@@ -425,7 +426,7 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
 }
 
 // --- HOSES ONLY REPORT ---
-export async function generateHosesPdfReport(client: Client, buildings: Building[]) {
+export async function generateHosesPdfReport(client: Client, buildingsWithHoses: (Building & { hoses: Hydrant[] })[]) {
     return new Promise<void>((resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -453,7 +454,7 @@ export async function generateHosesPdfReport(client: Client, buildings: Building
         };
         
         // --- Hoses Table ---
-        const allHoses = buildings.flatMap(building => 
+        const allHoses = buildingsWithHoses.flatMap(building => 
             (building.hoses || []).map(hose => ({...hose, buildingName: building.name}))
         );
         
@@ -495,7 +496,7 @@ export async function generateHosesPdfReport(client: Client, buildings: Building
 }
 
 // --- EXTINGUISHERS ONLY REPORT ---
-export async function generateExtinguishersPdfReport(client: Client, buildings: Building[]) {
+export async function generateExtinguishersPdfReport(client: Client, buildingsWithExtinguishers: (Building & { extinguishers: Extinguisher[] })[]) {
     return new Promise<void>((resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -523,7 +524,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildings: 
         };
         
         // --- Extinguishers Table ---
-        const allExtinguishers = buildings.flatMap(building => 
+        const allExtinguishers = buildingsWithExtinguishers.flatMap(building => 
             (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
         );
 
@@ -540,11 +541,11 @@ export async function generateExtinguishersPdfReport(client: Client, buildings: 
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp) return '';
-                        if (lastInsp.status === 'OK') return 'OK';
-                        return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
-                    });
+                    const inspectionStatus = lastInsp
+                      ? EXTINGUISHER_INSPECTION_ITEMS.map(item =>
+                          lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                        )
+                      : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',

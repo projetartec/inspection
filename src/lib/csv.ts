@@ -110,11 +110,11 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp) return '';
-                if (lastInsp.status === 'OK') return 'OK';
-                return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
-            });
+            const inspectionStatus = lastInsp
+              ? EXTINGUISHER_INSPECTION_ITEMS.map(item => 
+                  lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                )
+              : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
             
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
@@ -203,14 +203,14 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
 
 // --- HOSES ONLY REPORT ---
 
-export async function generateHosesXlsxReport(client: Client, buildings: Building[]) {
+export async function generateHosesXlsxReport(client: Client, buildingsWithHoses: (Building & { hoses: Hydrant[] })[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
         const generationDate = new Date();
        
         // --- Hoses Section ---
         const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
-        const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
+        const allHoses = buildingsWithHoses.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
             const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
              let alert = '';
@@ -232,7 +232,7 @@ export async function generateHosesXlsxReport(client: Client, buildings: Buildin
 
 // --- EXTINGUISHERS ONLY REPORT ---
 
-export async function generateExtinguishersXlsxReport(client: Client, buildings: Building[]) {
+export async function generateExtinguishersXlsxReport(client: Client, buildingsWithExtinguishers: (Building & { extinguishers: Extinguisher[] })[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
        
@@ -241,16 +241,16 @@ export async function generateExtinguishersXlsxReport(client: Client, buildings:
             ...EXTINGUISHER_INSPECTION_ITEMS,
             'Observações'
         ];
-        const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+        const allExtinguishers = buildingsWithExtinguishers.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp) return '';
-                if (lastInsp.status === 'OK') return 'OK';
-                return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
-            });
+            const inspectionStatus = lastInsp
+              ? EXTINGUISHER_INSPECTION_ITEMS.map(item => 
+                  lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                )
+              : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
             
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
