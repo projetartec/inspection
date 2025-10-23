@@ -47,7 +47,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         const generationDate = new Date();
 
         // --- Extinguishers Sheet ---
-        const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status', 'Data Últ. Insp.', 'GPS Últ. Insp.', 'Observações'];
+        const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status', 'Observações'];
         const extBody = (extinguishers || []).map(e => {
             const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
             let alert = '';
@@ -55,14 +55,14 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             if (e.expiryDate && isSameMonth(parseISO(e.expiryDate), generationDate) && isSameYear(parseISO(e.expiryDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.gps, insp.notes];
+            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.notes];
         });
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
         applyAutoFilter(wsExt, extHeader.length);
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
 
         // --- Hoses Sheet ---
-        const hoseHeader = ['Alerta', 'ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Insp.', 'GPS Últ. Insp.', 'Observações'];
+        const hoseHeader = ['Alerta', 'ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
         const hoseBody = (hoses || []).map(h => {
             const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
             let alert = '';
@@ -70,7 +70,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [alert, h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), insp.status, insp.date, insp.gps, insp.notes];
+            return [alert, h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), insp.status, insp.notes];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -319,4 +319,6 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
         resolve();
     });
 }
+    
+
     

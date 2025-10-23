@@ -80,7 +80,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
         // --- Extinguishers Table ---
         if (extinguishers.length > 0) {
-            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações'];
+            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Observações'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
@@ -89,7 +89,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                     const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
                     return [
                         e.id, e.observations || '', e.type, e.weight + ' kg', formatDate(e.expiryDate), e.hydrostaticTestYear,
-                        insp.status, insp.date, insp.gps, insp.notes,
+                        insp.status, insp.notes,
                     ];
                 }),
                 didParseCell: (data) => {
@@ -124,7 +124,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
         
         // --- Hoses Table ---
         if (hoses.length > 0) {
-            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações'];
+            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
@@ -134,7 +134,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
                         h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        insp.status, insp.date, insp.gps, insp.notes,
+                        insp.status, insp.notes,
                     ];
                 }),
                  didParseCell: (data) => {
@@ -208,7 +208,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text("Relatório Consolidado", 14, finalY);
+        doc.text("Consolidado", 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
@@ -321,7 +321,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                      if (data.row.section === 'body') {
                         const item = allHoses[data.row.index];
                         if (!item) return;
-
+                        
                         if (!data.row.styles) {
                             data.row.styles = {};
                         }
@@ -359,7 +359,7 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text(`Relatório de Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
+        doc.text(`Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
@@ -688,4 +688,6 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
         resolve();
     });
 }
+    
+
     
