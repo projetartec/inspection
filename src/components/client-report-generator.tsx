@@ -179,7 +179,7 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
                   ) : (
                       <FileText className="h-4 w-4 mr-2" />
                   )}
-                  Relatórios Gerais
+                  Relatórios
                   <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
         </DropdownMenuTrigger>
