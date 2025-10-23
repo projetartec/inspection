@@ -2,16 +2,20 @@
 "use client";
 
 import { useState } from 'react';
-import { FileText, Loader2, ChevronDown } from 'lucide-react';
+import { FileText, Loader2, ChevronDown, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getReportDataAction } from '@/lib/actions';
-import { generateXlsxReport } from '@/lib/csv';
-import { generatePdfReport } from '@/lib/pdf';
+import { getReportDataAction, getDescriptiveReportDataAction } from '@/lib/actions';
+import { generateXlsxReport, generateDescriptiveXlsxReport } from '@/lib/csv';
+import { generatePdfReport, generateDescriptivePdfReport } from '@/lib/pdf';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -59,6 +63,38 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     }
   };
 
+  const handleGenerateDescriptiveReport = async (format: 'pdf' | 'xlsx') => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    try {
+      const { client, buildings } = await getDescriptiveReportDataAction(clientId, buildingId);
+      if (client && buildings) {
+        if (format === 'pdf') {
+          await generateDescriptivePdfReport(client, buildings);
+        } else {
+          await generateDescriptiveXlsxReport(client, buildings);
+        }
+        toast({
+          title: 'Sucesso!',
+          description: `Relatório Descritivo em ${format.toUpperCase()} gerado com sucesso.`,
+        });
+      } else {
+        throw new Error("Cliente ou locais não encontrados.");
+      }
+    } catch (error) {
+      console.error(`Falha ao gerar relatório descritivo:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: `Falha ao gerar relatório descritivo.`
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   return (
     <div className="space-y-2">
       <DropdownMenu>
@@ -80,17 +116,37 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
               </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end">
-          <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>
-            Gerar Relatório PDF
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>
-            Gerar Excel (XLSX)
-          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Relatório de Inspeção</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => handleGenerateReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleGenerateReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              <span>Relatório Descritivo</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => handleGenerateDescriptiveReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleGenerateDescriptiveReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          <ExpiryReportGenerator clientId={clientId} buildingId={buildingId} />
         </DropdownMenuContent>
       </DropdownMenu>
-      <ExpiryReportGenerator clientId={clientId} buildingId={buildingId} />
     </div>
   );
 }
+
 
 

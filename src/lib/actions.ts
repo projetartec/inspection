@@ -255,6 +255,28 @@ export async function getExtinguishersReportDataAction(clientId: string) {
     return { client, buildingsWithExtinguishers };
 }
 
+export async function getDescriptiveReportDataAction(clientId: string, buildingId?: string) {
+    const client = await getClientById(clientId);
+    let buildings: Building[] = [];
+
+    if (buildingId) {
+        const building = await getBuildingById(clientId, buildingId);
+        if(building) buildings.push(building);
+    } else {
+        buildings = await getBuildingsByClient(clientId);
+    }
+
+    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
+        const [extinguishers, hoses] = await Promise.all([
+            getExtinguishersByBuilding(clientId, b.id),
+            getHosesByBuilding(clientId, b.id)
+        ]);
+        return { ...b, extinguishers, hoses };
+    }));
+    
+    return { client, buildings: buildingsWithEquipment };
+}
+
 
 // --- Reorder Action ---
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {

@@ -110,13 +110,11 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            let inspectionStatus: string[];
+            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
             if (lastInsp) {
                 inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
                     lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                 );
-            } else {
-                inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
             }
             
             return [
@@ -249,13 +247,11 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            let inspectionStatus: string[];
+            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
             if (lastInsp) {
                 inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
                     lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                 );
-            } else {
-                inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
             }
             
             return [
@@ -275,4 +271,52 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
     });
 }
 
+// --- DESCRIPTIVE REPORT ---
+
+export async function generateDescriptiveXlsxReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
+    return new Promise<void>((resolve) => {
+        const wb = XLSX.utils.book_new();
+
+        // --- Extinguishers Sheet ---
+        const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+        if (allExtinguishers.length > 0) {
+            const extHeader = ['ID', 'Prédio', 'Tipo', 'Carga', 'Recarga'];
+            const extBody = allExtinguishers.map(e => [
+                e.id,
+                e.buildingName,
+                e.type,
+                e.weight + ' kg',
+                formatDate(e.expiryDate)
+            ]);
+            const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
+            applyAutoFilter(wsExt, extHeader.length);
+            XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
+        }
+
+        // --- Hoses Sheet ---
+        const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
+        if (allHoses.length > 0) {
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Test'];
+            const hoseBody = allHoses.map(h => [
+                h.id,
+                h.buildingName,
+                h.location,
+                h.quantity,
+                'Tipo ' + h.hoseType,
+                h.diameter + '"',
+                h.hoseLength + 'm',
+                h.keyQuantity,
+                h.nozzleQuantity,
+                formatDate(h.hydrostaticTestDate)
+            ]);
+            const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
+            applyAutoFilter(wsHose, hoseHeader.length);
+            XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes');
+        }
+        
+        const fileName = `Relatorio_Descritivo_${client.name.replace(/ /g, '_')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        resolve();
+    });
+}
     

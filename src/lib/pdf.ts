@@ -245,15 +245,12 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    let inspectionStatus: string[];
+                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
 
                     if (lastInsp) {
                         inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
                             lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                         );
-                    } else {
-                        // If no inspection, all status fields are blank
-                        inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
                     }
                     
                     return [
@@ -267,12 +264,12 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         const item = allExtinguishers[data.row.index];
                         if (!item) return;
 
+                        // This is the fix: initialize styles if it doesn't exist.
+                        if (!data.row.styles) {
+                            data.row.styles = {};
+                        }
                         // Highlight expiring items
                         if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
-                            // This is the fix: initialize styles if it doesn't exist.
-                            if (!data.row.styles) {
-                                data.row.styles = {};
-                            }
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
 
@@ -324,11 +321,12 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                      if (data.row.section === 'body') {
                         const item = allHoses[data.row.index];
                         if (!item) return;
+
+                        if (!data.row.styles) {
+                            data.row.styles = {};
+                        }
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
-                           if (!data.row.styles) {
-                                data.row.styles = {};
-                           }
                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                     }
@@ -489,10 +487,11 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                         const item = allHoses[data.row.index];
                         if (!item) return;
                         
+                        if (!data.row.styles) {
+                            data.row.styles = {};
+                        }
+                        
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
-                           if (!data.row.styles) {
-                                data.row.styles = {};
-                           }
                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                     }
@@ -555,13 +554,11 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    let inspectionStatus: string[];
+                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
                     if (lastInsp) {
                         inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item =>
                             lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                         );
-                    } else {
-                         inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
                     }
                     
                     return [
@@ -575,11 +572,11 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         const item = allExtinguishers[data.row.index];
                         if (!item) return;
 
+                        if (!data.row.styles) {
+                            data.row.styles = {};
+                        }
                         // Highlight expiring items
                         if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
-                            if (!data.row.styles) {
-                                data.row.styles = {};
-                            }
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
@@ -605,4 +602,90 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
     });
 }
 
+// --- DESCRIPTIVE REPORT ---
+
+export async function generateDescriptivePdfReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
+    return new Promise<void>((resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
+
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        let finalY = 20;
+
+        // --- Header ---
+        doc.setFontSize(20);
+        doc.text("Relatório Descritivo de Equipamentos", 14, finalY);
+        finalY += 10;
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${client.name}`, 14, finalY);
+        finalY += 5;
+        doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        finalY += 10;
+
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: HEADER_BG_COLOR },
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+        };
+
+        // --- Extinguishers Table ---
+        const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+        if (allExtinguishers.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Extintores", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Tipo', 'Carga', 'Recarga']],
+                body: allExtinguishers.map(e => [
+                    e.id,
+                    e.buildingName,
+                    e.type,
+                    e.weight + ' kg',
+                    formatDate(e.expiryDate)
+                ]),
+            });
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+        }
+        
+        if (finalY > pageHeight - 40) {
+            doc.addPage();
+            finalY = 20;
+        }
+
+        // --- Hoses Table ---
+        const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
+        if (allHoses.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Hidrantes", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Test']],
+                body: allHoses.map(h => [
+                    h.id,
+                    h.buildingName,
+                    h.location,
+                    h.quantity,
+                    'Tipo ' + h.hoseType,
+                    h.diameter + '"',
+                    h.hoseLength + 'm',
+                    h.keyQuantity,
+                    h.nozzleQuantity,
+                    formatDate(h.hydrostaticTestDate)
+                ]),
+            });
+        }
+        
+        const fileName = `Relatorio_Descritivo_${client.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
+}
     

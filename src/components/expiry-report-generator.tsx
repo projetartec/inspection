@@ -1,5 +1,5 @@
 
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { CalendarClock, FileDown, Loader2, ChevronDown } from 'lucide-react';
@@ -13,6 +13,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -29,9 +32,10 @@ import { cn } from '@/lib/utils';
 interface ExpiryReportGeneratorProps {
   clientId: string;
   buildingId?: string;
+  isMenuItem?: boolean;
 }
 
-export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGeneratorProps) {
+export function ExpiryReportGenerator({ clientId, buildingId, isMenuItem = false }: ExpiryReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -105,6 +109,71 @@ export function ExpiryReportGenerator({ clientId, buildingId }: ExpiryReportGene
     value: i.toString(),
     label: new Date(0, i).toLocaleString('pt-BR', { month: 'long', timeZone: 'UTC' })
   }));
+  
+  if (isMenuItem) {
+    return (
+        <>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    <span>Vencem este Mês</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleCurrentMonthReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCurrentMonthReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+          
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsModalOpen(true); }}>
+                <CalendarClock className="mr-2 h-4 w-4" />
+                <span>Vencimentos Futuros</span>
+            </DropdownMenuItem>
+
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Relatório de Vencimentos Futuros</DialogTitle>
+                <DialogDescription>
+                Selecione o mês e o ano para gerar um relatório com todos os itens que vencem nesse período.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+                <Select onValueChange={setSelectedMonth} value={selectedMonth ?? undefined}>
+                <SelectTrigger><SelectValue placeholder="Selecione o Mês" /></SelectTrigger>
+                <SelectContent>
+                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label.charAt(0).toUpperCase() + m.label.slice(1)}</SelectItem>)}
+                </SelectContent>
+                </Select>
+                <Select onValueChange={setSelectedYear} value={selectedYear ?? undefined}>
+                <SelectTrigger><SelectValue placeholder="Selecione o Ano" /></SelectTrigger>
+                <SelectContent>
+                    {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                </SelectContent>
+                </Select>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                <Button type="button" variant="outline">Cancelar</Button>
+                </DialogClose>
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button disabled={!selectedMonth || !selectedYear}>
+                        Gerar Relatório <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => handleFutureMonthReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleFutureMonthReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
+    )
+  }
 
   return (
     <>
