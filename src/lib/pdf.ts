@@ -268,14 +268,17 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         if (!item) return;
 
                         // Highlight expiring items
-                        if (data.column.index === 2 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                        if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                            // This is the fix: initialize styles if it doesn't exist.
+                            if (!data.row.styles) {
+                                data.row.styles = {};
+                            }
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
 
                         // Highlight N/C items
-                        // Column indexes 5 to 9 are the inspection items
                         if (data.column.index >= 5 && data.column.index < 5 + EXTINGUISHER_INSPECTION_ITEMS.length) {
-                             if (data.cell.text[0] === 'N/C') {
+                             if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
                             }
@@ -323,6 +326,9 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         if (!item) return;
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
+                           if (!data.row.styles) {
+                                data.row.styles = {};
+                           }
                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                     }
@@ -484,6 +490,9 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                         if (!item) return;
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
+                           if (!data.row.styles) {
+                                data.row.styles = {};
+                           }
                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                     }
@@ -567,13 +576,16 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         if (!item) return;
 
                         // Highlight expiring items
-                        if (data.column.index === 2 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                        if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                            if (!data.row.styles) {
+                                data.row.styles = {};
+                            }
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
                         // Highlight N/C items
                         if (data.column.index >= 5 && data.column.index < 5 + EXTINGUISHER_INSPECTION_ITEMS.length) {
-                             if (data.cell.text[0] === 'N/C') {
+                             if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
                             }
