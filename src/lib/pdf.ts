@@ -308,13 +308,13 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações']],
                 body: allHoses.map(h => {
                     const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
                         h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        insp.status, insp.date, insp.notes
+                        insp.status, insp.notes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -449,7 +449,7 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text("Relatório de Mangueiras", 14, finalY);
+        doc.text("Mangueiras", 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
@@ -473,13 +473,13 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações']],
                 body: allHoses.map(h => {
                     const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
                         h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        insp.status, insp.date, insp.notes
+                        insp.status, insp.notes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -521,7 +521,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text("Relatório de Extintores", 14, finalY);
+        doc.text("Extintores", 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
@@ -615,7 +615,7 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text("Relatório Descritivo de Equipamentos", 14, finalY);
+        doc.text("Descritivo de Equipamentos", 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
