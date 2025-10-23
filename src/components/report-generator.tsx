@@ -16,6 +16,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuPortal,
   DropdownMenuSeparator,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -147,7 +148,3 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     </div>
   );
 }
-
-
-
-
