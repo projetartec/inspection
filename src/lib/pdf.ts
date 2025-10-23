@@ -5,7 +5,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Extinguisher, Hydrant, Client, Building, ManualInspection } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection, Inspection } from '@/lib/types';
 
 // Extend jsPDF with autoTable
 interface jsPDFWithAutoTable extends jsPDF {
@@ -15,6 +15,11 @@ interface jsPDFWithAutoTable extends jsPDF {
 const NC_BG_COLOR = [252, 250, 152]; // #FCFA98
 const EXPIRING_BG_COLOR = [255, 105, 97]; // #FF6969
 const HEADER_BG_COLOR = [0, 128, 128]; // Teal
+
+const EXTINGUISHER_INSPECTION_ITEMS = [
+    "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
+];
+
 
 function formatDate(dateInput: string | null | undefined): string {
     if (!dateInput) return 'N/A';
@@ -75,10 +80,11 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
         // --- Extinguishers Table ---
         if (extinguishers.length > 0) {
+            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações']],
+                head: [extHeader],
                 body: extinguishers.map(e => {
                     const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
                     return [
@@ -93,7 +99,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
                     if (lastInsp?.status === 'N/C') {
                         data.cell.styles.fontStyle = 'bold';
-                        if (data.column.dataKey === 'Observações') {
+                         if (data.column.dataKey === 'Observações') {
                             data.cell.styles.fillColor = NC_BG_COLOR;
                         }
                     }
@@ -118,10 +124,11 @@ export async function generatePdfReport(client: Client, building: Building, exti
         
         // --- Hoses Table ---
         if (hoses.length > 0) {
+            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Data Últ. Inspeção', 'GPS', 'Observações']],
+                head: [hoseHeader],
                 body: hoses.map(h => {
                     const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
                     return [
@@ -165,11 +172,11 @@ export async function generatePdfReport(client: Client, building: Building, exti
             doc.setFontSize(14);
             doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
             finalY += 8;
-
+            const manualHeader = ['ID Manual', 'Data', 'GPS', 'Status', 'Observações'];
             doc.autoTable({
                 ...manualEntryTableStyles,
                 startY: finalY,
-                head: [['ID Manual', 'Data', 'GPS', 'Status', 'Observações']],
+                head: [manualHeader],
                 body: building.manualInspections.map(insp => {
                      const formattedInsp = formatLastInspection(insp);
                      return [
@@ -213,7 +220,7 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
             theme: 'striped',
             headStyles: { fillColor: HEADER_BG_COLOR },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+            styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
 
         // --- Extinguishers Table ---
@@ -226,26 +233,44 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
             doc.text("Extintores", 14, finalY);
             finalY += 8;
 
+            const extHeader = [
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
+            ];
+            
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                head: [extHeader],
                 body: allExtinguishers.map(e => {
-                    const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                    const lastInsp = e.inspections?.[e.inspections.length - 1];
+                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                        if (!lastInsp) return '';
+                        if (lastInsp.status === 'OK') return 'OK';
+                        return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
+                    });
+                    
                     return [
-                        e.id, e.buildingName, e.observations || '', e.type, e.weight + ' kg',
-                        formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
+                        e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
+                        ...inspectionStatus,
+                        lastInsp?.notes || ''
                     ];
                 }),
-                didDrawCell: (data) => {
-                    if (data.section === 'body') {
-                        const item = allExtinguishers[data.row.index];
-                        if (!item) return;
+                didParseCell: (data) => {
+                    const item = allExtinguishers[data.row.index];
+                    if (!item) return;
 
-                        if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
-                            doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
-                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-                        }
+                    // Highlight expiring items
+                    if (data.column.dataKey === 'Prédio' && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                         data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                    }
+                    
+                    // Highlight N/C items
+                    const headerText = data.settings.head[0][data.column.index];
+                    if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
+                        data.cell.styles.fillColor = NC_BG_COLOR;
+                        data.cell.styles.fontStyle = 'bold';
                     }
                 }
             });
@@ -494,7 +519,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildings: 
             theme: 'striped',
             headStyles: { fillColor: HEADER_BG_COLOR },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+            styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
         
         // --- Extinguishers Table ---
@@ -503,26 +528,44 @@ export async function generateExtinguishersPdfReport(client: Client, buildings: 
         );
 
         if (allExtinguishers.length > 0) {
+            const extHeader = [
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
+            ];
+            
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Data Últ. Inspeção', 'Observações']],
+                head: [extHeader],
                 body: allExtinguishers.map(e => {
-                    const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                    const lastInsp = e.inspections?.[e.inspections.length - 1];
+                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                        if (!lastInsp) return '';
+                        if (lastInsp.status === 'OK') return 'OK';
+                        return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
+                    });
+                    
                     return [
-                        e.id, e.buildingName, e.observations || '', e.type, e.weight + ' kg',
-                        formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes,
+                        e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
+                        ...inspectionStatus,
+                        lastInsp?.notes || ''
                     ];
                 }),
-                didDrawCell: (data) => {
-                    if (data.section === 'body') {
-                        const item = allExtinguishers[data.row.index];
-                        if (!item) return;
+                didParseCell: (data) => {
+                    const item = allExtinguishers[data.row.index];
+                    if (!item) return;
 
-                        if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
-                            doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
-                            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-                        }
+                    // Highlight expiring items
+                    if (data.column.dataKey === 'Prédio' && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                         data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                    }
+                    
+                    // Highlight N/C items
+                    const headerText = data.settings.head[0][data.column.index];
+                    if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
+                        data.cell.styles.fillColor = NC_BG_COLOR;
+                        data.cell.styles.fontStyle = 'bold';
                     }
                 }
             });

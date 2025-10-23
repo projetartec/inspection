@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
@@ -30,8 +30,7 @@ enum ScanMode {
 }
 
 const extinguisherIssues = [
-    "Pintura de solo", "Sinalização", "Fixação", "Obstrução", "Lacre", 
-    "Manômetro", "Rotulo", "Mangueira", "Anel"
+    "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
 ];
 
 const hoseIssues = [
@@ -139,8 +138,9 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         return;
     }
 
-    const effectiveStatus = mode === ScanMode.ManualEntry ? 'N/C' : status;
-    if (!effectiveStatus) {
+    const effectiveStatus = (mode === ScanMode.ManualEntry || (status === 'N/C' && checkedIssues.length > 0)) ? 'N/C' : 'OK';
+
+    if (!status) {
          toast({
             variant: 'destructive',
             title: 'Status Obrigatório',
@@ -155,13 +155,9 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         const itemIdentifier = mode === ScanMode.ManualEntry ? `manual:${manualId}` : scanResult;
         
         let finalNotes = notes;
-        const isResultModeNC = mode === ScanMode.Result && status === 'N/C';
         const isManualMode = mode === ScanMode.ManualEntry;
 
-        if (isResultModeNC && checkedIssues.length > 0) {
-            const issuesText = `Itens não conformes: ${checkedIssues.join(', ')}.`;
-            finalNotes = notes ? `${issuesText} | ${notes}` : issuesText;
-        } else if (isManualMode) {
+        if (isManualMode) {
             finalNotes = `[REGISTRO MANUAL] ${notes}`;
         }
         
@@ -170,6 +166,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             date: new Date().toISOString(),
             notes: finalNotes,
             status: effectiveStatus,
+            checkedIssues: effectiveStatus === 'N/C' ? checkedIssues : [],
             location: location ? {
                 latitude: location.latitude,
                 longitude: location.longitude,

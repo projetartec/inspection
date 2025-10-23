@@ -3,8 +3,13 @@
 
 import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Extinguisher, Hydrant, Client, Building, ManualInspection } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection, Inspection } from '@/lib/types';
 import * as XLSX from 'xlsx';
+
+const EXTINGUISHER_INSPECTION_ITEMS = [
+    "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
+];
+
 
 // --- HELPERS & STYLES ---
 
@@ -95,17 +100,29 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
         const generationDate = new Date();
        
         // --- Extinguishers Section ---
-        const extHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
+        const extHeader = [
+            'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+            ...EXTINGUISHER_INSPECTION_ITEMS,
+            'Observações'
+        ];
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+        
         const extBody = allExtinguishers.map(e => {
-            const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
-            let alert = '';
-            if (insp.status === 'N/C') alert = 'NÃO CONFORME';
-            if (e.expiryDate && isSameMonth(parseISO(e.expiryDate), generationDate) && isSameYear(parseISO(e.expiryDate), generationDate)) {
-                 alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
-            }
-            return [alert, e.id, e.buildingName, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes];
+            const lastInsp = e.inspections?.[e.inspections.length - 1];
+            
+            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                if (!lastInsp) return '';
+                if (lastInsp.status === 'OK') return 'OK';
+                return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
+            });
+            
+            return [
+                e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
+                ...inspectionStatus,
+                lastInsp?.notes || ''
+            ];
         });
+
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
         applyAutoFilter(wsExt, extHeader.length);
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
@@ -218,18 +235,28 @@ export async function generateHosesXlsxReport(client: Client, buildings: Buildin
 export async function generateExtinguishersXlsxReport(client: Client, buildings: Building[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
-        const generationDate = new Date();
        
-        const extHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', 'Status Últ. Insp.', 'Data Últ. Insp.', 'Observações Últ. Insp.'];
+        const extHeader = [
+            'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+            ...EXTINGUISHER_INSPECTION_ITEMS,
+            'Observações'
+        ];
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
+        
         const extBody = allExtinguishers.map(e => {
-            const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
-            let alert = '';
-            if (insp.status === 'N/C') alert = 'NÃO CONFORME';
-            if (e.expiryDate && isSameMonth(parseISO(e.expiryDate), generationDate) && isSameYear(parseISO(e.expiryDate), generationDate)) {
-                 alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
-            }
-            return [alert, e.id, e.buildingName, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, insp.status, insp.date, insp.notes];
+            const lastInsp = e.inspections?.[e.inspections.length - 1];
+            
+            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                if (!lastInsp) return '';
+                if (lastInsp.status === 'OK') return 'OK';
+                return lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK';
+            });
+            
+            return [
+                e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
+                ...inspectionStatus,
+                lastInsp?.notes || ''
+            ];
         });
 
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);

@@ -1,4 +1,5 @@
 
+
 export type Inspection = {
   id: string;
   date: string;
@@ -8,6 +9,7 @@ export type Inspection = {
   };
   notes: string;
   status: 'OK' | 'N/C';
+  checkedIssues?: string[];
 };
 
 export const extinguisherTypes = ["AP", "BC", "ABC", "CO2", "EPM"] as const;

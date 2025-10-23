@@ -22,8 +22,7 @@ interface InspectionListProps {
 }
 
 const extinguisherIssues = [
-    "Pintura de solo", "Sinalização", "Fixação", "Obstrução", "Lacre", 
-    "Manômetro", "Rotulo", "Mangueira", "Anel"
+    "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
 ];
 
 const hoseIssues = [
@@ -76,19 +75,16 @@ export function InspectionList({ items, type }: InspectionListProps) {
     }
 
     setIsSubmitting(true);
+    
+    const effectiveStatus = (status === 'N/C' && checkedIssues.length > 0) ? 'N/C' : 'OK';
 
     const processInspection = (location?: GeolocationCoordinates) => {
-      let finalNotes = notes;
-      if (status === 'N/C' && checkedIssues.length > 0) {
-        const issuesText = `Itens não conformes: ${checkedIssues.join(', ')}.`;
-        finalNotes = notes ? `${issuesText} | ${notes}` : issuesText;
-      }
-
       const itemData: InspectedItem = {
         qrCodeValue: selectedItem.qrCodeValue, // Use the actual qrCodeValue of the item
         date: new Date().toISOString(),
-        notes: finalNotes,
-        status,
+        notes: notes,
+        status: effectiveStatus,
+        checkedIssues: effectiveStatus === 'N/C' ? checkedIssues : [],
         location: location ? { latitude: location.latitude, longitude: location.longitude } : undefined,
       };
 
