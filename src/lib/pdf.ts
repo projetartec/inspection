@@ -246,11 +246,14 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
 
-                    const inspectionStatus = lastInsp
-                      ? EXTINGUISHER_INSPECTION_ITEMS.map(item =>
-                          lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
-                        )
-                      : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+                    let inspectionStatus: string[];
+                    if (lastInsp) {
+                        inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item =>
+                            lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                        );
+                    } else {
+                        inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+                    }
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
@@ -259,19 +262,21 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                     ];
                 }),
                 didParseCell: (data) => {
-                    const item = allExtinguishers[data.row.index];
-                    if (!item) return;
+                    if (data.row.section === 'body') {
+                        const item = allExtinguishers[data.row.index];
+                        if (!item) return;
 
-                    // Highlight expiring items
-                    if (data.column.dataKey === 'Prédio' && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
-                         data.row.styles.fillColor = EXPIRING_BG_COLOR;
-                    }
-                    
-                    // Highlight N/C items
-                    const headerText = data.settings.head[0][data.column.index];
-                    if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
-                        data.cell.styles.fillColor = NC_BG_COLOR;
-                        data.cell.styles.fontStyle = 'bold';
+                        // Highlight expiring items
+                        if (data.column.dataKey === 1 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                        }
+                        
+                        // Highlight N/C items
+                        const headerText = data.settings.head[0][data.column.index];
+                        if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
                 }
             });
@@ -309,14 +314,13 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                         insp.status, insp.date, insp.notes
                     ];
                 }),
-                didDrawCell: (data) => {
-                     if (data.section === 'body') {
+                didParseCell: (data) => {
+                     if (data.row.section === 'body') {
                         const item = allHoses[data.row.index];
                         if (!item) return;
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
-                           doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
-                           doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                           data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                     }
                 }
@@ -471,14 +475,13 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                         insp.status, insp.date, insp.notes
                     ];
                 }),
-                didDrawCell: (data) => {
-                     if (data.section === 'body') {
+                didParseCell: (data) => {
+                     if (data.row.section === 'body') {
                         const item = allHoses[data.row.index];
                         if (!item) return;
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
-                           doc.setFillColor(EXPIRING_BG_COLOR[0], EXPIRING_BG_COLOR[1], EXPIRING_BG_COLOR[2]);
-                           doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                           data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                     }
                 }
@@ -541,11 +544,14 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    const inspectionStatus = lastInsp
-                      ? EXTINGUISHER_INSPECTION_ITEMS.map(item =>
-                          lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
-                        )
-                      : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+                    let inspectionStatus: string[];
+                    if (lastInsp) {
+                        inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item =>
+                            lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                        );
+                    } else {
+                        inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+                    }
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
@@ -554,19 +560,21 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                     ];
                 }),
                 didParseCell: (data) => {
-                    const item = allExtinguishers[data.row.index];
-                    if (!item) return;
+                    if (data.row.section === 'body') {
+                        const item = allExtinguishers[data.row.index];
+                        if (!item) return;
 
-                    // Highlight expiring items
-                    if (data.column.dataKey === 'Prédio' && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
-                         data.row.styles.fillColor = EXPIRING_BG_COLOR;
-                    }
-                    
-                    // Highlight N/C items
-                    const headerText = data.settings.head[0][data.column.index];
-                    if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
-                        data.cell.styles.fillColor = NC_BG_COLOR;
-                        data.cell.styles.fontStyle = 'bold';
+                        // Highlight expiring items
+                        if (data.column.dataKey === 1 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                        }
+                        
+                        // Highlight N/C items
+                        const headerText = data.settings.head[0][data.column.index];
+                        if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
                 }
             });
@@ -581,3 +589,5 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
         resolve();
     });
 }
+
+    

@@ -110,11 +110,14 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            const inspectionStatus = lastInsp
-              ? EXTINGUISHER_INSPECTION_ITEMS.map(item => 
-                  lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
-                )
-              : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+            let inspectionStatus: string[];
+            if (lastInsp) {
+                inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
+                    lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                );
+            } else {
+                inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+            }
             
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
@@ -246,11 +249,14 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            const inspectionStatus = lastInsp
-              ? EXTINGUISHER_INSPECTION_ITEMS.map(item => 
-                  lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
-                )
-              : Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+            let inspectionStatus: string[];
+            if (lastInsp) {
+                inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
+                    lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                );
+            } else {
+                inspectionStatus = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+            }
             
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
@@ -268,3 +274,5 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         resolve();
     });
 }
+
+    
