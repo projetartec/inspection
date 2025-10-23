@@ -267,12 +267,12 @@ export async function generateClientPdfReport(client: Client, buildings: Buildin
                         if (!item) return;
 
                         // Highlight expiring items
-                        if (data.column.dataKey === 1 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                        if (data.column.dataKey === 2 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
                         // Highlight N/C items
-                        const headerText = data.settings.head[0][data.column.index];
+                        const headerText = (data.settings.head[0] as any)[data.column.index];
                         if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
                             data.cell.styles.fillColor = NC_BG_COLOR;
                             data.cell.styles.fontStyle = 'bold';
@@ -565,12 +565,12 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         if (!item) return;
 
                         // Highlight expiring items
-                        if (data.column.dataKey === 1 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
+                        if (data.column.dataKey === 2 && item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
                         // Highlight N/C items
-                        const headerText = data.settings.head[0][data.column.index];
+                        const headerText = (data.settings.head[0] as any)[data.column.index];
                         if (EXTINGUISHER_INSPECTION_ITEMS.includes(headerText) && data.cell.text[0] === 'N/C') {
                             data.cell.styles.fillColor = NC_BG_COLOR;
                             data.cell.styles.fontStyle = 'bold';
