@@ -187,7 +187,7 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <FileText className="mr-2 h-4 w-4" />
-                    <span>Relatório Consolidado</span>
+                    <span>Consolidado</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                     <DropdownMenuSubContent>
@@ -200,7 +200,7 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <Droplets className="mr-2 h-4 w-4" />
-                    <span>Relatório de Mangueiras</span>
+                    <span>Mangueiras</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                     <DropdownMenuSubContent>
@@ -213,7 +213,7 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <Flame className="mr-2 h-4 w-4" />
-                    <span>Relatório de Extintores</span>
+                    <span>Extintores</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                     <DropdownMenuSubContent>
@@ -226,7 +226,7 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <ClipboardList className="mr-2 h-4 w-4" />
-                    <span>Relatório Descritivo</span>
+                    <span>Descritivo</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                     <DropdownMenuSubContent>

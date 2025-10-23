@@ -120,7 +120,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <FileText className="mr-2 h-4 w-4" />
-              <span>Relatório de Inspeção</span>
+              <span>Inspeção</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
@@ -132,7 +132,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <ClipboardList className="mr-2 h-4 w-4" />
-              <span>Relatório Descritivo</span>
+              <span>Descritivo</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
