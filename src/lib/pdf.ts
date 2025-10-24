@@ -125,15 +125,17 @@ export async function generatePdfReport(client: Client, building: Building, exti
         
         // --- Hoses Table ---
         if (hoses.length > 0) {
-            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste'];
+            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
                 head: [hoseHeader],
                 body: hoses.map(h => {
+                     const lastInsp = h.inspections?.[h.inspections.length - 1];
+                     const status = lastInsp?.status || 'N/A';
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
-                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
+                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status
                     ];
                 }),
                  didParseCell: (data) => {
@@ -142,6 +144,11 @@ export async function generatePdfReport(client: Client, building: Building, exti
                     
                     if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
                          data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                    }
+
+                    if (data.column.index === 9 && data.cell.text && data.cell.text[0] === 'N/C') {
+                        data.cell.styles.fillColor = NC_BG_COLOR;
+                        data.cell.styles.fontStyle = 'bold';
                     }
                 }
             });
@@ -296,11 +303,13 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status']],
                 body: allHoses.map(h => {
+                    const lastInsp = h.inspections?.[h.inspections.length - 1];
+                    const status = lastInsp?.status || 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status
                     ];
                 }),
                 didParseCell: (data) => {
@@ -314,6 +323,11 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                        }
+
+                        if (data.column.index === 10 && data.cell.text && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
                         }
                     }
                 }
@@ -459,11 +473,13 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status']],
                 body: allHoses.map(h => {
+                    const lastInsp = h.inspections?.[h.inspections.length - 1];
+                    const status = lastInsp?.status || 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status
                     ];
                 }),
                 didParseCell: (data) => {
@@ -477,6 +493,11 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                         
                         if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
                            data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                        }
+
+                        if (data.column.index === 10 && data.cell.text && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
                         }
                     }
                 }
@@ -623,13 +644,14 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Tipo', 'Carga', 'Recarga']],
+                head: [['ID', 'Prédio', 'Tipo', 'Carga', 'Recarga', 'Observações']],
                 body: allExtinguishers.map(e => [
                     e.id,
                     e.buildingName,
                     e.type,
                     e.weight + ' kg',
-                    formatDate(e.expiryDate)
+                    formatDate(e.expiryDate),
+                    e.observations || ''
                 ]),
             });
             finalY = (doc as any).lastAutoTable.finalY + 10;

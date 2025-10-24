@@ -296,6 +296,7 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
                 location: item.location,
                 notes: item.notes,
                 status: item.status,
+                itemStatuses: item.itemStatuses, // Correctly include itemStatuses
             };
 
             let targetEquipment: Extinguisher | Hydrant | undefined;
@@ -305,25 +306,24 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
                 targetEquipment = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
             } else if (item.qrCodeValue.startsWith('manual:')) {
-                // For manual entries, we create a temporary "ghost" record.
-                // We'll add it to a new field in the building to not pollute the real equipment list.
                 if (!building.manualInspections) {
                     building.manualInspections = [];
                 }
                 const manualId = item.qrCodeValue.replace('manual:', '');
                 building.manualInspections.push({ ...newInspection, manualId: manualId });
-                return; // Skip the rest of the loop for manual entries
+                return;
             }
             
             if (targetEquipment) {
                 if (!targetEquipment.inspections) targetEquipment.inspections = [];
-                // Replace last inspection for the same session to avoid duplicates
+                
+                const inspectionDate = new Date(newInspection.date).getTime();
+                // Remove any inspection from roughly the same time to prevent duplicates on resubmission
                 targetEquipment.inspections = targetEquipment.inspections.filter(i => {
-                    const inspDate = new Date(i.date);
-                    const itemDate = new Date(item.date);
-                    // This is a simple way to check if it's from the same "session", might need improvement
-                    return Math.abs(inspDate.getTime() - itemDate.getTime()) > 2000; 
+                    const existingDate = new Date(i.date).getTime();
+                    return Math.abs(inspectionDate - existingDate) > 5000; // 5 second threshold
                 });
+                
                 targetEquipment.inspections.push(newInspection);
             }
         });
@@ -331,6 +331,7 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
+
 
 
 // --- Report Action ---
