@@ -100,7 +100,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
     });
 }
 
-export async function generateClientXlsxReport(client: Client, buildings: Building[]) {
+export async function generateClientXlsxReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
         const generationDate = new Date();
@@ -115,9 +115,11 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
         
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
-            
-            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
-            if (lastInsp && lastInsp.status === 'N/C') {
+            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+
+            if (lastInsp && lastInsp.status === 'OK') {
+                inspectionStatus.fill('OK');
+            } else if (lastInsp && lastInsp.status === 'N/C') {
                 const issues = lastInsp.checkedIssues || [];
                 inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
                     issues.includes(item) ? 'N/C' : 'OK'
@@ -253,9 +255,11 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
-            
-            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
-            if (lastInsp && lastInsp.status === 'N/C') {
+            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+
+            if (lastInsp && lastInsp.status === 'OK') {
+                inspectionStatus.fill('OK');
+            } else if (lastInsp && lastInsp.status === 'N/C') {
                 const issues = lastInsp.checkedIssues || [];
                 inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
                     issues.includes(item) ? 'N/C' : 'OK'
@@ -330,5 +334,6 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
     
 
     
+
 
 

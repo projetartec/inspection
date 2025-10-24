@@ -32,7 +32,7 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-function formatLastInspection(inspection: Inspection | undefined) {
+function formatLastInspectionForCsv(inspection: Inspection | undefined) {
     if (!inspection?.date) return { status: 'N/A', notes: '' };
     
     let notes = inspection.notes || '';
@@ -91,7 +91,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 startY: finalY,
                 head: [extHeader],
                 body: extinguishers.map(e => {
-                    const insp = formatLastInspection(e.inspections?.[e.inspections.length - 1]);
+                    const insp = formatLastInspectionForCsv(e.inspections?.[e.inspections.length - 1]);
                     return [
                         e.id, e.observations || '', e.type, e.weight + ' kg', formatDate(e.expiryDate), e.hydrostaticTestYear,
                         insp.status, insp.notes,
@@ -135,7 +135,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 startY: finalY,
                 head: [hoseHeader],
                 body: hoses.map(h => {
-                    const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
+                    const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
                         h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
@@ -183,7 +183,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 startY: finalY,
                 head: [manualHeader],
                 body: building.manualInspections.map(insp => {
-                     const formattedInsp = formatLastInspection(insp);
+                     const formattedInsp = formatLastInspectionForCsv(insp);
                      const date = insp.date ? format(parseISO(insp.date), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
                      return [
                         (insp as ManualInspection).manualId,
@@ -250,9 +250,11 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
+                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
 
-                    if (lastInsp && lastInsp.status === 'N/C') {
+                    if (lastInsp && lastInsp.status === 'OK') {
+                        inspectionStatus.fill('OK');
+                    } else if (lastInsp && lastInsp.status === 'N/C') {
                         const issues = lastInsp.checkedIssues || [];
                         inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
                             issues.includes(item) ? 'N/C' : 'OK'
@@ -314,7 +316,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 startY: finalY,
                 head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações']],
                 body: allHoses.map(h => {
-                    const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
+                    const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
                         h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
@@ -479,7 +481,7 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                 startY: finalY,
                 head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações']],
                 body: allHoses.map(h => {
-                    const insp = formatLastInspection(h.inspections?.[h.inspections.length - 1]);
+                    const insp = formatLastInspectionForCsv(h.inspections?.[h.inspections.length - 1]);
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
                         h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
@@ -558,8 +560,11 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
-                    if (lastInsp && lastInsp.status === 'N/C') {
+                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+
+                    if (lastInsp && lastInsp.status === 'OK') {
+                        inspectionStatus.fill('OK');
+                    } else if (lastInsp && lastInsp.status === 'N/C') {
                         const issues = lastInsp.checkedIssues || [];
                         inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item =>
                             issues.includes(item) ? 'N/C' : 'OK'
@@ -696,5 +701,6 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
     
 
     
+
 
 
