@@ -70,20 +70,15 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
         // --- Extinguishers Table ---
         if (extinguishers.length > 0) {
-            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status Geral', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS];
+            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
                 head: [extHeader],
                 body: extinguishers.map(e => {
-                    const insp = e.inspections?.[e.inspections.length - 1];
-                    const status = insp?.status ?? 'N/A';
-                    
-                    const itemStatuses = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (insp?.status === 'N/C') {
-                            return insp.itemStatuses?.[item] || 'OK';
-                        }
-                        return insp?.itemStatuses?.[item] || '';
+                    const lastInsp = e.inspections?.[e.inspections.length - 1];
+                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                        return lastInsp?.itemStatuses?.[item] || '';
                     });
                     
                     return [
@@ -93,9 +88,8 @@ export async function generatePdfReport(client: Client, building: Building, exti
                         e.weight + ' kg', 
                         formatDate(e.expiryDate), 
                         e.hydrostaticTestYear,
-                        status, 
-                        insp?.notes || '', 
-                        ...itemStatuses
+                        ...inspectionStatus,
+                        lastInsp?.notes || '', 
                     ];
                 }),
                 didParseCell: (data) => {
@@ -141,10 +135,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
                      const item = hoses[data.row.index];
                      if (!item) return;
                      const lastInsp = item.inspections?.[item.inspections.length - 1];
-
-                    if (lastInsp?.status === 'N/C') {
-                        data.cell.styles.fontStyle = 'bold';
-                    }
                     
                     if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
                          data.row.styles.fillColor = EXPIRING_BG_COLOR;
@@ -169,7 +159,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
             doc.setFontSize(14);
             doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
             finalY += 8;
-            const manualHeader = ['ID Manual', 'Data', 'Status', 'Observações'];
+            const manualHeader = ['ID Manual', 'Data', 'Observações'];
             doc.autoTable({
                 ...manualEntryTableStyles,
                 startY: finalY,
@@ -179,7 +169,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
                      return [
                         (insp as ManualInspection).manualId,
                         date,
-                        insp.status,
                         insp.notes,
                      ]
                 })
@@ -230,7 +219,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY += 8;
 
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'
             ];
             
             doc.autoTable({
@@ -241,9 +230,6 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (lastInsp?.status === 'N/C') {
-                            return lastInsp.itemStatuses?.[item] || 'OK';
-                        }
                         return lastInsp?.itemStatuses?.[item] || '';
                     });
                     
@@ -253,8 +239,8 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         formatDate(e.expiryDate), 
                         e.type, 
                         e.weight + ' kg',
-                        lastInsp?.notes || '',
                         ...inspectionStatus,
+                        lastInsp?.notes || '',
                     ];
                 }),
                 didParseCell: (data) => {
@@ -270,9 +256,9 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        const itemStatusStartIndex = 6; 
-                        if (data.column.index >= itemStatusStartIndex) {
-                            if (data.cell.text && data.cell.text[0] === 'N/C') {
+                        const itemStatusStartIndex = 5; 
+                        if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                             if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
                             }
@@ -544,7 +530,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
 
         if (allExtinguishers.length > 0) {
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'
             ];
             
             doc.autoTable({
@@ -555,10 +541,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                       if (lastInsp?.status === 'N/C') {
-                            return lastInsp.itemStatuses?.[item] || 'OK';
-                        }
-                        return lastInsp?.itemStatuses?.[item] || '';
+                       return lastInsp?.itemStatuses?.[item] || '';
                     });
                     
                     return [
@@ -567,8 +550,8 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         formatDate(e.expiryDate), 
                         e.type, 
                         e.weight + ' kg',
+                        ...inspectionStatus,
                         lastInsp?.notes || '',
-                        ...inspectionStatus
                     ];
                 }),
                 didParseCell: (data) => {
@@ -584,8 +567,8 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        const itemStatusStartIndex = 6;
-                        if (data.column.index >= itemStatusStartIndex) {
+                        const itemStatusStartIndex = 5;
+                        if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
