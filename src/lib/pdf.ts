@@ -230,7 +230,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp || !lastInsp.itemStatuses) return '';
+                        if (!lastInsp?.itemStatuses) return '';
                         return lastInsp.itemStatuses[item] || 'OK';
                     });
                     

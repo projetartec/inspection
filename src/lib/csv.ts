@@ -111,8 +111,8 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp || !lastInsp.itemStatuses) return '';
-                return lastInsp.itemStatuses[item] || 'OK';
+                if (!lastInsp?.itemStatuses) return '';
+                return lastInsp.itemStatuses[item] || 'OK'; 
             });
             
             return [
