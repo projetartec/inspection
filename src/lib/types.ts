@@ -8,8 +8,9 @@ export type Inspection = {
     longitude: number;
   };
   notes: string;
-  status: 'OK' | 'N/C';
-  checkedIssues?: string[];
+  status: 'OK' | 'N/C'; // General status for the item
+  itemStatuses?: { [key: string]: 'OK' | 'N/C' }; // Individual status for checklist items
+  checkedIssues?: string[]; // Kept for compatibility, but itemStatuses is preferred
 };
 
 export const extinguisherTypes = ["AP", "BC", "ABC", "CO2", "EPM"] as const;

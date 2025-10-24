@@ -16,7 +16,6 @@ import { extinguisherTypes, extinguisherWeights, getExtinguisherById } from '@/l
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Checkbox } from './ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Skeleton } from './ui/skeleton';
 
@@ -53,8 +52,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const [isFetchingItem, setIsFetchingItem] = useState(false);
   const [manualId, setManualId] = useState('');
   const [notes, setNotes] = useState('');
-  const [status, setStatus] = useState<Inspection['status'] | null>(null);
-  const [checkedIssues, setCheckedIssues] = useState<string[]>([]);
+  const [itemStatuses, setItemStatuses] = useState<{ [key: string]: 'OK' | 'N/C' }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
@@ -140,24 +138,14 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     setScannedItem(null);
     setManualId('');
     setNotes('');
-    setStatus(null);
-    setCheckedIssues([]);
+    setItemStatuses({});
     setIsSubmitting(false);
     setIsFetchingItem(false);
     setMode(ScanMode.Scanning);
   };
 
-  const handleStatusChange = (newStatus: Inspection['status']) => {
-    setStatus(newStatus);
-    if (newStatus === 'OK') {
-        setCheckedIssues([]); // Clear issues if status is OK
-    }
-  };
-
-  const handleCheckboxChange = (issue: string, checked: boolean) => {
-    setCheckedIssues(prev => 
-        checked ? [...prev, issue] : prev.filter(i => i !== issue)
-    );
+  const handleItemStatusChange = (itemName: string, status: 'OK' | 'N/C') => {
+    setItemStatuses(prev => ({...prev, [itemName]: status}));
   };
 
 
@@ -171,16 +159,23 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         });
         return;
     }
-
-    const effectiveStatus = (status === 'N/C') ? 'N/C' : 'OK';
-
-    if (!status) {
-         toast({
-            variant: 'destructive',
-            title: 'Status Obrigatório',
-            description: 'Por favor, selecione "OK" ou "Não Conforme".'
-        });
-        return;
+    
+    const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
+    let overallStatus: Inspection['status'] = 'OK';
+    
+    if (itemType === 'extinguisher') {
+        const hasNC = Object.values(itemStatuses).some(s => s === 'N/C');
+        overallStatus = hasNC ? 'N/C' : 'OK';
+    } else { // For hoses or other items
+        overallStatus = itemStatuses.general === 'N/C' ? 'N/C' : 'OK';
+        if(!itemStatuses.general) {
+             toast({ variant: 'destructive', title: 'Status Obrigatório', description: 'Por favor, selecione "OK" ou "Não Conforme".' });
+             return;
+        }
+    }
+    
+    if(mode === ScanMode.ManualEntry){
+        overallStatus = 'N/C';
     }
 
     setIsSubmitting(true);
@@ -189,9 +184,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         const itemIdentifier = mode === ScanMode.ManualEntry ? `manual:${manualId}` : scanResult;
         
         let finalNotes = notes;
-        const isManualMode = mode === ScanMode.ManualEntry;
-
-        if (isManualMode) {
+        if (mode === ScanMode.ManualEntry) {
             finalNotes = `[REGISTRO MANUAL] ${notes}`;
         }
         
@@ -199,15 +192,15 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             qrCodeValue: itemIdentifier!,
             date: new Date().toISOString(),
             notes: finalNotes,
-            status: effectiveStatus,
-            checkedIssues: effectiveStatus === 'N/C' ? checkedIssues : [],
+            status: overallStatus,
+            itemStatuses: itemStatuses,
             location: location ? {
                 latitude: location.latitude,
                 longitude: location.longitude,
             } : undefined
         };
 
-        if (scannedItem && (scannedItem as Extinguisher).type && status === 'N/C') {
+        if (scannedItem && (scannedItem as Extinguisher).type && overallStatus === 'N/C') {
           const originalExtinguisher = scannedItem as Extinguisher;
           const updatedData: Partial<Extinguisher> = {};
           if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
@@ -259,6 +252,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   if (mode === ScanMode.Result) {
     const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
     const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
+    const isExtinguisher = itemType === 'extinguisher';
 
     return (
       <Card className="w-full max-w-md animate-in fade-in">
@@ -278,7 +272,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                         <Skeleton className="h-10 w-full"/>
                     </div>
                 </div>
-            ) : itemType === 'extinguisher' && scannedItem && (
+            ) : isExtinguisher && scannedItem && (
                  <div className="space-y-3 p-4 border rounded-md">
                     <h4 className="font-medium text-sm mb-3">Dados do Equipamento</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
@@ -288,7 +282,6 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                                 name="type" 
                                 value={editableType}
                                 onValueChange={(v) => setEditableType(v as ExtinguisherType)}
-                                disabled={status !== 'N/C'}
                             >
                                 <SelectTrigger id="insp-type"><SelectValue/></SelectTrigger>
                                 <SelectContent>
@@ -302,7 +295,6 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                                 name="weight"
                                 value={String(editableWeight)}
                                 onValueChange={(v) => setEditableWeight(Number(v) as ExtinguisherWeight)}
-                                disabled={status !== 'N/C'}
                             >
                                 <SelectTrigger id="insp-weight"><SelectValue/></SelectTrigger>
                                 <SelectContent>
@@ -318,49 +310,41 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                              type="date"
                              value={editableExpiry}
                              onChange={(e) => setEditableExpiry(e.target.value)}
-                             disabled={status !== 'N/C'}
                            />
                        </div>
                     </div>
                 </div>
             )}
-
-            <div className="grid grid-cols-2 gap-4">
-                 <Button 
-                    variant={status === 'OK' ? 'default' : 'outline'}
-                    onClick={() => handleStatusChange('OK')}
-                    className={cn("h-16 text-lg", status === 'OK' && "bg-green-600 hover:bg-green-700")}
-                 >
-                    <ThumbsUp className="mr-2" /> OK
-                 </Button>
-                 <Button 
-                    variant={status === 'N/C' ? 'destructive' : 'outline'}
-                    onClick={() => handleStatusChange('N/C')}
-                    className="h-16 text-lg"
-                >
-                    <ThumbsDown className="mr-2" /> N/C
-                 </Button>
-            </div>
-
-            {status === 'N/C' && itemType && (
-                <div className="space-y-3 p-4 border rounded-md">
-                    <h4 className="font-medium text-sm">Selecione os itens não conformes:</h4>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                        {issuesList.map(issue => (
-                            <div key={issue} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`issue-${issue.replace(/\s+/g, '-')}`} 
-                                    onCheckedChange={(checked) => handleCheckboxChange(issue, !!checked)}
-                                    checked={checkedIssues.includes(issue)}
-                                />
-                                <Label htmlFor={`issue-${issue.replace(/\s+/g, '-')}`} className="text-sm font-normal cursor-pointer">
-                                    {issue}
-                                </Label>
+            
+            <div className="space-y-3 p-4 border rounded-md">
+                <h4 className="font-medium text-sm">Checklist de Inspeção</h4>
+                 {isExtinguisher ? (
+                     issuesList.map(issue => (
+                        <div key={issue} className="flex items-center justify-between">
+                            <Label htmlFor={`issue-${issue.replace(/\s+/g, '-')}`} className="text-sm font-normal">
+                                {issue}
+                            </Label>
+                            <div className="flex gap-2">
+                                <Button size="sm" variant={itemStatuses[issue] === 'OK' ? 'default' : 'outline'} onClick={() => handleItemStatusChange(issue, 'OK')} className={cn("w-16", itemStatuses[issue] === 'OK' && "bg-green-600 hover:bg-green-700")}>
+                                    <ThumbsUp className="mr-2 h-4 w-4" /> OK
+                                </Button>
+                                <Button size="sm" variant={itemStatuses[issue] === 'N/C' ? 'destructive' : 'outline'} onClick={() => handleItemStatusChange(issue, 'N/C')} className="w-16">
+                                    <ThumbsDown className="mr-2 h-4 w-4" /> N/C
+                                </Button>
                             </div>
-                        ))}
+                        </div>
+                    ))
+                 ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                        <Button variant={itemStatuses.general === 'OK' ? 'default' : 'outline'} onClick={() => handleItemStatusChange('general', 'OK')} className={cn("h-16 text-lg", itemStatuses.general === 'OK' && "bg-green-600 hover:bg-green-700")}>
+                            <ThumbsUp className="mr-2" /> OK
+                        </Button>
+                        <Button variant={itemStatuses.general === 'N/C' ? 'destructive' : 'outline'} onClick={() => handleItemStatusChange('general', 'N/C')} className="h-16 text-lg">
+                            <ThumbsDown className="mr-2" /> N/C
+                        </Button>
                     </div>
-                </div>
-            )}
+                 )}
+            </div>
 
             <Textarea 
                 placeholder="Adicionar notas (opcional)..."
@@ -370,7 +354,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             />
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button onClick={handleLogInspection} disabled={isSubmitting || !status || isFetchingItem} className="w-full">
+          <Button onClick={handleLogInspection} disabled={isSubmitting || isFetchingItem} className="w-full">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar e Continuar
           </Button>
