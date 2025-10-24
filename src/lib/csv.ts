@@ -94,7 +94,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             XLSX.utils.book_append_sheet(wb, wsManual, 'Falhas de Leitura');
         }
 
-        const fileName = `Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.xlsx`;
+        const fileName = `Relatorio_Inspecao_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
         resolve();
     });
@@ -116,19 +116,18 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
-            if (lastInsp) {
+            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
+            if (lastInsp && lastInsp.status === 'N/C') {
+                const issues = lastInsp.checkedIssues || [];
                 inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
-                    lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                    issues.includes(item) ? 'N/C' : 'OK'
                 );
             }
-
-            const inspNotes = formatLastInspectionForCsv(lastInsp).notes;
             
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
                 ...inspectionStatus,
-                inspNotes
+                lastInsp?.notes || '' // Only manual notes
             ];
         });
 
@@ -255,19 +254,18 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         const extBody = allExtinguishers.map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
-            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
-            if (lastInsp) {
+            let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
+            if (lastInsp && lastInsp.status === 'N/C') {
+                const issues = lastInsp.checkedIssues || [];
                 inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
-                    lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                    issues.includes(item) ? 'N/C' : 'OK'
                 );
             }
             
-            const inspNotes = formatLastInspectionForCsv(lastInsp).notes;
-
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
                 ...inspectionStatus,
-                inspNotes
+                lastInsp?.notes || '' // Only manual notes
             ];
         });
 
@@ -332,4 +330,5 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
     
 
     
+
 

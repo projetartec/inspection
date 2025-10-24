@@ -195,7 +195,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
             })
         }
         
-        const fileName = `Relatorio_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
+        const fileName = `Relatorio_Inspecao_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
         resolve();
     });
@@ -250,20 +250,19 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
+                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
 
-                    if (lastInsp) {
+                    if (lastInsp && lastInsp.status === 'N/C') {
+                        const issues = lastInsp.checkedIssues || [];
                         inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => 
-                            lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                            issues.includes(item) ? 'N/C' : 'OK'
                         );
                     }
-
-                    const inspNotes = formatLastInspection(lastInsp).notes;
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
                         ...inspectionStatus,
-                        inspNotes
+                        lastInsp?.notes || '' // Only manual notes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -271,16 +270,14 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         const item = allExtinguishers[data.row.index];
                         if (!item) return;
 
-                        // This is the fix: initialize styles if it doesn't exist.
                         if (!data.row.styles) {
                             data.row.styles = {};
                         }
-                        // Highlight expiring items
+                        
                         if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
-
-                        // Highlight N/C items
+                        
                         if (data.column.index >= 5 && data.column.index < 5 + EXTINGUISHER_INSPECTION_ITEMS.length) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
@@ -561,18 +558,18 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
-                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('');
-                    if (lastInsp) {
+                    let inspectionStatus: string[] = Array(EXTINGUISHER_INSPECTION_ITEMS.length).fill('OK');
+                    if (lastInsp && lastInsp.status === 'N/C') {
+                        const issues = lastInsp.checkedIssues || [];
                         inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item =>
-                            lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
+                            issues.includes(item) ? 'N/C' : 'OK'
                         );
                     }
-                    const inspNotes = formatLastInspection(lastInsp).notes;
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
                         ...inspectionStatus,
-                        inspNotes
+                        lastInsp?.notes || '' // Only manual notes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -699,4 +696,5 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
     
 
     
+
 
