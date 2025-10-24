@@ -78,7 +78,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 body: extinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp || !lastInsp.itemStatuses) return '';
+                        if (!lastInsp || !lastInsp.itemStatuses) return 'OK';
                         return lastInsp.itemStatuses[item] || 'OK';
                     });
                     
@@ -117,7 +117,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
         
         // --- Hoses Table ---
         if (hoses.length > 0) {
-            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status'];
+            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
@@ -127,8 +127,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                     const status = insp?.status ?? 'N/A';
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
-                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        status
+                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
                     ];
                 }),
                  didParseCell: (data) => {
@@ -230,8 +229,10 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp?.itemStatuses) return '';
-                        return lastInsp.itemStatuses[item] || 'OK';
+                        if (lastInsp && lastInsp.itemStatuses) {
+                            return lastInsp.itemStatuses[item] || 'OK';
+                        }
+                        return 'OK';
                     });
                     
                     return [
@@ -292,14 +293,13 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste']],
                 body: allHoses.map(h => {
                     const insp = h.inspections?.[h.inspections.length - 1];
                     const status = insp?.status ?? 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        status
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
                     ];
                 }),
                 didParseCell: (data) => {
@@ -458,14 +458,13 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste']],
                 body: allHoses.map(h => {
                     const insp = h.inspections?.[h.inspections.length - 1];
                     const status = insp?.status ?? 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate),
-                        status
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
                     ];
                 }),
                 didParseCell: (data) => {
@@ -539,7 +538,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                       if (!lastInsp || !lastInsp.itemStatuses) return '';
+                       if (!lastInsp || !lastInsp.itemStatuses) return 'OK';
                        return lastInsp.itemStatuses[item] || 'OK';
                     });
                     

@@ -42,9 +42,9 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             let alert = '';
             
-             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp || !lastInsp.itemStatuses) return '';
-                return lastInsp.itemStatuses[item] || 'OK';
+            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                if (!lastInsp || !lastInsp.itemStatuses) return 'OK'; // Default to OK if no inspection
+                return lastInsp.itemStatuses[item] || 'OK'; // Default individual items to OK
             });
             
             if (inspectionStatus.includes('N/C')) {
@@ -111,8 +111,12 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp?.itemStatuses) return '';
-                return lastInsp.itemStatuses[item] || 'OK'; 
+                // If there's an inspection with statuses, use the specific status, otherwise default to "OK"
+                if (lastInsp && lastInsp.itemStatuses) {
+                    return lastInsp.itemStatuses[item] || 'OK';
+                }
+                // If there's no inspection or no itemStatuses, default to "OK"
+                return 'OK';
             });
             
             return [
@@ -131,7 +135,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
 
         // --- Hoses Section ---
-        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.'];
+        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.'];
         const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
@@ -141,7 +145,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status ];
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate) ];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -213,7 +217,7 @@ export async function generateHosesXlsxReport(client: Client, buildingsWithHoses
         const generationDate = new Date();
        
         // --- Hoses Section ---
-        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.'];
+        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.'];
         const allHoses = buildingsWithHoses.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
@@ -223,7 +227,7 @@ export async function generateHosesXlsxReport(client: Client, buildingsWithHoses
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status ];
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate) ];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -252,7 +256,7 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp || !lastInsp.itemStatuses) return '';
+                if (!lastInsp || !lastInsp.itemStatuses) return 'OK';
                 return lastInsp.itemStatuses[item] || 'OK'; 
             });
             
@@ -330,3 +334,4 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
     
 
     
+
