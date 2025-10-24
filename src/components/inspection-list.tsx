@@ -8,11 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { ThumbsUp, ThumbsDown, CheckCircle2, Loader2, Edit } from 'lucide-react';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
-import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
+import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight } from '@/lib/types';
+import { extinguisherTypes, extinguisherWeights } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 type Item = Extinguisher | Hydrant;
 
@@ -37,6 +40,11 @@ export function InspectionList({ items, type }: InspectionListProps) {
   const [checkedIssues, setCheckedIssues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // State for editable extinguisher data
+  const [editableType, setEditableType] = useState<ExtinguisherType | undefined>();
+  const [editableWeight, setEditableWeight] = useState<ExtinguisherWeight | undefined>();
+  const [editableExpiry, setEditableExpiry] = useState<string | undefined>();
+
   const { addItemToInspection, isItemInspected } = useInspectionSession();
   const { toast } = useToast();
 
@@ -45,6 +53,12 @@ export function InspectionList({ items, type }: InspectionListProps) {
     setStatus(null);
     setNotes('');
     setCheckedIssues([]);
+    if (type === 'extinguisher') {
+      const ext = item as Extinguisher;
+      setEditableType(ext.type);
+      setEditableWeight(ext.weight);
+      setEditableExpiry(ext.expiryDate);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -80,13 +94,29 @@ export function InspectionList({ items, type }: InspectionListProps) {
 
     const processInspection = (location?: GeolocationCoordinates) => {
       const itemData: InspectedItem = {
-        qrCodeValue: selectedItem.qrCodeValue, // Use the actual qrCodeValue of the item
+        qrCodeValue: selectedItem.qrCodeValue,
         date: new Date().toISOString(),
         notes: notes,
         status: effectiveStatus,
         checkedIssues: effectiveStatus === 'N/C' ? checkedIssues : [],
         location: location ? { latitude: location.latitude, longitude: location.longitude } : undefined,
       };
+
+      // Include updated extinguisher data if applicable
+      if (type === 'extinguisher' && status === 'N/C') {
+        const originalExtinguisher = selectedItem as Extinguisher;
+        const updatedData: Partial<Extinguisher> = {};
+        if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
+        if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
+        if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
+
+        if (Object.keys(updatedData).length > 0) {
+            itemData.updatedData = {
+                id: originalExtinguisher.id,
+                ...updatedData
+            };
+        }
+      }
 
       addItemToInspection(itemData);
       
@@ -102,7 +132,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
             toast({
               variant: 'default',
               title: 'Aviso de Localização',
-              description: 'Não foi possível obter la localização GPS. Registrando item sem ela.'
+              description: 'Não foi possível obter a localização GPS. Registrando item sem ela.'
             });
             processInspection();
           },
@@ -118,6 +148,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
   }
 
   const issuesList = type === 'extinguisher' ? extinguisherIssues : hoseIssues;
+  const currentExtinguisher = selectedItem as Extinguisher;
 
   return (
     <div className="space-y-2">
@@ -171,6 +202,53 @@ export function InspectionList({ items, type }: InspectionListProps) {
                 <ThumbsDown className="mr-2" /> N/C
               </Button>
             </div>
+            
+            {type === 'extinguisher' && selectedItem && (
+                 <div className="space-y-3 p-4 border rounded-md">
+                    <h4 className="font-medium text-sm mb-3">Dados do Equipamento</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                       <div className="space-y-2">
+                           <Label htmlFor="insp-type">Tipo</Label>
+                           <Select 
+                                name="type" 
+                                value={editableType}
+                                onValueChange={(v) => setEditableType(v as ExtinguisherType)}
+                                disabled={status !== 'N/C'}
+                            >
+                                <SelectTrigger id="insp-type"><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {extinguisherTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                           </Select>
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="insp-weight">Capacidade</Label>
+                           <Select 
+                                name="weight"
+                                value={String(editableWeight)}
+                                onValueChange={(v) => setEditableWeight(Number(v) as ExtinguisherWeight)}
+                                disabled={status !== 'N/C'}
+                            >
+                                <SelectTrigger id="insp-weight"><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {extinguisherWeights.map((w) => <SelectItem key={w} value={String(w)}>{w} kg</SelectItem>)}
+                                </SelectContent>
+                           </Select>
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="insp-expiry">Recarga</Label>
+                           <Input
+                             id="insp-expiry"
+                             name="expiryDate"
+                             type="date"
+                             value={editableExpiry}
+                             onChange={(e) => setEditableExpiry(e.target.value)}
+                             disabled={status !== 'N/C'}
+                           />
+                       </div>
+                    </div>
+                </div>
+            )}
 
             {status === 'N/C' && (
                 <div className="space-y-3 p-4 border rounded-md">

@@ -2,11 +2,13 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import type { Inspection } from '@/lib/types';
-import { addInspectionBatchAction } from '@/lib/actions';
+import type { Inspection, Extinguisher } from '@/lib/types';
+import { addInspectionBatchAction, updateExtinguisherAction } from '@/lib/actions';
+import { ExtinguisherFormValues } from '@/lib/schemas';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
     qrCodeValue: string;
+    updatedData?: Partial<ExtinguisherFormValues>;
 }
 
 export interface InspectionSession {
@@ -105,7 +107,25 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
         };
         
         try {
+            // Separate pure inspections from those with data updates
+            const pureInspections = session.inspectedItems.filter(item => !item.updatedData);
+            const itemsToUpdate = session.inspectedItems.filter(item => !!item.updatedData);
+
+            // Create promises for all updates
+            const updatePromises = itemsToUpdate.map(item => {
+                if (item.qrCodeValue.startsWith('fireguard-ext-') && item.updatedData) {
+                    const extinguisherId = item.qrCodeValue.replace('fireguard-ext-', '');
+                    return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherId, item.updatedData);
+                }
+                return Promise.resolve(); // Ignore updates for non-extinguishers for now
+            });
+
+            // Run all updates in parallel
+            await Promise.all(updatePromises);
+            
+            // Batch add all inspection records (including for updated items)
             await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
+            
             // After successfully saving, clear the local session
             updateSession(null);
         } catch(e) {

@@ -11,11 +11,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, CameraOff, ThumbsUp, ThumbsDown, Edit } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
-import type { Inspection } from '@/lib/types';
+import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight } from '@/lib/types';
+import { extinguisherTypes, extinguisherWeights, getExtinguisherById } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Skeleton } from './ui/skeleton';
 
 
 interface QrScannerProps {
@@ -46,12 +49,19 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const [mode, setMode] = useState<ScanMode>(ScanMode.Scanning);
   
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [scannedItem, setScannedItem] = useState<Extinguisher | Hydrant | null>(null);
+  const [isFetchingItem, setIsFetchingItem] = useState(false);
   const [manualId, setManualId] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<Inspection['status'] | null>(null);
   const [checkedIssues, setCheckedIssues] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+
+  // State for editable extinguisher data
+  const [editableType, setEditableType] = useState<ExtinguisherType | undefined>();
+  const [editableWeight, setEditableWeight] = useState<ExtinguisherWeight | undefined>();
+  const [editableExpiry, setEditableExpiry] = useState<string | undefined>();
   
   const router = useRouter();
   const { toast } = useToast();
@@ -70,11 +80,33 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     const scanner = new Html5Qrcode('qr-reader-container');
     scannerRef.current = scanner;
 
-    const onScanSuccess = (decodedText: string) => {
+    const onScanSuccess = async (decodedText: string) => {
       setScanResult(decodedText);
       setMode(ScanMode.Result);
       if (scanner.getState() === Html5QrcodeScannerState.SCANNING) {
         scanner.stop().catch(err => console.error("Falha ao parar o scanner", err));
+      }
+
+      // Fetch item details after scan
+      if (decodedText.startsWith('fireguard-ext-')) {
+          setIsFetchingItem(true);
+          const extId = decodedText.replace('fireguard-ext-', '');
+          try {
+              const item = await getExtinguisherById(clientId, buildingId, extId);
+              if (item) {
+                  setScannedItem(item);
+                  setEditableType(item.type);
+                  setEditableWeight(item.weight);
+                  setEditableExpiry(item.expiryDate);
+              } else {
+                 toast({ variant: 'destructive', title: 'Erro', description: 'Extintor não encontrado.' });
+              }
+          } catch (error) {
+              console.error(error);
+              toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao buscar dados do extintor.' });
+          } finally {
+              setIsFetchingItem(false);
+          }
       }
     };
     
@@ -101,15 +133,17 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         scannerRef.current.stop().catch(err => {/* ignore */});
       }
     };
-  }, [mode, scanResult]);
+  }, [mode, scanResult, clientId, buildingId, toast]);
 
   const resetState = () => {
     setScanResult(null);
+    setScannedItem(null);
     setManualId('');
     setNotes('');
     setStatus(null);
     setCheckedIssues([]);
     setIsSubmitting(false);
+    setIsFetchingItem(false);
     setMode(ScanMode.Scanning);
   };
 
@@ -138,7 +172,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         return;
     }
 
-    const effectiveStatus = (mode === ScanMode.ManualEntry || (status === 'N/C' && checkedIssues.length > 0)) ? 'N/C' : 'OK';
+    const effectiveStatus = (status === 'N/C') ? 'N/C' : 'OK';
 
     if (!status) {
          toast({
@@ -172,6 +206,21 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                 longitude: location.longitude,
             } : undefined
         };
+
+        if (scannedItem && (scannedItem as Extinguisher).type && status === 'N/C') {
+          const originalExtinguisher = scannedItem as Extinguisher;
+          const updatedData: Partial<Extinguisher> = {};
+          if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
+          if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
+          if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
+          
+          if (Object.keys(updatedData).length > 0) {
+            itemData.updatedData = {
+                id: originalExtinguisher.id,
+                ...updatedData
+            };
+          }
+        }
         
         addItemToInspection(itemData);
 
@@ -208,7 +257,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   }
 
   if (mode === ScanMode.Result) {
-    const itemType = scanResult?.includes('ext') ? 'extinguisher' : scanResult?.includes('hose') ? 'hose' : null;
+    const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
     const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
 
     return (
@@ -216,10 +265,66 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         <CardHeader>
           <CardTitle>Registrar Item Escaneado</CardTitle>
           <CardDescription>
-            ID do Equipamento: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult}</span>
+            ID: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult?.replace('fireguard-ext-', '').replace('fireguard-hose-', '')}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-3">
+            {isFetchingItem ? (
+                <div className="space-y-4 p-4 border rounded-md">
+                    <Skeleton className="h-5 w-3/4"/>
+                    <div className="grid grid-cols-3 gap-4">
+                        <Skeleton className="h-10 w-full"/>
+                        <Skeleton className="h-10 w-full"/>
+                        <Skeleton className="h-10 w-full"/>
+                    </div>
+                </div>
+            ) : itemType === 'extinguisher' && scannedItem && (
+                 <div className="space-y-3 p-4 border rounded-md">
+                    <h4 className="font-medium text-sm mb-3">Dados do Equipamento</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                       <div className="space-y-2">
+                           <Label htmlFor="insp-type">Tipo</Label>
+                           <Select 
+                                name="type" 
+                                value={editableType}
+                                onValueChange={(v) => setEditableType(v as ExtinguisherType)}
+                                disabled={status !== 'N/C'}
+                            >
+                                <SelectTrigger id="insp-type"><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {extinguisherTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                           </Select>
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="insp-weight">Capacidade</Label>
+                           <Select 
+                                name="weight"
+                                value={String(editableWeight)}
+                                onValueChange={(v) => setEditableWeight(Number(v) as ExtinguisherWeight)}
+                                disabled={status !== 'N/C'}
+                            >
+                                <SelectTrigger id="insp-weight"><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    {extinguisherWeights.map((w) => <SelectItem key={w} value={String(w)}>{w} kg</SelectItem>)}
+                                </SelectContent>
+                           </Select>
+                       </div>
+                       <div className="space-y-2">
+                           <Label htmlFor="insp-expiry">Recarga</Label>
+                           <Input
+                             id="insp-expiry"
+                             name="expiryDate"
+                             type="date"
+                             value={editableExpiry}
+                             onChange={(e) => setEditableExpiry(e.target.value)}
+                             disabled={status !== 'N/C'}
+                           />
+                       </div>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
                  <Button 
                     variant={status === 'OK' ? 'default' : 'outline'}
@@ -265,7 +370,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             />
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
-          <Button onClick={handleLogInspection} disabled={isSubmitting || !status} className="w-full">
+          <Button onClick={handleLogInspection} disabled={isSubmitting || !status || isFetchingItem} className="w-full">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar e Continuar
           </Button>
