@@ -78,11 +78,24 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 body: extinguishers.map(e => {
                     const insp = e.inspections?.[e.inspections.length - 1];
                     const status = insp?.status ?? 'N/A';
-                    const notes = insp?.notes ?? '';
-                    const itemStatuses = EXTINGUISHER_INSPECTION_ITEMS.map(item => insp?.itemStatuses?.[item] || '');
+                    
+                    const itemStatuses = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                        if (insp?.status === 'N/C') {
+                            return insp.itemStatuses?.[item] || 'OK';
+                        }
+                        return insp?.itemStatuses?.[item] || '';
+                    });
+                    
                     return [
-                        e.id, e.observations || '', e.type, e.weight + ' kg', formatDate(e.expiryDate), e.hydrostaticTestYear,
-                        status, notes, ...itemStatuses
+                        e.id, 
+                        e.observations || '', 
+                        e.type, 
+                        e.weight + ' kg', 
+                        formatDate(e.expiryDate), 
+                        e.hydrostaticTestYear,
+                        status, 
+                        insp?.notes || '', 
+                        ...itemStatuses
                     ];
                 }),
                 didParseCell: (data) => {
@@ -131,9 +144,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
                     if (lastInsp?.status === 'N/C') {
                         data.cell.styles.fontStyle = 'bold';
-                        if (data.column.dataKey === 'Observações') {
-                            data.cell.styles.fillColor = NC_BG_COLOR;
-                        }
                     }
                     
                     if (item.hydrostaticTestDate && isSameMonth(parseISO(item.hydrostaticTestDate), generationDate) && isSameYear(parseISO(item.hydrostaticTestDate), generationDate)) {
@@ -220,9 +230,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY += 8;
 
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-                'Observações',
-                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS
             ];
             
             doc.autoTable({
@@ -233,8 +241,10 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp || !lastInsp.itemStatuses) return '';
-                        return lastInsp.itemStatuses[item] || ''; 
+                        if (lastInsp?.status === 'N/C') {
+                            return lastInsp.itemStatuses?.[item] || 'OK';
+                        }
+                        return lastInsp?.itemStatuses?.[item] || '';
                     });
                     
                     return [
@@ -260,10 +270,9 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        // Start coloring from the first item status column
                         const itemStatusStartIndex = 6; 
-                        if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
-                             if (data.cell.text && data.cell.text[0] === 'N/C') {
+                        if (data.column.index >= itemStatusStartIndex) {
+                            if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
                             }
@@ -535,9 +544,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
 
         if (allExtinguishers.length > 0) {
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-                'Observações',
-                ...EXTINGUISHER_INSPECTION_ITEMS
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS
             ];
             
             doc.autoTable({
@@ -548,8 +555,10 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp || !lastInsp.itemStatuses) return '';
-                        return lastInsp.itemStatuses[item] || ''; 
+                       if (lastInsp?.status === 'N/C') {
+                            return lastInsp.itemStatuses?.[item] || 'OK';
+                        }
+                        return lastInsp?.itemStatuses?.[item] || '';
                     });
                     
                     return [
@@ -576,7 +585,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         }
                         
                         const itemStatusStartIndex = 6;
-                        if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                        if (data.column.index >= itemStatusStartIndex) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
