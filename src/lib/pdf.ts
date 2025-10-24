@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import jsPDF from 'jspdf';
@@ -31,11 +32,18 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-function formatLastInspection(inspection: any) {
+function formatLastInspection(inspection: Inspection | undefined) {
     if (!inspection?.date) return { status: 'N/A', notes: '' };
+    
+    let notes = inspection.notes || '';
+    if (inspection.status === 'N/C' && inspection.checkedIssues && inspection.checkedIssues.length > 0) {
+        const issues = inspection.checkedIssues.join(', ');
+        notes = notes ? `${issues}; ${notes}` : issues;
+    }
+
     return {
         status: inspection.status || 'N/A',
-        notes: inspection.notes || '',
+        notes: notes,
     };
 }
 
@@ -249,11 +257,13 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                             lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                         );
                     }
+
+                    const inspNotes = formatLastInspection(lastInsp).notes;
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
                         ...inspectionStatus,
-                        lastInsp?.notes || ''
+                        inspNotes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -557,11 +567,12 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                             lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                         );
                     }
+                    const inspNotes = formatLastInspection(lastInsp).notes;
                     
                     return [
                         e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
                         ...inspectionStatus,
-                        lastInsp?.notes || ''
+                        inspNotes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -688,3 +699,4 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
     
 
     
+

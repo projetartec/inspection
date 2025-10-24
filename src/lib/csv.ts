@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
@@ -23,11 +24,18 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-function formatLastInspectionForCsv(inspection: any) {
+function formatLastInspectionForCsv(inspection: Inspection | undefined) {
     if (!inspection?.date) return { status: 'N/A', notes: '' };
+    
+    let notes = inspection.notes || '';
+    if (inspection.status === 'N/C' && inspection.checkedIssues && inspection.checkedIssues.length > 0) {
+        const issues = inspection.checkedIssues.join(', ');
+        notes = notes ? `${issues}; ${notes}` : issues;
+    }
+
     return {
         status: inspection.status || 'N/A',
-        notes: inspection.notes || '',
+        notes: notes,
     };
 }
 
@@ -114,11 +122,13 @@ export async function generateClientXlsxReport(client: Client, buildings: Buildi
                     lastInsp.checkedIssues?.includes(item) ? 'N/C' : 'OK'
                 );
             }
+
+            const inspNotes = formatLastInspectionForCsv(lastInsp).notes;
             
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
                 ...inspectionStatus,
-                lastInsp?.notes || ''
+                inspNotes
             ];
         });
 
@@ -252,10 +262,12 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
                 );
             }
             
+            const inspNotes = formatLastInspectionForCsv(lastInsp).notes;
+
             return [
                 e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
                 ...inspectionStatus,
-                lastInsp?.notes || ''
+                inspNotes
             ];
         });
 
@@ -320,3 +332,4 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
     
 
     
+
