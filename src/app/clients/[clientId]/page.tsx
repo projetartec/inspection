@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, X } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X, ClipboardEdit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -213,6 +212,12 @@ export default function ClientPage() {
                                         building={building}
                                         onUpdate={handleGpsLinkUpdate}
                                     />
+                                    <Button asChild variant="ghost" size="icon">
+                                      <Link href={`/clients/${client.id}/${building.id}/edit-inspection`}>
+                                        <ClipboardEdit className="h-5 w-5" />
+                                        <span className="sr-only">Editar Inspeção</span>
+                                      </Link>
+                                    </Button>
                                     <Button asChild variant="ghost" size="icon">
                                       <Link href={`/clients/${client.id}/${building.id}/edit`}>
                                         <Pencil className="h-5 w-5" />

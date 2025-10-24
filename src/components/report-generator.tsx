@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { FileText, Loader2, ChevronDown, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getReportDataAction, getDescriptiveReportDataAction } from '@/lib/actions';
-import { generateXlsxReport, generateDescriptiveXlsxReport } from '@/lib/csv';
-import { generatePdfReport, generateDescriptivePdfReport } from '@/lib/pdf';
+import { generateXlsxReport as generateXlsxReportClient, generatePdfReport as generatePdfReportClient } from '@/lib/client-actions';
+import { generateDescriptiveXlsxReport, generateDescriptivePdfReport } from '@/lib/pdf';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,16 +34,15 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
   const handleGenerateReport = async (format: 'xlsx' | 'pdf') => {
     setIsLoading(true);
     
-    // Allow the UI to update (show loader) before the heavy task
     await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
         if (format === 'xlsx') {
-          await generateXlsxReport(client, building, extinguishers, hoses);
+          await generateXlsxReportClient(clientId, buildingId, extinguishers, hoses);
         } else {
-          await generatePdfReport(client, building, extinguishers, hoses);
+          await generatePdfReportClient(clientId, buildingId, extinguishers, hoses);
         }
         toast({
             title: 'Sucesso!',
