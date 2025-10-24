@@ -37,36 +37,40 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         const generationDate = new Date();
 
         // --- Extinguishers Sheet ---
-        const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', 'Status Geral', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS];
+        const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'];
         const extBody = (extinguishers || []).map(e => {
             const insp = e.inspections?.[e.inspections.length - 1];
-            const status = insp?.status ?? 'N/A';
-            const notes = insp?.notes ?? '';
             let alert = '';
-            if (status === 'N/C') alert = 'NÃO CONFORME';
+            
+            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                if (!insp || !insp.itemStatuses) return '';
+                return insp.itemStatuses[item] || 'OK';
+            });
+            
+            if (inspectionStatus.includes('N/C')) {
+                alert = 'NÃO CONFORME';
+            }
             if (e.expiryDate && isSameMonth(parseISO(e.expiryDate), generationDate) && isSameYear(parseISO(e.expiryDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            const itemStatuses = EXTINGUISHER_INSPECTION_ITEMS.map(item => insp?.itemStatuses?.[item] || '');
 
-            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, status, notes, ...itemStatuses];
+            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, ...inspectionStatus, insp?.notes || ''];
         });
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
         applyAutoFilter(wsExt, extHeader.length);
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
 
         // --- Hoses Sheet ---
-        const hoseHeader = ['Alerta', 'ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
+        const hoseHeader = ['Alerta', 'ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status'];
         const hoseBody = (hoses || []).map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
-            const notes = insp?.notes ?? '';
             let alert = '';
             if (status === 'N/C') alert = 'NÃO CONFORME';
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [alert, h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, notes];
+            return [alert, h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -98,8 +102,8 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         // --- Extinguishers Section ---
         const extHeader = [
             'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-            'Observações',
-            ...EXTINGUISHER_INSPECTION_ITEMS
+            ...EXTINGUISHER_INSPECTION_ITEMS,
+            'Observações'
         ];
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         
@@ -108,7 +112,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
                 if (!lastInsp || !lastInsp.itemStatuses) return ''; // No inspection or no item statuses
-                return lastInsp.itemStatuses[item] || ''; // Return 'OK', 'N/C', or empty string if not present
+                return lastInsp.itemStatuses[item] || 'OK'; // Return 'OK', 'N/C', or 'OK' if not present
             });
             
             return [
@@ -117,8 +121,8 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
                 formatDate(e.expiryDate), 
                 e.type, 
                 e.weight,
-                lastInsp?.notes || '',
-                ...inspectionStatus
+                ...inspectionStatus,
+                lastInsp?.notes || ''
             ];
         });
 
@@ -127,18 +131,17 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
 
         // --- Hoses Section ---
-        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Observações Últ. Insp.'];
+        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.'];
         const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
-            const notes = insp?.notes ?? '';
              let alert = '';
             if (status === 'N/C') alert = 'NÃO CONFORME';
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, notes ];
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status ];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -210,18 +213,17 @@ export async function generateHosesXlsxReport(client: Client, buildingsWithHoses
         const generationDate = new Date();
        
         // --- Hoses Section ---
-        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.', 'Observações Últ. Insp.'];
+        const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status Últ. Insp.'];
         const allHoses = buildingsWithHoses.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
-            const notes = insp?.notes ?? '';
              let alert = '';
             if (status === 'N/C') alert = 'NÃO CONFORME';
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, notes ];
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status ];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -241,8 +243,8 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
        
         const extHeader = [
             'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-            'Observações',
-            ...EXTINGUISHER_INSPECTION_ITEMS
+            ...EXTINGUISHER_INSPECTION_ITEMS,
+            'Observações'
         ];
         const allExtinguishers = buildingsWithExtinguishers.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         
@@ -251,7 +253,7 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
                 if (!lastInsp || !lastInsp.itemStatuses) return '';
-                return lastInsp.itemStatuses[item] || ''; 
+                return lastInsp.itemStatuses[item] || 'OK'; 
             });
             
             return [
@@ -260,8 +262,8 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
                 formatDate(e.expiryDate), 
                 e.type, 
                 e.weight,
-                lastInsp?.notes || '',
-                ...inspectionStatus
+                ...inspectionStatus,
+                lastInsp?.notes || ''
             ];
         });
 
