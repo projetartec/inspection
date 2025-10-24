@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CameraOff, ThumbsUp, ThumbsDown, Edit, Check, ChevronDown } from 'lucide-react';
+import { Loader2, CameraOff, Edit, Check, ChevronDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
@@ -391,10 +391,10 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                         </Label>
                         <div className="flex gap-2">
                             <Button size="sm" variant={itemStatuses[issue] === 'OK' ? 'default' : 'outline'} onClick={() => handleItemStatusChange(issue, 'OK')} className={cn("w-16", itemStatuses[issue] === 'OK' && "bg-green-600 hover:bg-green-700")}>
-                                <ThumbsUp className="mr-2 h-4 w-4" /> OK
+                                OK
                             </Button>
                             <Button size="sm" variant={itemStatuses[issue] === 'N/C' ? 'destructive' : 'outline'} onClick={() => handleItemStatusChange(issue, 'N/C')} className="w-16">
-                                <ThumbsDown className="mr-2 h-4 w-4" /> N/C
+                                N/C
                             </Button>
                         </div>
                     </div>
@@ -475,3 +475,5 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     </div>
   );
 }
+
+    

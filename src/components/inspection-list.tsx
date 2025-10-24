@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { ThumbsUp, ThumbsDown, CheckCircle2, Loader2, Edit, ChevronDown, Check } from 'lucide-react';
+import { CheckCircle2, Loader2, Edit, ChevronDown, Check } from 'lucide-react';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { extinguisherTypes, extinguisherWeights, hydrantDiameters, hydrantHoseLengths, hydrantTypes, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities } from '@/lib/types';
@@ -303,7 +303,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
                                 onClick={() => handleItemStatusChange(issue, 'OK')}
                                 className={cn("w-16", itemStatuses[issue] === 'OK' && "bg-green-600 hover:bg-green-700")}
                             >
-                                <ThumbsUp className="mr-2 h-4 w-4" /> OK
+                                OK
                             </Button>
                              <Button
                                 size="sm"
@@ -311,7 +311,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
                                 onClick={() => handleItemStatusChange(issue, 'N/C')}
                                 className="w-16"
                             >
-                                <ThumbsDown className="mr-2 h-4 w-4" /> N/C
+                                N/C
                             </Button>
                         </div>
                     </div>
@@ -341,3 +341,5 @@ export function InspectionList({ items, type }: InspectionListProps) {
     </div>
   );
 }
+
+    
