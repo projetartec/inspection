@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -218,7 +218,9 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY += 8;
 
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'
+                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
             ];
             
             doc.autoTable({
@@ -678,3 +680,4 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
 
     
 
+    

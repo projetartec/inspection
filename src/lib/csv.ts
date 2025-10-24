@@ -39,12 +39,12 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         // --- Extinguishers Sheet ---
         const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'];
         const extBody = (extinguishers || []).map(e => {
-            const insp = e.inspections?.[e.inspections.length - 1];
+            const lastInsp = e.inspections?.[e.inspections.length - 1];
             let alert = '';
             
-            const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!insp || !insp.itemStatuses) return '';
-                return insp.itemStatuses[item] || 'OK';
+             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
+                if (!lastInsp || !lastInsp.itemStatuses) return '';
+                return lastInsp.itemStatuses[item] || 'OK';
             });
             
             if (inspectionStatus.includes('N/C')) {
@@ -54,7 +54,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
 
-            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, ...inspectionStatus, insp?.notes || ''];
+            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, ...inspectionStatus, lastInsp?.notes || ''];
         });
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
         applyAutoFilter(wsExt, extHeader.length);
@@ -111,8 +111,8 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp || !lastInsp.itemStatuses) return ''; // No inspection or no item statuses
-                return lastInsp.itemStatuses[item] || 'OK'; // Return 'OK', 'N/C', or 'OK' if not present
+                if (!lastInsp || !lastInsp.itemStatuses) return '';
+                return lastInsp.itemStatuses[item] || 'OK';
             });
             
             return [
@@ -325,6 +325,8 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
         resolve();
     });
 }
+    
+
     
 
     
