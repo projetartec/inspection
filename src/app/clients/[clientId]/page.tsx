@@ -103,7 +103,7 @@ export default function ClientPage() {
   }
 
   const onDragEnd = async (result: any) => {
-    const { destination, source } = result;
+    const { destination, source } };
     if (!destination || destination.index === source.index) {
       return;
     }
