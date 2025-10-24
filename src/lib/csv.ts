@@ -10,6 +10,11 @@ const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
 ];
 
+const HOSE_INSPECTION_ITEMS = [
+    "Chave", "Esguicho", "Mangueira", "Abrigo", "Pintura de solo", 
+    "Acrílico", "Sinalização"
+];
+
 
 // --- HELPERS & STYLES ---
 
@@ -26,6 +31,23 @@ function formatDate(dateInput: string | null | undefined): string {
 function applyAutoFilter(ws: XLSX.WorkSheet, cols: number) {
     if (!ws['!ref']) return;
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: cols - 1, r: 0 } }) };
+}
+
+function getObservationNotes(inspection: Inspection | undefined): string {
+    if (!inspection) return '';
+    
+    const ncItems = Object.entries(inspection.itemStatuses || {})
+        .filter(([, status]) => status === 'N/C')
+        .map(([item]) => item);
+
+    let notes = '';
+    if (ncItems.length > 0) {
+        notes += ncItems.join(', ');
+    }
+    if (inspection.notes) {
+        notes += (notes ? ' - ' : '') + inspection.notes;
+    }
+    return notes;
 }
 
 // --- MAIN REPORT GENERATORS ---
@@ -63,12 +85,13 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         const hoseBody = (hoses || []).map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
+            const observationNotes = getObservationNotes(insp);
             let alert = '';
             if (status === 'N/C') alert = 'NÃO CONFORME';
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [alert, h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, insp?.notes || ''];
+            return [alert, h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -133,12 +156,13 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         const hoseBody = allHoses.map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
+            const observationNotes = getObservationNotes(insp);
              let alert = '';
             if (status === 'N/C') alert = 'NÃO CONFORME';
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, insp?.notes || ''];
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);
@@ -215,12 +239,14 @@ export async function generateHosesXlsxReport(client: Client, buildingsWithHoses
         const hoseBody = allHoses.map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
+            const observationNotes = getObservationNotes(insp);
+
              let alert = '';
             if (status === 'N/C') alert = 'NÃO CONFORME';
             if (h.hydrostaticTestDate && isSameMonth(parseISO(h.hydrostaticTestDate), generationDate) && isSameYear(parseISO(h.hydrostaticTestDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, insp?.notes || '' ];
+            return [ alert, h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes ];
         });
         const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
         applyAutoFilter(wsHose, hoseHeader.length);

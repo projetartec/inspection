@@ -20,6 +20,11 @@ const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
 ];
 
+const HOSE_INSPECTION_ITEMS = [
+    "Chave", "Esguicho", "Mangueira", "Abrigo", "Pintura de solo", 
+    "Acrílico", "Sinalização"
+];
+
 
 function formatDate(dateInput: string | null | undefined): string {
     if (!dateInput) return 'N/A';
@@ -29,6 +34,23 @@ function formatDate(dateInput: string | null | undefined): string {
     } catch (error) {
         return 'Data Inválida';
     }
+}
+
+function getObservationNotes(inspection: Inspection | undefined): string {
+    if (!inspection) return '';
+    
+    const ncItems = Object.entries(inspection.itemStatuses || {})
+        .filter(([, status]) => status === 'N/C')
+        .map(([item]) => item);
+
+    let notes = '';
+    if (ncItems.length > 0) {
+        notes += ncItems.join(', ');
+    }
+    if (inspection.notes) {
+        notes += (notes ? ' - ' : '') + inspection.notes;
+    }
+    return notes;
 }
 
 
@@ -132,9 +154,11 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 body: hoses.map(h => {
                      const lastInsp = h.inspections?.[h.inspections.length - 1];
                      const status = lastInsp?.status || 'N/A';
+                     const observationNotes = getObservationNotes(lastInsp);
+
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
-                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, lastInsp?.notes || ''
+                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes
                     ];
                 }),
                  didParseCell: (data) => {
@@ -306,9 +330,11 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 body: allHoses.map(h => {
                     const lastInsp = h.inspections?.[h.inspections.length - 1];
                     const status = lastInsp?.status || 'N/A';
+                    const observationNotes = getObservationNotes(lastInsp);
+
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, lastInsp?.notes || ''
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -476,9 +502,11 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                 body: allHoses.map(h => {
                     const lastInsp = h.inspections?.[h.inspections.length - 1];
                     const status = lastInsp?.status || 'N/A';
+                    const observationNotes = getObservationNotes(lastInsp);
+
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, lastInsp?.notes || ''
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -699,3 +727,4 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
     
 
     
+
