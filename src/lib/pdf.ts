@@ -32,11 +32,8 @@ function formatDate(dateInput: string | null | undefined): string {
 }
 
 function formatLastInspection(inspection: any) {
-    if (!inspection?.date) return { date: 'N/A', gps: 'N/A', status: 'N/A', notes: '' };
-    const date = parseISO(inspection.date);
+    if (!inspection?.date) return { status: 'N/A', notes: '' };
     return {
-        date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
-        gps: inspection.location ? `${inspection.location.latitude.toFixed(4)}, ${inspection.location.longitude.toFixed(4)}` : 'N/A',
         status: inspection.status || 'N/A',
         notes: inspection.notes || '',
     };
@@ -172,17 +169,17 @@ export async function generatePdfReport(client: Client, building: Building, exti
             doc.setFontSize(14);
             doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
             finalY += 8;
-            const manualHeader = ['ID Manual', 'Data', 'GPS', 'Status', 'Observações'];
+            const manualHeader = ['ID Manual', 'Data', 'Status', 'Observações'];
             doc.autoTable({
                 ...manualEntryTableStyles,
                 startY: finalY,
                 head: [manualHeader],
                 body: building.manualInspections.map(insp => {
                      const formattedInsp = formatLastInspection(insp);
+                     const date = insp.date ? format(parseISO(insp.date), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
                      return [
                         (insp as ManualInspection).manualId,
-                        formattedInsp.date,
-                        formattedInsp.gps,
+                        date,
                         formattedInsp.status,
                         formattedInsp.notes,
                      ]

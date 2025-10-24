@@ -24,11 +24,8 @@ function formatDate(dateInput: string | null | undefined): string {
 }
 
 function formatLastInspectionForCsv(inspection: any) {
-    if (!inspection?.date) return { date: 'N/A', time: 'N/A', gps: 'N/A', status: 'N/A', notes: '' };
-    const date = parseISO(inspection.date);
+    if (!inspection?.date) return { status: 'N/A', notes: '' };
     return {
-        date: format(date, 'dd/MM/yyyy', { locale: ptBR }),
-        gps: inspection.location ? `${inspection.location.latitude}, ${inspection.location.longitude}` : 'N/A',
         status: inspection.status || 'N/A',
         notes: inspection.notes || '',
     };
@@ -78,10 +75,11 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         
         // --- Manual Inspections Sheet ---
         if(building.manualInspections && building.manualInspections.length > 0) {
-            const manualHeader = ['ID Manual', 'Data', 'GPS', 'Status', 'Observações'];
+            const manualHeader = ['ID Manual', 'Data', 'Status', 'Observações'];
             const manualBody = building.manualInspections.map(insp => {
                  const formattedInsp = formatLastInspectionForCsv(insp);
-                 return [ (insp as ManualInspection).manualId, formattedInsp.date, formattedInsp.gps, formattedInsp.status, formattedInsp.notes ];
+                 const date = insp.date ? format(parseISO(insp.date), 'dd/MM/yyyy', { locale: ptBR }) : 'N/A';
+                 return [ (insp as ManualInspection).manualId, date, formattedInsp.status, formattedInsp.notes ];
             });
             const wsManual = XLSX.utils.aoa_to_sheet([manualHeader, ...manualBody]);
             applyAutoFilter(wsManual, manualHeader.length);
