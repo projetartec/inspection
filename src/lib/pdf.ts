@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import jsPDF from 'jspdf';
@@ -125,7 +124,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
         
         // --- Hoses Table ---
         if (hoses.length > 0) {
-            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status'];
+            const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
@@ -135,7 +134,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                      const status = lastInsp?.status || 'N/A';
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
-                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status
+                        h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, lastInsp?.notes || ''
                     ];
                 }),
                  didParseCell: (data) => {
@@ -303,13 +302,13 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações']],
                 body: allHoses.map(h => {
                     const lastInsp = h.inspections?.[h.inspections.length - 1];
                     const status = lastInsp?.status || 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, lastInsp?.notes || ''
                     ];
                 }),
                 didParseCell: (data) => {
@@ -473,13 +472,13 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status']],
+                head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações']],
                 body: allHoses.map(h => {
                     const lastInsp = h.inspections?.[h.inspections.length - 1];
                     const status = lastInsp?.status || 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
-                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, lastInsp?.notes || ''
                     ];
                 }),
                 didParseCell: (data) => {

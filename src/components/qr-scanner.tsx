@@ -8,16 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CameraOff, ThumbsUp, ThumbsDown, Edit } from 'lucide-react';
+import { Loader2, CameraOff, ThumbsUp, ThumbsDown, Edit, Check, ChevronDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
-import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight } from '@/lib/types';
-import { extinguisherTypes, extinguisherWeights, getExtinguisherById } from '@/lib/data';
+import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
+import { extinguisherTypes, extinguisherWeights, getExtinguisherById, getHoseById, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Skeleton } from './ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 
 interface QrScannerProps {
@@ -55,11 +56,22 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   const [itemStatuses, setItemStatuses] = useState<{ [key: string]: 'OK' | 'N/C' }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isDataAccordionOpen, setIsDataAccordionOpen] = useState(false);
 
-  // State for editable extinguisher data
+  // Editable fields for extinguisher
   const [editableType, setEditableType] = useState<ExtinguisherType | undefined>();
   const [editableWeight, setEditableWeight] = useState<ExtinguisherWeight | undefined>();
   const [editableExpiry, setEditableExpiry] = useState<string | undefined>();
+
+  // Editable fields for hose
+  const [editableHoseLocation, setEditableHoseLocation] = useState<string | undefined>();
+  const [editableHoseQuantity, setEditableHoseQuantity] = useState<HydrantQuantity | undefined>();
+  const [editableHoseType, setEditableHoseType] = useState<HydrantHoseType | undefined>();
+  const [editableHoseDiameter, setEditableHoseDiameter] = useState<HydrantDiameter | undefined>();
+  const [editableHoseLength, setEditableHoseLength] = useState<HydrantHoseLength | undefined>();
+  const [editableHoseKeyQuantity, setEditableHoseKeyQuantity] = useState<HydrantKeyQuantity | undefined>();
+  const [editableHoseNozzleQuantity, setEditableHoseNozzleQuantity] = useState<HydrantNozzleQuantity | undefined>();
+  const [editableHoseTestDate, setEditableHoseTestDate] = useState<string | undefined>();
   
   const router = useRouter();
   const { toast } = useToast();
@@ -86,25 +98,42 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
       }
 
       // Fetch item details after scan
-      if (decodedText.startsWith('fireguard-ext-')) {
-          setIsFetchingItem(true);
+      setIsFetchingItem(true);
+      try {
+        let item: Extinguisher | Hydrant | null = null;
+        if (decodedText.startsWith('fireguard-ext-')) {
           const extId = decodedText.replace('fireguard-ext-', '');
-          try {
-              const item = await getExtinguisherById(clientId, buildingId, extId);
-              if (item) {
-                  setScannedItem(item);
-                  setEditableType(item.type);
-                  setEditableWeight(item.weight);
-                  setEditableExpiry(item.expiryDate);
-              } else {
-                 toast({ variant: 'destructive', title: 'Erro', description: 'Extintor não encontrado.' });
-              }
-          } catch (error) {
-              console.error(error);
-              toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao buscar dados do extintor.' });
-          } finally {
-              setIsFetchingItem(false);
+          item = await getExtinguisherById(clientId, buildingId, extId);
+          if (item) {
+            setEditableType(item.type);
+            setEditableWeight(item.weight);
+            setEditableExpiry(item.expiryDate);
           }
+        } else if (decodedText.startsWith('fireguard-hose-')) {
+          const hoseId = decodedText.replace('fireguard-hose-', '');
+          item = await getHoseById(clientId, buildingId, hoseId);
+           if (item) {
+                setEditableHoseLocation(item.location);
+                setEditableHoseQuantity(item.quantity);
+                setEditableHoseType(item.hoseType);
+                setEditableHoseDiameter(item.diameter);
+                setEditableHoseLength(item.hoseLength);
+                setEditableHoseKeyQuantity(item.keyQuantity);
+                setEditableHoseNozzleQuantity(item.nozzleQuantity);
+                setEditableHoseTestDate(item.hydrostaticTestDate);
+           }
+        }
+
+        if (item) {
+          setScannedItem(item);
+        } else {
+          toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado.' });
+        }
+      } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao buscar dados do equipamento.' });
+      } finally {
+        setIsFetchingItem(false);
       }
     };
     
@@ -141,11 +170,22 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     setItemStatuses({});
     setIsSubmitting(false);
     setIsFetchingItem(false);
+    setIsDataAccordionOpen(false);
     setMode(ScanMode.Scanning);
   };
 
   const handleItemStatusChange = (itemName: string, status: 'OK' | 'N/C') => {
     setItemStatuses(prev => ({...prev, [itemName]: status}));
+  };
+
+  const handleSelectAllOk = () => {
+    const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
+    const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
+    const allOkStatuses = issuesList.reduce((acc, issue) => {
+        acc[issue] = 'OK';
+        return acc;
+    }, {} as { [key: string]: 'OK' | 'N/C' });
+    setItemStatuses(allOkStatuses);
   };
 
 
@@ -161,23 +201,23 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     }
     
     const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
-    let overallStatus: Inspection['status'] = 'OK';
-    
-    if (itemType === 'extinguisher') {
-        const hasNC = Object.values(itemStatuses).some(s => s === 'N/C');
-        overallStatus = hasNC ? 'N/C' : 'OK';
-    } else { // For hoses or other items
-        overallStatus = itemStatuses.general === 'N/C' ? 'N/C' : 'OK';
-        if(!itemStatuses.general) {
-             toast({ variant: 'destructive', title: 'Status Obrigatório', description: 'Por favor, selecione "OK" ou "Não Conforme".' });
-             return;
-        }
-    }
-    
-    if(mode === ScanMode.ManualEntry){
-        overallStatus = 'N/C';
+    const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
+
+    const hasNC = Object.values(itemStatuses).some(s => s === 'N/C');
+    const allItemsChecked = issuesList.every(issue => itemStatuses[issue]);
+
+    if(mode === ScanMode.Result && !allItemsChecked) {
+         toast({ variant: 'destructive', title: 'Checklist Incompleto', description: 'Por favor, marque o status de todos os itens.' });
+         return;
     }
 
+    let overallStatus: Inspection['status'] = 'OK';
+    if(mode === ScanMode.ManualEntry){
+        overallStatus = 'N/C';
+    } else {
+        overallStatus = hasNC ? 'N/C' : 'OK';
+    }
+    
     setIsSubmitting(true);
     
     const processInspection = (location?: GeolocationCoordinates) => {
@@ -200,18 +240,26 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
             } : undefined
         };
 
-        if (scannedItem && (scannedItem as Extinguisher).type && overallStatus === 'N/C') {
-          const originalExtinguisher = scannedItem as Extinguisher;
-          const updatedData: Partial<Extinguisher> = {};
-          if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
-          if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
-          if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
-          
-          if (Object.keys(updatedData).length > 0) {
-            itemData.updatedData = {
-                id: originalExtinguisher.id,
-                ...updatedData
-            };
+        if (scannedItem && overallStatus === 'N/C') {
+          if ((scannedItem as Extinguisher).type) {
+            const originalExtinguisher = scannedItem as Extinguisher;
+            const updatedData: Partial<Extinguisher> = {};
+            if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
+            if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
+            if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
+            if (Object.keys(updatedData).length > 0) itemData.updatedData = { id: originalExtinguisher.id, ...updatedData };
+          } else if ((scannedItem as Hydrant).hoseType) {
+            const originalHose = scannedItem as Hydrant;
+            const updatedData: Partial<Hydrant> = {};
+            if (editableHoseLocation !== originalHose.location) updatedData.location = editableHoseLocation;
+            if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = editableHoseQuantity;
+            if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType;
+            if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter;
+            if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = editableHoseLength;
+            if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = editableHoseKeyQuantity;
+            if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = editableHoseNozzleQuantity;
+            if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
+            if (Object.keys(updatedData).length > 0) itemData.updatedData = { id: originalHose.id, ...updatedData };
           }
         }
         
@@ -252,8 +300,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   if (mode === ScanMode.Result) {
     const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
     const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
-    const isExtinguisher = itemType === 'extinguisher';
-
+    
     return (
       <Card className="w-full max-w-md animate-in fade-in">
         <CardHeader>
@@ -272,78 +319,86 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                         <Skeleton className="h-10 w-full"/>
                     </div>
                 </div>
-            ) : isExtinguisher && scannedItem && (
-                 <div className="space-y-3 p-4 border rounded-md">
-                    <h4 className="font-medium text-sm mb-3">Dados do Equipamento</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                       <div className="space-y-2">
-                           <Label htmlFor="insp-type">Tipo</Label>
-                           <Select 
-                                name="type" 
-                                value={editableType}
-                                onValueChange={(v) => setEditableType(v as ExtinguisherType)}
-                            >
-                                <SelectTrigger id="insp-type"><SelectValue/></SelectTrigger>
-                                <SelectContent>
-                                    {extinguisherTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                </SelectContent>
-                           </Select>
-                       </div>
-                       <div className="space-y-2">
-                           <Label htmlFor="insp-weight">Capacidade</Label>
-                           <Select 
-                                name="weight"
-                                value={String(editableWeight)}
-                                onValueChange={(v) => setEditableWeight(Number(v) as ExtinguisherWeight)}
-                            >
-                                <SelectTrigger id="insp-weight"><SelectValue/></SelectTrigger>
-                                <SelectContent>
-                                    {extinguisherWeights.map((w) => <SelectItem key={w} value={String(w)}>{w} kg</SelectItem>)}
-                                </SelectContent>
-                           </Select>
-                       </div>
-                       <div className="space-y-2">
-                           <Label htmlFor="insp-expiry">Recarga</Label>
-                           <Input
-                             id="insp-expiry"
-                             name="expiryDate"
-                             type="date"
-                             value={editableExpiry}
-                             onChange={(e) => setEditableExpiry(e.target.value)}
-                           />
-                       </div>
-                    </div>
-                </div>
+            ) : itemType && scannedItem && (
+                 <Accordion type="single" collapsible value={isDataAccordionOpen ? "data" : ""} onValueChange={(v) => setIsDataAccordionOpen(v === "data")}>
+                    <AccordionItem value="data" className="border rounded-md px-4">
+                        <AccordionTrigger className="py-3 text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                               <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                                Dados do Equipamento
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2 pb-4">
+                            {itemType === 'extinguisher' && (
+                                 <div className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="insp-type">Tipo</Label>
+                                        <Select name="type" value={editableType} onValueChange={(v) => setEditableType(v as ExtinguisherType)}>
+                                            <SelectTrigger id="insp-type"><SelectValue/></SelectTrigger>
+                                            <SelectContent>{extinguisherTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="insp-weight">Capacidade</Label>
+                                        <Select name="weight" value={String(editableWeight)} onValueChange={(v) => setEditableWeight(Number(v) as ExtinguisherWeight)}>
+                                            <SelectTrigger id="insp-weight"><SelectValue/></SelectTrigger>
+                                            <SelectContent>{extinguisherWeights.map((w) => <SelectItem key={w} value={String(w)}>{w} kg</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="insp-expiry">Recarga</Label>
+                                        <Input id="insp-expiry" name="expiryDate" type="date" value={editableExpiry} onChange={(e) => setEditableExpiry(e.target.value)} />
+                                    </div>
+                                    </div>
+                                </div>
+                            )}
+                            {itemType === 'hose' && (
+                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2"> <Label>Local</Label> <Input value={editableHoseLocation} onChange={e => setEditableHoseLocation(e.target.value)} /> </div>
+                                    <div className="space-y-2"> <Label>Qtd Mangueiras</Label> <Select value={String(editableHoseQuantity)} onValueChange={v => setEditableHoseQuantity(Number(v) as HydrantQuantity)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent></Select> </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2"> <Label>Tipo</Label> <Select value={editableHoseType} onValueChange={v => setEditableHoseType(v as HydrantHoseType)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantTypes.map(t => <SelectItem key={t} value={t}>Tipo {t}</SelectItem>)}</SelectContent></Select> </div>
+                                    <div className="space-y-2"> <Label>Diâmetro</Label> <Select value={editableHoseDiameter} onValueChange={v => setEditableHoseDiameter(v as HydrantDiameter)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantDiameters.map(d => <SelectItem key={d} value={d}>{d}"</SelectItem>)}</SelectContent></Select> </div>
+                                    <div className="space-y-2"> <Label>Medida</Label> <Select value={String(editableHoseLength)} onValueChange={v => setEditableHoseLength(Number(v) as HydrantHoseLength)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantHoseLengths.map(l => <SelectItem key={l} value={String(l)}>{l}m</SelectItem>)}</SelectContent></Select> </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2"> <Label>Qtd Chaves</Label> <Select value={String(editableHoseKeyQuantity)} onValueChange={v => setEditableHoseKeyQuantity(Number(v) as HydrantKeyQuantity)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantKeyQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent></Select> </div>
+                                    <div className="space-y-2"> <Label>Qtd Esguichos</Label> <Select value={String(editableHoseNozzleQuantity)} onValueChange={v => setEditableHoseNozzleQuantity(Number(v) as HydrantNozzleQuantity)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantNozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent></Select> </div>
+                                    <div className="space-y-2"> <Label>Próx. Teste</Label> <Input type="date" value={editableHoseTestDate} onChange={e => setEditableHoseTestDate(e.target.value)} /> </div>
+                                </div>
+                            </div>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             )}
             
             <div className="space-y-3 p-4 border rounded-md">
-                <h4 className="font-medium text-sm">Checklist de Inspeção</h4>
-                 {isExtinguisher ? (
-                     issuesList.map(issue => (
-                        <div key={issue} className="flex items-center justify-between">
-                            <Label htmlFor={`issue-${issue.replace(/\s+/g, '-')}`} className="text-sm font-normal">
-                                {issue}
-                            </Label>
-                            <div className="flex gap-2">
-                                <Button size="sm" variant={itemStatuses[issue] === 'OK' ? 'default' : 'outline'} onClick={() => handleItemStatusChange(issue, 'OK')} className={cn("w-16", itemStatuses[issue] === 'OK' && "bg-green-600 hover:bg-green-700")}>
-                                    <ThumbsUp className="mr-2 h-4 w-4" /> OK
-                                </Button>
-                                <Button size="sm" variant={itemStatuses[issue] === 'N/C' ? 'destructive' : 'outline'} onClick={() => handleItemStatusChange(issue, 'N/C')} className="w-16">
-                                    <ThumbsDown className="mr-2 h-4 w-4" /> N/C
-                                </Button>
-                            </div>
+                <div className="flex justify-between items-center">
+                    <h4 className="font-medium text-sm">Checklist de Inspeção</h4>
+                    <Button variant="outline" size="sm" onClick={handleSelectAllOk}>
+                        <Check className="mr-2 h-4 w-4" />
+                        OK em Todos
+                    </Button>
+                </div>
+                 {issuesList.map(issue => (
+                    <div key={issue} className="flex items-center justify-between">
+                        <Label htmlFor={`issue-${issue.replace(/\s+/g, '-')}`} className="text-sm font-normal">
+                            {issue}
+                        </Label>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant={itemStatuses[issue] === 'OK' ? 'default' : 'outline'} onClick={() => handleItemStatusChange(issue, 'OK')} className={cn("w-16", itemStatuses[issue] === 'OK' && "bg-green-600 hover:bg-green-700")}>
+                                <ThumbsUp className="mr-2 h-4 w-4" /> OK
+                            </Button>
+                            <Button size="sm" variant={itemStatuses[issue] === 'N/C' ? 'destructive' : 'outline'} onClick={() => handleItemStatusChange(issue, 'N/C')} className="w-16">
+                                <ThumbsDown className="mr-2 h-4 w-4" /> N/C
+                            </Button>
                         </div>
-                    ))
-                 ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                        <Button variant={itemStatuses.general === 'OK' ? 'default' : 'outline'} onClick={() => handleItemStatusChange('general', 'OK')} className={cn("h-16 text-lg", itemStatuses.general === 'OK' && "bg-green-600 hover:bg-green-700")}>
-                            <ThumbsUp className="mr-2" /> OK
-                        </Button>
-                        <Button variant={itemStatuses.general === 'N/C' ? 'destructive' : 'outline'} onClick={() => handleItemStatusChange('general', 'N/C')} className="h-16 text-lg">
-                            <ThumbsDown className="mr-2" /> N/C
-                        </Button>
                     </div>
-                 )}
+                ))}
             </div>
 
             <Textarea 

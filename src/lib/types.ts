@@ -10,7 +10,6 @@ export type Inspection = {
   notes: string;
   status: 'OK' | 'N/C'; // General status for the item
   itemStatuses?: { [key: string]: 'OK' | 'N/C' }; // Individual status for checklist items
-  checkedIssues?: string[]; // Kept for compatibility, but itemStatuses is preferred
 };
 
 export const extinguisherTypes = ["AP", "BC", "ABC", "CO2", "EPM"] as const;
@@ -35,7 +34,7 @@ export const hydrantQuantities = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 export type HydrantQuantity = (typeof hydrantQuantities)[number];
 
 export const hydrantTypes = ["1", "2", "3", "4", "5", "6", "7"] as const;
-export type HydrantType = (typeof hydrantTypes)[number];
+export type HydrantHoseType = (typeof hydrantTypes)[number];
 
 export const hydrantDiameters = ["1 1/2", "2 1/2"] as const;
 export type HydrantDiameter = (typeof hydrantDiameters)[number];
@@ -55,7 +54,7 @@ export type Hydrant = {
   qrCodeValue: string;
   location: string; // LOCAL
   quantity: HydrantQuantity; // QTD MANG.
-  hoseType: HydrantType; // TIPO
+  hoseType: HydrantHoseType; // TIPO
   diameter: HydrantDiameter; // DIAMETRO
   hoseLength: HydrantHoseLength; // MEDIDA MANGUEIRAS
   keyQuantity: HydrantKeyQuantity; // CHAVE

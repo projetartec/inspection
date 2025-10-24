@@ -155,19 +155,19 @@ export default function ClientPage() {
                               Escolha um local para gerenciar ou adicione um novo. Arraste para reordenar.
                           </CardDescription>
                       </div>
-                      <div className="relative flex items-center">
+                      <div className="relative w-full max-w-xs">
                           <Input 
                               type="text"
                               placeholder="Buscar local..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
-                              className="h-9 max-w-xs pr-8"
+                              className="h-9 pr-8"
                           />
                           {searchTerm && (
                               <Button 
                                   variant="ghost" 
                                   size="icon" 
-                                  className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+                                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                                   onClick={() => setSearchTerm('')}
                               >
                                   <X className="h-4 w-4" />

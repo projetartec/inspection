@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import type { Inspection, Extinguisher } from '@/lib/types';
-import { addInspectionBatchAction, updateExtinguisherAction } from '@/lib/actions';
-import { ExtinguisherFormValues } from '@/lib/schemas';
+import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
+import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } from '@/lib/actions';
+import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
     qrCodeValue: string;
-    updatedData?: Partial<ExtinguisherFormValues>;
+    updatedData?: Partial<ExtinguisherFormValues> | Partial<HydrantFormValues>;
 }
 
 export interface InspectionSession {
@@ -113,11 +113,16 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
 
             // Create promises for all updates
             const updatePromises = itemsToUpdate.map(item => {
-                if (item.qrCodeValue.startsWith('fireguard-ext-') && item.updatedData) {
+                if (!item.updatedData) return Promise.resolve();
+
+                if (item.qrCodeValue.startsWith('fireguard-ext-')) {
                     const extinguisherId = item.qrCodeValue.replace('fireguard-ext-', '');
-                    return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherId, item.updatedData);
+                    return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherId, item.updatedData as Partial<ExtinguisherFormValues>);
+                } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
+                    const hoseId = item.qrCodeValue.replace('fireguard-hose-', '');
+                    return updateHoseAction(session.clientId, session.buildingId, hoseId, item.updatedData as Partial<HydrantFormValues>);
                 }
-                return Promise.resolve(); // Ignore updates for non-extinguishers for now
+                return Promise.resolve();
             });
 
             // Run all updates in parallel
