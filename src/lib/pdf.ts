@@ -32,21 +32,6 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-function formatLastInspectionForCsv(inspection: Inspection | undefined) {
-    if (!inspection?.date) return { status: 'N/A', notes: '' };
-    
-    let notes = inspection.notes || '';
-    if (inspection.status === 'N/C' && inspection.checkedIssues && inspection.checkedIssues.length > 0) {
-        const issues = inspection.checkedIssues.join(', ');
-        notes = notes ? `${issues}; ${notes}` : issues;
-    }
-
-    return {
-        status: inspection.status || 'N/A',
-        notes: notes,
-    };
-}
-
 
 export async function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
     // Wrap in promise to make it async and unblock UI thread
@@ -75,7 +60,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
             theme: 'striped',
             headStyles: { fillColor: HEADER_BG_COLOR },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+            styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
         
         const manualEntryTableStyles = {
@@ -85,7 +70,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
         // --- Extinguishers Table ---
         if (extinguishers.length > 0) {
-            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status', 'Observações'];
+            const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', 'Status Geral', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS];
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
@@ -94,23 +79,16 @@ export async function generatePdfReport(client: Client, building: Building, exti
                     const insp = e.inspections?.[e.inspections.length - 1];
                     const status = insp?.status ?? 'N/A';
                     const notes = insp?.notes ?? '';
+                    const itemStatuses = EXTINGUISHER_INSPECTION_ITEMS.map(item => insp?.itemStatuses?.[item] || '');
                     return [
                         e.id, e.observations || '', e.type, e.weight + ' kg', formatDate(e.expiryDate), e.hydrostaticTestYear,
-                        status, notes,
+                        status, notes, ...itemStatuses
                     ];
                 }),
                 didParseCell: (data) => {
                      const item = extinguishers[data.row.index];
                      if (!item) return;
-                     const lastInsp = item.inspections?.[item.inspections.length - 1];
 
-                    if (lastInsp?.status === 'N/C') {
-                        data.cell.styles.fontStyle = 'bold';
-                         if (data.column.dataKey === 'Observações') {
-                            data.cell.styles.fillColor = NC_BG_COLOR;
-                        }
-                    }
-                    
                     if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
                          data.row.styles.fillColor = EXPIRING_BG_COLOR;
                     }
@@ -243,8 +221,8 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
 
             const extHeader = [
                 'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+                'Observações',
                 ...EXTINGUISHER_INSPECTION_ITEMS,
-                'Observações'
             ];
             
             doc.autoTable({
@@ -255,14 +233,18 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp) return '';
-                        return lastInsp.itemStatuses?.[item] || '';
+                        if (!lastInsp || !lastInsp.itemStatuses) return '';
+                        return lastInsp.itemStatuses[item] || ''; 
                     });
                     
                     return [
-                        e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
+                        e.id, 
+                        e.buildingName, 
+                        formatDate(e.expiryDate), 
+                        e.type, 
+                        e.weight + ' kg',
+                        lastInsp?.notes || '',
                         ...inspectionStatus,
-                        lastInsp?.notes || '' // Only manual notes
                     ];
                 }),
                 didParseCell: (data) => {
@@ -278,7 +260,9 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        if (data.column.index >= 5 && data.column.index < 5 + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                        // Start coloring from the first item status column
+                        const itemStatusStartIndex = 6; 
+                        if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
@@ -552,8 +536,8 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
         if (allExtinguishers.length > 0) {
             const extHeader = [
                 'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-                ...EXTINGUISHER_INSPECTION_ITEMS,
-                'Observações'
+                'Observações',
+                ...EXTINGUISHER_INSPECTION_ITEMS
             ];
             
             doc.autoTable({
@@ -562,15 +546,20 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 head: [extHeader],
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
+                    
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp) return '';
-                        return lastInsp.itemStatuses?.[item] || '';
+                        if (!lastInsp || !lastInsp.itemStatuses) return '';
+                        return lastInsp.itemStatuses[item] || ''; 
                     });
                     
                     return [
-                        e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight + ' kg',
-                        ...inspectionStatus,
-                        lastInsp?.notes || ''
+                        e.id, 
+                        e.buildingName, 
+                        formatDate(e.expiryDate), 
+                        e.type, 
+                        e.weight + ' kg',
+                        lastInsp?.notes || '',
+                        ...inspectionStatus
                     ];
                 }),
                 didParseCell: (data) => {
@@ -586,8 +575,8 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        // Highlight N/C items
-                        if (data.column.index >= 5 && data.column.index < 5 + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                        const itemStatusStartIndex = 6;
+                        if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
                                 data.cell.styles.fontStyle = 'bold';
@@ -694,6 +683,8 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
         resolve();
     });
 }
+    
+
     
 
     

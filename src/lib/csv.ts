@@ -37,7 +37,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         const generationDate = new Date();
 
         // --- Extinguishers Sheet ---
-        const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Capacidade (kg)', 'Recarga', 'Test. Hidrostático', 'Status', 'Observações'];
+        const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', 'Status Geral', 'Observações', ...EXTINGUISHER_INSPECTION_ITEMS];
         const extBody = (extinguishers || []).map(e => {
             const insp = e.inspections?.[e.inspections.length - 1];
             const status = insp?.status ?? 'N/A';
@@ -47,7 +47,9 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             if (e.expiryDate && isSameMonth(parseISO(e.expiryDate), generationDate) && isSameYear(parseISO(e.expiryDate), generationDate)) {
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
-            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, status, notes];
+            const itemStatuses = EXTINGUISHER_INSPECTION_ITEMS.map(item => insp?.itemStatuses?.[item] || '');
+
+            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, status, notes, ...itemStatuses];
         });
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
         applyAutoFilter(wsExt, extHeader.length);
@@ -96,8 +98,8 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         // --- Extinguishers Section ---
         const extHeader = [
             'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-            ...EXTINGUISHER_INSPECTION_ITEMS,
-            'Observações'
+            'Observações',
+            ...EXTINGUISHER_INSPECTION_ITEMS
         ];
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         
@@ -105,15 +107,18 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp) return '';
-                // The new logic: check itemStatuses
-                return lastInsp.itemStatuses?.[item] || ''; 
+                if (!lastInsp || !lastInsp.itemStatuses) return ''; // No inspection or no item statuses
+                return lastInsp.itemStatuses[item] || ''; // Return 'OK', 'N/C', or empty string if not present
             });
             
             return [
-                e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
-                ...inspectionStatus,
-                lastInsp?.notes || '' // Only manual notes
+                e.id, 
+                e.buildingName, 
+                formatDate(e.expiryDate), 
+                e.type, 
+                e.weight,
+                lastInsp?.notes || '',
+                ...inspectionStatus
             ];
         });
 
@@ -236,8 +241,8 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
        
         const extHeader = [
             'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
-            ...EXTINGUISHER_INSPECTION_ITEMS,
-            'Observações'
+            'Observações',
+            ...EXTINGUISHER_INSPECTION_ITEMS
         ];
         const allExtinguishers = buildingsWithExtinguishers.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         
@@ -245,14 +250,18 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp) return '';
-                return lastInsp.itemStatuses?.[item] || ''; 
+                if (!lastInsp || !lastInsp.itemStatuses) return '';
+                return lastInsp.itemStatuses[item] || ''; 
             });
             
             return [
-                e.id, e.buildingName, formatDate(e.expiryDate), e.type, e.weight,
-                ...inspectionStatus,
-                lastInsp?.notes || ''
+                e.id, 
+                e.buildingName, 
+                formatDate(e.expiryDate), 
+                e.type, 
+                e.weight,
+                lastInsp?.notes || '',
+                ...inspectionStatus
             ];
         });
 
@@ -314,4 +323,6 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
         resolve();
     });
 }
+    
+
     
