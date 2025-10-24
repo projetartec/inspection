@@ -43,8 +43,8 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             let alert = '';
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp || !lastInsp.itemStatuses) return 'OK'; // Default to OK if no inspection
-                return lastInsp.itemStatuses[item] || 'OK'; // Default individual items to OK
+                const status = lastInsp?.itemStatuses?.[item] || 'OK';
+                return status;
             });
             
             if (inspectionStatus.includes('N/C')) {
@@ -111,12 +111,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                // If there's an inspection with statuses, use the specific status, otherwise default to "OK"
-                if (lastInsp && lastInsp.itemStatuses) {
-                    return lastInsp.itemStatuses[item] || 'OK';
-                }
-                // If there's no inspection or no itemStatuses, default to "OK"
-                return 'OK';
+                return lastInsp?.itemStatuses?.[item] || 'OK';
             });
             
             return [
@@ -256,8 +251,7 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
             const lastInsp = e.inspections?.[e.inspections.length - 1];
             
             const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                if (!lastInsp || !lastInsp.itemStatuses) return 'OK';
-                return lastInsp.itemStatuses[item] || 'OK'; 
+                return lastInsp?.itemStatuses?.[item] || 'OK';
             });
             
             return [

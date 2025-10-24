@@ -78,8 +78,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 body: extinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (!lastInsp || !lastInsp.itemStatuses) return 'OK';
-                        return lastInsp.itemStatuses[item] || 'OK';
+                        return lastInsp?.itemStatuses?.[item] || 'OK';
                     });
                     
                     return [
@@ -99,6 +98,15 @@ export async function generatePdfReport(client: Client, building: Building, exti
 
                     if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
                          data.row.styles.fillColor = EXPIRING_BG_COLOR;
+                    }
+                    
+                    // Highlight N/C cells
+                    const itemStatusStartIndex = 6;
+                    if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                        if (data.cell.text && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
                 }
             });
@@ -123,8 +131,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 startY: finalY,
                 head: [hoseHeader],
                 body: hoses.map(h => {
-                    const insp = h.inspections?.[h.inspections.length - 1];
-                    const status = insp?.status ?? 'N/A';
                     return [
                         h.id, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength + 'm',
                         h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
@@ -191,7 +197,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text("Consolidado", 14, finalY);
+        doc.text("Relatório Consolidado", 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
@@ -229,10 +235,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                        if (lastInsp && lastInsp.itemStatuses) {
-                            return lastInsp.itemStatuses[item] || 'OK';
-                        }
-                        return 'OK';
+                        return lastInsp?.itemStatuses?.[item] || 'OK';
                     });
                     
                     return [
@@ -295,8 +298,6 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                 startY: finalY,
                 head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste']],
                 body: allHoses.map(h => {
-                    const insp = h.inspections?.[h.inspections.length - 1];
-                    const status = insp?.status ?? 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
                         h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
@@ -460,8 +461,6 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
                 startY: finalY,
                 head: [['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste']],
                 body: allHoses.map(h => {
-                    const insp = h.inspections?.[h.inspections.length - 1];
-                    const status = insp?.status ?? 'N/A';
                     return [
                         h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
                         h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate)
@@ -538,8 +537,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                 body: allExtinguishers.map(e => {
                     const lastInsp = e.inspections?.[e.inspections.length - 1];
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => {
-                       if (!lastInsp || !lastInsp.itemStatuses) return 'OK';
-                       return lastInsp.itemStatuses[item] || 'OK';
+                       return lastInsp?.itemStatuses?.[item] || 'OK';
                     });
                     
                     return [
@@ -600,7 +598,7 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
 
         // --- Header ---
         doc.setFontSize(20);
-        doc.text("Descritivo de Equipamentos", 14, finalY);
+        doc.text("Relatório Descritivo de Equipamentos", 14, finalY);
         finalY += 10;
         doc.setFontSize(11);
         doc.text(`Cliente: ${client.name}`, 14, finalY);
