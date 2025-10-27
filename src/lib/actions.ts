@@ -154,7 +154,7 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
 
 // --- Inspection Action ---
 export async function addInspectionBatchAction(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    await addInspectionBatch(clientId, buildingId, inspectedItems, false);
+    await addInspectionBatch(clientId, buildingId, inspectedItems);
 
     const revalidatedPaths: Set<string> = new Set();
     inspectedItems.forEach(item => {

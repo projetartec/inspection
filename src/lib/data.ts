@@ -316,22 +316,15 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             }
             
             if (targetEquipment) {
-                if (!targetEquipment.inspections) targetEquipment.inspections = [];
+                if (!targetEquipment.inspections) {
+                    targetEquipment.inspections = [];
+                }
                 
-                if (isFromEditor) {
-                    // Replace last inspection or add if none exist
-                    if (targetEquipment.inspections.length > 0) {
-                        targetEquipment.inspections[targetEquipment.inspections.length - 1] = newInspection;
-                    } else {
-                        targetEquipment.inspections.push(newInspection);
-                    }
+                if (isFromEditor && targetEquipment.inspections.length > 0) {
+                    // From editor: replace the last inspection
+                    targetEquipment.inspections[targetEquipment.inspections.length - 1] = newInspection;
                 } else {
-                    // Add new inspection, preventing duplicates
-                    const inspectionDate = new Date(newInspection.date).getTime();
-                    targetEquipment.inspections = targetEquipment.inspections.filter(i => {
-                        const existingDate = new Date(i.date).getTime();
-                        return Math.abs(inspectionDate - existingDate) > 5000; // 5 second threshold
-                    });
+                    // From regular inspection or first time edit: add a new one
                     targetEquipment.inspections.push(newInspection);
                 }
             }
@@ -375,3 +368,4 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
+
