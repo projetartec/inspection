@@ -115,7 +115,8 @@ export function LastInspectionEditor({ clientId, buildingId, initialExtinguisher
                 title: 'Sucesso!',
                 description: 'Inspeção atualizada com sucesso. Novos registros de inspeção foram criados.',
             });
-            router.push(`/clients/${clientId}`);
+            router.push(`/clients/${clientId}/${buildingId}/dashboard`);
+            router.refresh();
         } catch (error: any) {
             console.error("Falha ao salvar inspeção:", error);
             toast({
@@ -132,14 +133,37 @@ export function LastInspectionEditor({ clientId, buildingId, initialExtinguisher
         toast({ title: 'Gerando Relatório', description: `Seu relatório em ${format.toUpperCase()} está sendo preparado...` });
 
         // Remap inspections to match the structure expected by report generators
-        const extinguishersWithEditedInspection = initialExtinguishers.map(ext => ({
-            ...ext,
-            inspections: [...(ext.inspections || []).slice(0, -1), { id: 'edited', date: new Date().toISOString(), ...extinguisherInspections[ext.id] } as Inspection]
-        }));
-        const hosesWithEditedInspection = initialHoses.map(h => ({
-            ...h,
-            inspections: [...(h.inspections || []).slice(0, -1), { id: 'edited', date: new Date().toISOString(), ...hoseInspections[h.id] } as Inspection]
-        }));
+        const extinguishersWithEditedInspection = initialExtinguishers.map(ext => {
+            const hasExistingInspections = ext.inspections && ext.inspections.length > 0;
+            const newInsp = { 
+                id: 'edited', 
+                date: new Date().toISOString(), 
+                ...extinguisherInspections[ext.id],
+                status: Object.values(extinguisherInspections[ext.id].itemStatuses).some(s => s === 'N/C') ? 'N/C' : 'OK'
+            } as Inspection;
+            
+            const newInspectionsArray = hasExistingInspections ? 
+                [...ext.inspections.slice(0, -1), newInsp] : 
+                [newInsp];
+
+            return { ...ext, inspections: newInspectionsArray };
+        });
+
+        const hosesWithEditedInspection = initialHoses.map(h => {
+             const hasExistingInspections = h.inspections && h.inspections.length > 0;
+             const newInsp = { 
+                id: 'edited', 
+                date: new Date().toISOString(), 
+                ...hoseInspections[h.id],
+                status: Object.values(hoseInspections[h.id].itemStatuses).some(s => s === 'N/C') ? 'N/C' : 'OK'
+            } as Inspection;
+
+            const newInspectionsArray = hasExistingInspections ? 
+                [...h.inspections.slice(0, -1), newInsp] : 
+                [newInsp];
+
+            return { ...h, inspections: newInspectionsArray };
+        });
         
         try {
             if (format === 'pdf') {
@@ -235,7 +259,7 @@ export function LastInspectionEditor({ clientId, buildingId, initialExtinguisher
                 </TabsContent>
             </Tabs>
             <div className="flex justify-end gap-2 mt-8">
-                 <Button variant="outline" onClick={() => router.push(`/clients/${clientId}`)}>
+                 <Button variant="outline" onClick={() => router.push(`/clients/${clientId}/${buildingId}/dashboard`)}>
                     Voltar
                 </Button>
                 <DropdownMenu>
@@ -259,4 +283,3 @@ export function LastInspectionEditor({ clientId, buildingId, initialExtinguisher
         </>
     );
 }
-

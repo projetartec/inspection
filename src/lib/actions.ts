@@ -220,8 +220,10 @@ export async function saveLastInspectionAction(
         await addInspectionBatch(clientId, buildingId, inspectedItems);
     }
     
-    revalidatePath(`/clients/${clientId}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/edit-inspection`);
 }
 
 
