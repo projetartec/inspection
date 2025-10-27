@@ -1,11 +1,11 @@
 
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
@@ -42,7 +42,7 @@ export async function updateClientAction(id: string, formData: FormData) {
 
   revalidatePath('/');
   revalidatePath(`/clients/${id}/edit`);
-  redirect('/');
+  // Redirect is now handled on the client-side to avoid the next_redirect "error"
 }
 
 export async function deleteClientAction(id: string) {

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useRef, useState } from "react";
@@ -14,6 +15,7 @@ import type { Client } from "@/lib/types";
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils";
 import { ClientFormSchema } from "@/lib/schemas";
+import { useRouter } from "next/navigation";
 
 interface ClientFormProps {
   client?: Client;
@@ -23,6 +25,7 @@ interface ClientFormProps {
 export function ClientForm({ client, onSuccess }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const isEditMode = !!client;
 
@@ -52,6 +55,8 @@ export function ClientForm({ client, onSuccess }: ClientFormProps) {
           title: "Sucesso!",
           description: `Cliente "${validatedFields.data.name}" atualizado.`,
         });
+        // Redirect client-side after successful update
+        router.push('/');
       } else {
         await createClientAction(formData);
         toast({
