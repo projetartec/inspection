@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
 import type { Client } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,16 +23,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
+import { Input } from '@/components/ui/input';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchClients = async () => {
+    setIsLoading(true);
     try {
       const clientList = await getClients();
       setClients(clientList);
+      setFilteredClients(clientList);
     } catch (error) {
       console.error("Falha ao buscar clientes:", error);
       toast({
@@ -47,6 +53,14 @@ export default function Home() {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    const results = clients.filter(client =>
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.fantasyName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredClients(results);
+  }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
     setClients(prevClients => prevClients.filter(client => client.id !== deletedClientId));
@@ -67,15 +81,35 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Selecione um Cliente</CardTitle>
             <CardDescription>Escolha um cliente para gerenciar os locais e equipamentos.</CardDescription>
+            <div className="relative mt-4">
+              <Input 
+                type="text"
+                placeholder="Buscar cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-8"
+              />
+              {searchTerm && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Limpar busca</span>
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {isLoading ? (
               <p>Buscando dados...</p>
-            ) : clients.length > 0 ? (
-              clients.map((client) => (
+            ) : filteredClients.length > 0 ? (
+              filteredClients.map((client) => (
                 <div key={client.id} className="flex items-center justify-between p-2 rounded-lg border">
-                  <Button asChild variant="link" className="justify-start flex-grow text-lg">
-                    <Link href={`/clients/${client.id}`}>{client.name}</Link>
+                  <Button asChild variant="link" className="justify-start flex-grow text-lg p-0 overflow-hidden">
+                    <Link href={`/clients/${client.id}`} className="truncate">{client.name}</Link>
                   </Button>
                   <div className="flex items-center space-x-1">
                     <Button asChild variant="ghost" size="icon">
@@ -109,7 +143,9 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground py-4">Nenhum cliente foi cadastrado ainda.</p>
+              <p className="text-center text-muted-foreground py-4">
+                {searchTerm ? `Nenhum cliente encontrado para "${searchTerm}".` : "Nenhum cliente foi cadastrado ainda."}
+              </p>
             )}
           </CardContent>
         </Card>
