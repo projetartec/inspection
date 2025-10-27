@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -282,13 +281,20 @@ export async function deleteHose(clientId: string, buildingId: string, id: strin
 // --- Inspection Action ---
 export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[], isFromEditor: boolean = false) {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+
     await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) throw new Error('Cliente não encontrado');
+        if (!clientDoc.exists) {
+            throw new Error('Cliente não encontrado');
+        }
 
         const client = docToClient(clientDoc);
-        const building = client.buildings.find(b => b.id === buildingId);
-        if (!building) throw new Error('Local não encontrado');
+        const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
+        if (buildingIndex === -1) {
+            throw new Error('Local não encontrado');
+        }
+        
+        const building = client.buildings[buildingIndex];
 
         inspectedItems.forEach(item => {
             const newInspection: Inspection = {
@@ -312,14 +318,14 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
                 }
                 const manualId = item.qrCodeValue.replace('manual:', '');
                 building.manualInspections.push({ ...newInspection, manualId: manualId });
-                return;
+                return; // continue to next item
             }
             
             if (targetEquipment) {
                 if (!targetEquipment.inspections) {
                     targetEquipment.inspections = [];
                 }
-                
+
                 if (isFromEditor && targetEquipment.inspections.length > 0) {
                     // From editor: replace the last inspection
                     targetEquipment.inspections[targetEquipment.inspections.length - 1] = newInspection;
@@ -330,6 +336,10 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             }
         });
 
+        // Update the building in the client's buildings array
+        client.buildings[buildingIndex] = building;
+        
+        // Write the entire updated client object back
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
@@ -368,4 +378,3 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
-
