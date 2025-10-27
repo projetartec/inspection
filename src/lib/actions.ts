@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
@@ -153,7 +154,7 @@ export async function deleteHoseAction(clientId: string, buildingId: string, id:
 
 // --- Inspection Action ---
 export async function addInspectionBatchAction(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    await addInspectionBatch(clientId, buildingId, inspectedItems);
+    await addInspectionBatch(clientId, buildingId, inspectedItems, false);
 
     const revalidatedPaths: Set<string> = new Set();
     inspectedItems.forEach(item => {
@@ -217,7 +218,8 @@ export async function saveLastInspectionAction(
     });
 
     if (inspectedItems.length > 0) {
-        await addInspectionBatch(clientId, buildingId, inspectedItems);
+        // The `true` flag indicates this is from the editor, so it should replace the last inspection
+        await addInspectionBatch(clientId, buildingId, inspectedItems, true);
     }
     
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);

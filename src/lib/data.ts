@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -279,7 +280,7 @@ export async function deleteHose(clientId: string, buildingId: string, id: strin
 
 
 // --- Inspection Action ---
-export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
+export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[], isFromEditor: boolean = false) {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
     await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
@@ -296,7 +297,7 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
                 location: item.location,
                 notes: item.notes,
                 status: item.status,
-                itemStatuses: item.itemStatuses, // Correctly include itemStatuses
+                itemStatuses: item.itemStatuses,
             };
 
             let targetEquipment: Extinguisher | Hydrant | undefined;
@@ -317,14 +318,22 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             if (targetEquipment) {
                 if (!targetEquipment.inspections) targetEquipment.inspections = [];
                 
-                const inspectionDate = new Date(newInspection.date).getTime();
-                // Remove any inspection from roughly the same time to prevent duplicates on resubmission
-                targetEquipment.inspections = targetEquipment.inspections.filter(i => {
-                    const existingDate = new Date(i.date).getTime();
-                    return Math.abs(inspectionDate - existingDate) > 5000; // 5 second threshold
-                });
-                
-                targetEquipment.inspections.push(newInspection);
+                if (isFromEditor) {
+                    // Replace last inspection or add if none exist
+                    if (targetEquipment.inspections.length > 0) {
+                        targetEquipment.inspections[targetEquipment.inspections.length - 1] = newInspection;
+                    } else {
+                        targetEquipment.inspections.push(newInspection);
+                    }
+                } else {
+                    // Add new inspection, preventing duplicates
+                    const inspectionDate = new Date(newInspection.date).getTime();
+                    targetEquipment.inspections = targetEquipment.inspections.filter(i => {
+                        const existingDate = new Date(i.date).getTime();
+                        return Math.abs(inspectionDate - existingDate) > 5000; // 5 second threshold
+                    });
+                    targetEquipment.inspections.push(newInspection);
+                }
             }
         });
 
