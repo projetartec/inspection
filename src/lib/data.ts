@@ -1,10 +1,11 @@
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
-import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
+import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 
 const CLIENTS_COLLECTION = 'clients';
@@ -14,6 +15,16 @@ function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
   return {
     id: doc.id,
     name: data?.name || '',
+    fantasyName: data?.fantasyName,
+    address: data?.address,
+    city: data?.city,
+    zipCode: data?.zipCode,
+    phone1: data?.phone1,
+    phone2: data?.phone2,
+    cnpj: data?.cnpj,
+    email: data?.email,
+    adminContact: data?.adminContact,
+    caretakerContact: data?.caretakerContact,
     buildings: data?.buildings || [],
   };
 }
@@ -49,23 +60,23 @@ export async function getClientById(clientId: string): Promise<Client | null> {
   }
 }
 
-export async function addClient(newClientData: { name: string }): Promise<string> {
+export async function addClient(newClientData: ClientFormValues): Promise<string> {
     const q = adminDb.collection(CLIENTS_COLLECTION).where("name", "==", newClientData.name);
     const querySnapshot = await q.get();
     if (!querySnapshot.empty) {
-        throw new Error('Um cliente com este nome já existe.');
+        throw new Error('Um cliente com este nome de empresa já existe.');
     }
     
     const id = `client-${Date.now()}`;
     const newClient: Omit<Client, 'id' | 'buildings'> & { buildings: Building[] } = {
-        name: newClientData.name,
+        ...newClientData,
         buildings: []
     };
     await adminDb.collection(CLIENTS_COLLECTION).doc(id).set(newClient);
     return id;
 }
 
-export async function updateClient(id: string, updatedData: Partial<Omit<Client, 'id'>>) {
+export async function updateClient(id: string, updatedData: Partial<ClientFormValues>) {
   const docRef = adminDb.collection(CLIENTS_COLLECTION).doc(id);
   await docRef.set(updatedData, { merge: true });
 }

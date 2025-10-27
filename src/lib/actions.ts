@@ -1,11 +1,12 @@
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { ExtinguisherFormValues, HydrantFormValues } from './schemas';
+import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
     addClient as addClientData,
@@ -29,23 +30,15 @@ import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByB
 
 // --- Client Actions ---
 export async function createClientAction(formData: FormData) {
-  const name = formData.get('name') as string;
-  if (!name || name.trim().length < 2) {
-    throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
-  }
-
-  await addClientData({ name });
+  const data = Object.fromEntries(formData);
+  await addClientData(data as ClientFormValues);
   
   revalidatePath('/');
 }
 
 export async function updateClientAction(id: string, formData: FormData) {
-  const name = formData.get('name') as string;
-  if (!name || name.trim().length < 2) {
-    throw new Error('O nome do cliente deve ter pelo menos 2 caracteres.');
-  }
-
-  await updateClientData(id, { name });
+  const data = Object.fromEntries(formData);
+  await updateClientData(id, data as Partial<ClientFormValues>);
 
   revalidatePath('/');
   revalidatePath(`/clients/${id}/edit`);

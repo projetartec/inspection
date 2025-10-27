@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 import { 
     extinguisherTypes, 
@@ -13,7 +14,17 @@ import {
 
 // Schemas for validation
 export const ClientFormSchema = z.object({
-  name: z.string().min(2, 'O nome do cliente deve ter pelo menos 2 caracteres.'),
+  name: z.string().min(2, 'O nome da empresa deve ter pelo menos 2 caracteres.'),
+  fantasyName: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string().optional(),
+  phone1: z.string().optional(),
+  phone2: z.string().optional(),
+  cnpj: z.string().optional(),
+  email: z.string().email({ message: 'E-mail inválido.' }).optional().or(z.literal('')),
+  adminContact: z.string().optional(),
+  caretakerContact: z.string().optional(),
 });
 export type ClientFormValues = z.infer<typeof ClientFormSchema>;
 

@@ -15,6 +15,7 @@ interface jsPDFWithAutoTable extends jsPDF {
 const NC_BG_COLOR = [252, 250, 152]; // #FCFA98
 const EXPIRING_BG_COLOR = [255, 105, 97]; // #FF6969
 const HEADER_BG_COLOR = [0, 128, 128]; // Teal
+const LOGO_URL = 'https://i.imgur.com/4se4p12.png';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -25,6 +26,16 @@ const HOSE_INSPECTION_ITEMS = [
     "Acrílico", "Sinalização"
 ];
 
+async function getLogoBase64(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
 
 function formatDate(dateInput: string | null | undefined): string {
     if (!dateInput) return 'N/A';
@@ -53,28 +64,59 @@ function getObservationNotes(inspection: Inspection | undefined): string {
     return notes;
 }
 
+async function addHeaderAndLogo(doc: jsPDF, client: Client, generationDate: Date, buildingName?: string) {
+    const logoBase64 = await getLogoBase64(LOGO_URL);
+    const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+    
+    // Add logo to the top right corner
+    doc.addImage(logoBase64, 'PNG', pageWidth - 54, 10, 40, 20);
+
+    // Add client details to the top left
+    let finalY = 15;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Empresa: ${client.name || ''}`, 14, finalY);
+    finalY += 5;
+    
+    doc.setFont('helvetica', 'normal');
+    if (client.fantasyName) {
+        doc.text(`Nome Fantasia: ${client.fantasyName}`, 14, finalY);
+        finalY += 5;
+    }
+    if (buildingName) {
+         doc.text(`Local: ${buildingName}`, 14, finalY);
+         finalY += 5;
+    }
+    doc.text(`Endereço: ${client.address || ''}`, 14, finalY);
+    finalY += 5;
+    doc.text(`Cidade: ${client.city || ''}  CEP: ${client.zipCode || ''}  Tel.: ${client.phone1 || ''}  Tel.: ${client.phone2 || ''}`, 14, finalY);
+    finalY += 5;
+    doc.text(`CNPJ: ${client.cnpj || ''}`, 14, finalY);
+    finalY += 5;
+    doc.text(`E-mail: ${client.email || ''}`, 14, finalY);
+    finalY += 5;
+    doc.text(`Contatos ADM: ${client.adminContact || ''}  Zelador: ${client.caretakerContact || ''}`, 14, finalY);
+    finalY += 5;
+    doc.text(`Data da realização Check list: ${format(generationDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}`, 14, finalY);
+    finalY += 8;
+    return finalY;
+}
+
 
 export async function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
     // Wrap in promise to make it async and unblock UI thread
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
 
         const generationDate = new Date();
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-        let finalY = 20; 
-
-        // --- Header ---
-        doc.setFontSize(20);
+        
+        let finalY = await addHeaderAndLogo(doc, client, generationDate, building.name);
+        
+        doc.setFontSize(16);
         doc.text("Relatório de Inspeção", 14, finalY);
-        finalY += 10;
-        doc.setFontSize(11);
-        doc.text(`Cliente: ${client.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Local: ${building.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
         finalY += 10;
 
         const tableStyles = {
@@ -216,23 +258,18 @@ export async function generatePdfReport(client: Client, building: Building, exti
 }
 
 export async function generateClientPdfReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
 
         const generationDate = new Date();
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-        let finalY = 20;
+        
+        let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
-        // --- Header ---
-        doc.setFontSize(20);
+        doc.setFontSize(16);
         doc.text("Relatório Consolidado", 14, finalY);
-        finalY += 10;
-        doc.setFontSize(11);
-        doc.text(`Cliente: ${client.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
         finalY += 10;
         
         const tableStyles = {
@@ -373,23 +410,18 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
 // --- EXPIRY REPORT GENERATORS ---
 
 export async function generateExpiryPdfReport(client: Client, buildings: Building[], month: number, year: number) {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
 
-        let finalY = 20;
-
+        const generationDate = new Date();
         const targetMonthName = format(new Date(year, month), 'MMMM', { locale: ptBR });
 
-        // --- Header ---
-        doc.setFontSize(20);
-        doc.text(`Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
-        finalY += 10;
-        doc.setFontSize(11);
-        doc.text(`Cliente: ${client.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        let finalY = await addHeaderAndLogo(doc, client, generationDate);
+        
+        doc.setFontSize(16);
+        doc.text(`Relatório de Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
         finalY += 10;
 
         const tableStyles = {
@@ -463,23 +495,18 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
 
 // --- HOSES ONLY REPORT ---
 export async function generateHosesPdfReport(client: Client, buildingsWithHoses: (Building & { hoses: Hydrant[] })[]) {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
 
         const generationDate = new Date();
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-        let finalY = 20;
+        let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
         // --- Header ---
-        doc.setFontSize(20);
-        doc.text("Mangueiras", 14, finalY);
-        finalY += 10;
-        doc.setFontSize(11);
-        doc.text(`Cliente: ${client.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        doc.setFontSize(16);
+        doc.text("Relatório de Mangueiras", 14, finalY);
         finalY += 10;
         
         const tableStyles = {
@@ -543,22 +570,17 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
 
 // --- EXTINGUISHERS ONLY REPORT ---
 export async function generateExtinguishersPdfReport(client: Client, buildingsWithExtinguishers: (Building & { extinguishers: Extinguisher[] })[]) {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
 
         const generationDate = new Date();
-        let finalY = 20;
+        let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
         // --- Header ---
-        doc.setFontSize(20);
-        doc.text("Extintores", 14, finalY);
-        finalY += 10;
-        doc.setFontSize(11);
-        doc.text(`Cliente: ${client.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Gerado em: ${format(generationDate, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
+        doc.setFontSize(16);
+        doc.text("Relatório de Extintores", 14, finalY);
         finalY += 10;
         
         const tableStyles = {
@@ -636,22 +658,18 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
 // --- DESCRIPTIVE REPORT ---
 
 export async function generateDescriptivePdfReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
         }) as jsPDFWithAutoTable;
-
+        
+        const generationDate = new Date();
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-        let finalY = 20;
+        let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
         // --- Header ---
-        doc.setFontSize(20);
+        doc.setFontSize(16);
         doc.text("Relatório Descritivo de Equipamentos", 14, finalY);
-        finalY += 10;
-        doc.setFontSize(11);
-        doc.text(`Cliente: ${client.name}`, 14, finalY);
-        finalY += 5;
-        doc.text(`Gerado em: ${format(new Date(), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}`, 14, finalY);
         finalY += 10;
 
         const tableStyles = {
@@ -727,4 +745,3 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
     
 
     
-

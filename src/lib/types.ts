@@ -76,6 +76,16 @@ export type Building = {
 
 export type Client = {
   id: string;
-  name: string;
+  name: string; // "Empresa"
+  fantasyName?: string;
+  address?: string;
+  city?: string;
+  zipCode?: string;
+  phone1?: string;
+  phone2?: string;
+  cnpj?: string;
+  email?: string;
+  adminContact?: string;
+  caretakerContact?: string;
   buildings: Building[];
 };
