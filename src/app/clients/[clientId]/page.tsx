@@ -213,12 +213,6 @@ export default function ClientPage() {
                                         onUpdate={handleGpsLinkUpdate}
                                     />
                                     <Button asChild variant="ghost" size="icon">
-                                      <Link href={`/clients/${client.id}/${building.id}/edit-inspection`}>
-                                        <ClipboardEdit className="h-5 w-5" />
-                                        <span className="sr-only">Editar Inspeção</span>
-                                      </Link>
-                                    </Button>
-                                    <Button asChild variant="ghost" size="icon">
                                       <Link href={`/clients/${client.id}/${building.id}/edit`}>
                                         <Pencil className="h-5 w-5" />
                                         <span className="sr-only">Editar Local</span>

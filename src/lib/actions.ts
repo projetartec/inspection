@@ -174,61 +174,6 @@ export async function addInspectionBatchAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
 }
 
-type EditableInspection = {
-    notes: string;
-    itemStatuses: { [key: string]: 'OK' | 'N/C' };
-};
-
-export async function saveLastInspectionAction(
-    clientId: string, 
-    buildingId: string, 
-    extinguisherInspections: Record<string, EditableInspection>, 
-    hoseInspections: Record<string, EditableInspection>
-) {
-    const inspectedItems: InspectedItem[] = [];
-    const now = new Date().toISOString();
-
-    const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-    const hoses = await getHosesByBuilding(clientId, buildingId);
-
-    extinguishers.forEach(ext => {
-        const inspectionData = extinguisherInspections[ext.id];
-        if (inspectionData) {
-            inspectedItems.push({
-                qrCodeValue: ext.qrCodeValue,
-                date: now,
-                notes: inspectionData.notes,
-                status: Object.values(inspectionData.itemStatuses).some(s => s === 'N/C') ? 'N/C' : 'OK',
-                itemStatuses: inspectionData.itemStatuses,
-            });
-        }
-    });
-
-    hoses.forEach(hose => {
-        const inspectionData = hoseInspections[hose.id];
-        if (inspectionData) {
-            inspectedItems.push({
-                qrCodeValue: hose.qrCodeValue,
-                date: now,
-                notes: inspectionData.notes,
-                status: Object.values(inspectionData.itemStatuses).some(s => s === 'N/C') ? 'N/C' : 'OK',
-                itemStatuses: inspectionData.itemStatuses,
-            });
-        }
-    });
-
-    if (inspectedItems.length > 0) {
-        // The `true` flag indicates this is from the editor, so it should replace the last inspection
-        await addInspectionBatch(clientId, buildingId, inspectedItems, true);
-    }
-    
-    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/edit-inspection`);
-}
-
-
 // --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
     const [client, building, extinguishers, hoses] = await Promise.all([

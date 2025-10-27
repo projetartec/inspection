@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -279,7 +280,7 @@ export async function deleteHose(clientId: string, buildingId: string, id: strin
 
 
 // --- Inspection Action ---
-export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[], isFromEditor: boolean = false) {
+export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
 
     await adminDb.runTransaction(async (transaction) => {
@@ -325,14 +326,7 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
                 if (!targetEquipment.inspections) {
                     targetEquipment.inspections = [];
                 }
-
-                if (isFromEditor && targetEquipment.inspections.length > 0) {
-                    // From editor: replace the last inspection
-                    targetEquipment.inspections[targetEquipment.inspections.length - 1] = newInspection;
-                } else {
-                    // From regular inspection or first time edit: add a new one
-                    targetEquipment.inspections.push(newInspection);
-                }
+                targetEquipment.inspections.push(newInspection);
             }
         });
 
