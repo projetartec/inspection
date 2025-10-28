@@ -220,38 +220,37 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                     <FileText className="mr-2 h-4 w-4" />
-                    <span>Consolidado</span>
+                    <span>Geral</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
                     <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleGenerateConsolidatedReport('pdf')}>Gerar PDF</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateConsolidatedReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-            </DropdownMenuSub>
-
-            <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                    <Droplets className="mr-2 h-4 w-4" />
-                    <span>Mangueiras</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleGenerateHosesReport('pdf')}>Gerar PDF</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateHosesReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-            </DropdownMenuSub>
-            
-            <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                    <Flame className="mr-2 h-4 w-4" />
-                    <span>Extintores</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                        <DropdownMenuItem onClick={() => handleGenerateExtinguishersReport('pdf')}>Gerar PDF</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleGenerateExtinguishersReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>Consolidado</DropdownMenuSubTrigger>
+                             <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleGenerateConsolidatedReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateConsolidatedReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>Extintores</DropdownMenuSubTrigger>
+                             <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleGenerateExtinguishersReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateExtinguishersReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                         <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>Mangueiras</DropdownMenuSubTrigger>
+                             <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleGenerateHosesReport('pdf')}>Gerar PDF</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateHosesReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>
