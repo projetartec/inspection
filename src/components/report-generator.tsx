@@ -2,11 +2,24 @@
 "use client";
 
 import { useState } from 'react';
-import { FileText, Loader2, ChevronDown, ClipboardList } from 'lucide-react';
+import { FileText, Loader2, ChevronDown, ClipboardList, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getReportDataAction, getDescriptiveReportDataAction } from '@/lib/actions';
-import { generateXlsxReport as generateXlsxReportClient, generatePdfReport as generatePdfReportClient } from '@/lib/client-actions';
-import { generateDescriptiveXlsxReport, generateDescriptivePdfReport } from '@/lib/pdf';
+import { 
+    getReportDataAction, 
+    getDescriptiveReportDataAction,
+    getNonConformityReportDataAction
+} from '@/lib/actions';
+import { 
+    generatePdfReport as generatePdfReportClient, 
+    generateDescriptivePdfReport,
+    generateNonConformityPdfReport
+} from '@/lib/pdf';
+import { 
+    generateXlsxReport as generateXlsxReportClient, 
+    generateDescriptiveXlsxReport,
+    generateNonConformityXlsxReport
+} from '@/lib/csv';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,9 +53,9 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
         if (format === 'xlsx') {
-          await generateXlsxReportClient(clientId, buildingId, extinguishers, hoses);
+          await generateXlsxReportClient(client, building, extinguishers, hoses);
         } else {
-          await generatePdfReportClient(clientId, buildingId, extinguishers, hoses);
+          await generatePdfReportClient(client, building, extinguishers, hoses);
         }
         toast({
             title: 'Sucesso!',
@@ -94,6 +107,36 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     }
   };
 
+  const handleGenerateNCReport = async (format: 'pdf' | 'xlsx', type: 'consolidated' | 'extinguishers' | 'hoses') => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    try {
+      const { client, buildings } = await getNonConformityReportDataAction(clientId, buildingId);
+      if (client && buildings) {
+          if (format === 'pdf') {
+              await generateNonConformityPdfReport(client, buildings, type);
+          } else {
+              await generateNonConformityXlsxReport(client, buildings, type);
+          }
+          toast({
+              title: 'Sucesso!',
+              description: `Relatório de Inconformidades em ${format.toUpperCase()} gerado.`,
+          });
+      } else {
+         throw new Error("Nenhum item não conforme encontrado para este cliente/local.");
+      }
+    } catch (error: any) {
+        console.error(`Falha ao gerar relatório de N/C:`, error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description: error.message || `Falha ao gerar relatório de inconformidades.`
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="space-y-2">
@@ -128,6 +171,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
+
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <ClipboardList className="mr-2 h-4 w-4" />
@@ -140,6 +184,45 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
+
+           <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <AlertCircle className="mr-2 h-4 w-4" />
+              <span>Inconformidades</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                  <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Consolidado</DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handleGenerateNCReport('pdf', 'consolidated')}>Gerar PDF</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateNCReport('xlsx', 'consolidated')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Extintores</DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handleGenerateNCReport('pdf', 'extinguishers')}>Gerar PDF</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateNCReport('xlsx', 'extinguishers')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>Mangueiras</DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                          <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handleGenerateNCReport('pdf', 'hoses')}>Gerar PDF</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleGenerateNCReport('xlsx', 'hoses')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                  </DropdownMenuSub>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+
           <DropdownMenuSeparator />
           <ExpiryReportGenerator clientId={clientId} buildingId={buildingId} isMenuItem={true} />
         </DropdownMenuContent>

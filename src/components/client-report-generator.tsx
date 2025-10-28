@@ -2,26 +2,29 @@
 "use client";
 
 import { useState } from 'react';
-import { FileText, Loader2, ChevronDown, Droplets, Flame, ClipboardList } from 'lucide-react';
+import { FileText, Loader2, ChevronDown, Droplets, Flame, ClipboardList, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
     getClientReportDataAction, 
     getExpiryReportDataAction, 
     getHosesReportDataAction,
     getExtinguishersReportDataAction,
-    getDescriptiveReportDataAction
+    getDescriptiveReportDataAction,
+    getNonConformityReportDataAction
 } from '@/lib/actions';
 import { 
     generateClientPdfReport, 
     generateHosesPdfReport,
     generateExtinguishersPdfReport,
-    generateDescriptivePdfReport
+    generateDescriptivePdfReport,
+    generateNonConformityPdfReport
 } from '@/lib/pdf';
 import { 
     generateClientXlsxReport, 
     generateHosesXlsxReport,
     generateExtinguishersXlsxReport,
-    generateDescriptiveXlsxReport
+    generateDescriptiveXlsxReport,
+    generateNonConformityXlsxReport
 } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
 import {
@@ -166,6 +169,36 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
     }
   };
 
+  const handleGenerateNCReport = async (format: 'pdf' | 'xlsx', type: 'consolidated' | 'extinguishers' | 'hoses') => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    try {
+      const { client, buildings } = await getNonConformityReportDataAction(clientId);
+      if (client && buildings.length > 0) {
+          if (format === 'pdf') {
+              await generateNonConformityPdfReport(client, buildings, type);
+          } else {
+              await generateNonConformityXlsxReport(client, buildings, type);
+          }
+          toast({
+              title: 'Sucesso!',
+              description: `Relatório de Inconformidades em ${format.toUpperCase()} gerado.`,
+          });
+      } else {
+         throw new Error("Nenhum item não conforme encontrado para este cliente.");
+      }
+    } catch (error: any) {
+        console.error(`Falha ao gerar relatório de N/C:`, error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description: error.message || `Falha ao gerar relatório de inconformidades.`
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -232,6 +265,44 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
                     <DropdownMenuSubContent>
                         <DropdownMenuItem onClick={() => handleGenerateDescriptiveReport('pdf')}>Gerar PDF</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleGenerateDescriptiveReport('xlsx')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+            </DropdownMenuSub>
+
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                    <AlertCircle className="mr-2 h-4 w-4" />
+                    <span>Inconformidades</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>Consolidado</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleGenerateNCReport('pdf', 'consolidated')}>Gerar PDF</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateNCReport('xlsx', 'consolidated')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>Extintores</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleGenerateNCReport('pdf', 'extinguishers')}>Gerar PDF</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateNCReport('xlsx', 'extinguishers')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>Mangueiras</DropdownMenuSubTrigger>
+                            <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onClick={() => handleGenerateNCReport('pdf', 'hoses')}>Gerar PDF</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateNCReport('xlsx', 'hoses')}>Gerar Excel (XLSX)</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
+                        </DropdownMenuSub>
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>

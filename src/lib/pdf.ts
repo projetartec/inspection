@@ -738,6 +738,106 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
         resolve();
     });
 }
+
+// --- NON-CONFORMITY REPORT ---
+export async function generateNonConformityPdfReport(
+    client: Client, 
+    buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[],
+    type: 'consolidated' | 'extinguishers' | 'hoses'
+) {
+    return new Promise<void>(async (resolve) => {
+        const doc = new jsPDF({
+            orientation: 'landscape',
+        }) as jsPDFWithAutoTable;
+        
+        const generationDate = new Date();
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        let finalY = await addHeaderAndLogo(doc, client, generationDate);
+
+        // --- Header ---
+        doc.setFontSize(16);
+        doc.text("Relatório de Inconformidades (N/C)", 14, finalY);
+        finalY += 10;
+
+        const tableStyles = {
+            theme: 'striped',
+            headStyles: { fillColor: NC_BG_COLOR, textColor: [0,0,0] },
+            bodyStyles: { halign: 'center' },
+            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+        };
+
+        const showExtinguishers = type === 'consolidated' || type === 'extinguishers';
+        const showHoses = type === 'consolidated' || type === 'hoses';
+
+        // --- Extinguishers Table ---
+        const ncExtinguishers = buildings.flatMap(b => (b.extinguishers || [])
+            .filter(e => e.inspections.some(i => i.status === 'N/C'))
+            .map(e => ({ ...e, buildingName: b.name }))
+        );
+
+        if (showExtinguishers && ncExtinguishers.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Extintores Não Conformes", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Observações da Inspeção']],
+                body: ncExtinguishers.map(e => {
+                    const ncInspection = e.inspections.find(i => i.status === 'N/C');
+                    return [
+                        e.id,
+                        e.buildingName,
+                        e.observations || '',
+                        getObservationNotes(ncInspection)
+                    ];
+                }),
+            });
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        if (finalY > pageHeight - 40) {
+            doc.addPage();
+            finalY = await addHeaderAndLogo(doc, client, generationDate);
+        }
+
+        // --- Hoses Table ---
+        const ncHoses = buildings.flatMap(b => (b.hoses || [])
+            .filter(h => h.inspections.some(i => i.status === 'N/C'))
+            .map(h => ({ ...h, buildingName: b.name }))
+        );
+
+        if (showHoses && ncHoses.length > 0) {
+            doc.setFontSize(14);
+            doc.text("Hidrantes Não Conformes", 14, finalY);
+            finalY += 8;
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['ID', 'Prédio', 'Local', 'Observações da Inspeção']],
+                body: ncHoses.map(h => {
+                    const ncInspection = h.inspections.find(i => i.status === 'N/C');
+                    return [
+                        h.id,
+                        h.buildingName,
+                        h.location,
+                        getObservationNotes(ncInspection)
+                    ];
+                }),
+            });
+        }
+        
+        if (ncExtinguishers.length === 0 && ncHoses.length === 0) {
+             doc.text("Nenhuma inconformidade encontrada.", 14, finalY);
+        }
+
+        const fileName = `Relatorio_Inconformidades_${client.name.replace(/ /g, '_')}.pdf`;
+        doc.save(fileName);
+        resolve();
+    });
+}
     
 
     
@@ -745,3 +845,4 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
     
 
     
+

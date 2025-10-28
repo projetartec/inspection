@@ -349,7 +349,61 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
     });
 }
     
+// --- NON-CONFORMITY REPORT ---
+export async function generateNonConformityXlsxReport(
+    client: Client, 
+    buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[],
+    type: 'consolidated' | 'extinguishers' | 'hoses'
+) {
+    return new Promise<void>((resolve) => {
+        const wb = XLSX.utils.book_new();
+        const showExtinguishers = type === 'consolidated' || type === 'extinguishers';
+        const showHoses = type === 'consolidated' || type === 'hoses';
 
+        // --- Extinguishers Sheet ---
+        const ncExtinguishers = buildings.flatMap(b => (b.extinguishers || [])
+            .filter(e => e.inspections.some(i => i.status === 'N/C'))
+            .map(e => ({ ...e, buildingName: b.name }))
+        );
+
+        if (showExtinguishers && ncExtinguishers.length > 0) {
+            const extHeader = ['ID', 'Prédio', 'Local', 'Observações da Inspeção'];
+            const extBody = ncExtinguishers.map(e => {
+                const ncInspection = e.inspections.find(i => i.status === 'N/C');
+                return [e.id, e.buildingName, e.observations || '', getObservationNotes(ncInspection)];
+            });
+            const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
+            applyAutoFilter(wsExt, extHeader.length);
+            XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores NC');
+        }
+
+        // --- Hoses Sheet ---
+        const ncHoses = buildings.flatMap(b => (b.hoses || [])
+            .filter(h => h.inspections.some(i => i.status === 'N/C'))
+            .map(h => ({ ...h, buildingName: b.name }))
+        );
+
+        if (showHoses && ncHoses.length > 0) {
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Observações da Inspeção'];
+            const hoseBody = ncHoses.map(h => {
+                const ncInspection = h.inspections.find(i => i.status === 'N/C');
+                return [h.id, h.buildingName, h.location, getObservationNotes(ncInspection)];
+            });
+            const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
+            applyAutoFilter(wsHose, hoseHeader.length);
+            XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes NC');
+        }
+
+        if (ncExtinguishers.length === 0 && ncHoses.length === 0) {
+            const wsEmpty = XLSX.utils.aoa_to_sheet([[`Nenhuma inconformidade encontrada.`]]);
+            XLSX.utils.book_append_sheet(wb, wsEmpty, 'Inconformidades');
+        }
+        
+        const fileName = `Relatorio_Inconformidades_${client.name.replace(/ /g, '_')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        resolve();
+    });
+}
     
 
     

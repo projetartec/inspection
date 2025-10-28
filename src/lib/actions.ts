@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
@@ -268,6 +269,34 @@ export async function getDescriptiveReportDataAction(clientId: string, buildingI
     }));
     
     return { client, buildings: buildingsWithEquipment };
+}
+
+export async function getNonConformityReportDataAction(clientId: string, buildingId?: string) {
+    const client = await getClientById(clientId);
+    let buildings: Building[] = [];
+
+    if (buildingId) {
+        const building = await getBuildingById(clientId, buildingId);
+        if(building) buildings.push(building);
+    } else {
+        buildings = await getBuildingsByClient(clientId);
+    }
+
+    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
+        const [extinguishers, hoses] = await Promise.all([
+            getExtinguishersByBuilding(clientId, b.id),
+            getHosesByBuilding(clientId, b.id)
+        ]);
+
+        const ncExtinguishers = extinguishers.filter(e => e.inspections.some(i => i.status === 'N/C'));
+        const ncHoses = hoses.filter(h => h.inspections.some(i => i.status === 'N/C'));
+
+        return { ...b, extinguishers: ncExtinguishers, hoses: ncHoses };
+    }));
+    
+    const buildingsWithNC = buildingsWithEquipment.filter(b => b.extinguishers.length > 0 || b.hoses.length > 0);
+
+    return { client, buildings: buildingsWithNC };
 }
 
 
