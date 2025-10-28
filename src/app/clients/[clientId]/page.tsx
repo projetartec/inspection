@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, X, ClipboardEdit } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X, ClipboardEdit, FileSearch } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -141,6 +141,12 @@ export default function ClientPage() {
         <PageHeader title={`Cliente: ${client.name}`} href="/" />
 
         <div className="flex flex-wrap items-center justify-center gap-2 p-4 border-b">
+           <Button asChild className="bg-blue-200 hover:bg-blue-300 text-black">
+                <Link href={`/clients/${clientId}/consultation`}>
+                    <FileSearch className="h-4 w-4 mr-2" />
+                    Consulta
+                </Link>
+            </Button>
           <ClientReportGenerator clientId={clientId} />
         </div>
 
