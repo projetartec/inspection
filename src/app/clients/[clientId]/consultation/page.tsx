@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Flame, Droplets } from 'lucide-react';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -169,24 +169,23 @@ export default function ConsultationPage() {
 
     const allExtinguishers = buildings.flatMap(b => b.extinguishers.map(e => ({ ...e, buildingName: b.name })));
     const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name })));
-
-    const filteredExtinguishers = showOnlyNC 
-        ? allExtinguishers.filter(e => {
-            const lastInsp = e.inspections?.[e.inspections.length - 1];
-            if (!lastInsp) return false;
-            // Check based on the same logic as the table rendering: check individual statuses.
-            return Object.values(lastInsp.itemStatuses || {}).includes('N/C');
-        })
-        : allExtinguishers;
     
+    const filteredExtinguishers = showOnlyNC
+    ? allExtinguishers.filter(e => {
+        const lastInsp = e.inspections?.[e.inspections.length - 1];
+        if (!lastInsp) return false;
+        return Object.values(lastInsp.itemStatuses || {}).includes('N/C');
+    })
+    : allExtinguishers;
+
     const filteredHoses = showOnlyNC
-        ? allHoses.filter(h => {
-            const lastInsp = h.inspections?.[h.inspections.length - 1];
-            if (!lastInsp) return false;
-            // Check based on the overall status, as it reflects the individual items for hoses.
-            return lastInsp.status === 'N/C';
-        })
-        : allHoses;
+    ? allHoses.filter(h => {
+        const lastInsp = h.inspections?.[h.inspections.length - 1];
+        if (!lastInsp) return false;
+        return lastInsp.status === 'N/C';
+    })
+    : allHoses;
+
 
     if (isLoading) {
         return <PageHeader title="Carregando Consulta..." />;
@@ -220,13 +219,24 @@ export default function ConsultationPage() {
                         <div className="border-b pb-4">
                             <Tabs value={activeTab} onValueChange={setActiveTab}>
                                 <TabsList>
-                                    <TabsTrigger value="all">Todos os Itens</TabsTrigger>
-                                    <TabsTrigger value="extinguishers">Extintores</TabsTrigger>
-                                    <TabsTrigger value="hoses">Mangueiras</TabsTrigger>
+                                    <TabsTrigger value="all">
+                                        <div className="flex items-center gap-2 md:hidden">
+                                            <Flame /> <Droplets />
+                                        </div>
+                                        <span className="hidden md:inline">Todos os Itens</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="extinguishers">
+                                        <Flame className="md:hidden"/>
+                                        <span className="hidden md:inline">Extintores</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="hoses">
+                                        <Droplets className="md:hidden"/>
+                                        <span className="hidden md:inline">Mangueiras</span>
+                                    </TabsTrigger>
                                 </TabsList>
                             </Tabs>
                         </div>
-                         <div className="flex items-center space-x-2">
+                         <div className="flex items-center space-x-2 pt-2">
                             <Switch id="nc-filter" checked={showOnlyNC} onCheckedChange={setShowOnlyNC} />
                             <Label htmlFor="nc-filter">N/C</Label>
                         </div>
@@ -260,3 +270,4 @@ export default function ConsultationPage() {
         </div>
     );
 }
+
