@@ -65,7 +65,7 @@ export function MobileNav() {
                     <ChevronLeft className="h-6 w-6" />
                     <span className="text-xs">Prédios</span>
                 </Link>
-                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.includes('/consultation') ? "text-primary" : "text-muted-foreground")}>
+                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-primary")}>
                     <FileSearch className="h-6 w-6" />
                      <span className="text-xs">Consulta</span>
                 </Link>
@@ -88,7 +88,7 @@ export function MobileNav() {
                     <Building className="h-6 w-6" />
                      <span className="text-xs">Prédios</span>
                 </Link>
-                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.includes('/consultation') ? "text-primary" : "text-muted-foreground")}>
+                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
                     <FileSearch className="h-6 w-6" />
                      <span className="text-xs">Consulta</span>
                 </Link>

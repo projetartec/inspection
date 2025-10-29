@@ -90,18 +90,15 @@ export function MainNav() {
               <SidebarContent>
                   <SidebarMenu>
                       <SidebarMenuItem>
-                           <SidebarMenuButton asChild tooltip="Todos os Prédios">
+                           <SidebarMenuButton asChild tooltip="Voltar para Prédios">
                                 <Link href={`/clients/${clientId}`}>
                                     <ChevronLeft />
-                                    <span>Todos os Prédios</span>
+                                    <span>Voltar para Prédios</span>
                                 </Link>
                            </SidebarMenuButton>
                       </SidebarMenuItem>
                   </SidebarMenu>
               </SidebarContent>
-               <SidebarFooter>
-                {clientId && <ClientReportGenerator clientId={clientId} />}
-              </SidebarFooter>
           </>
       )
   }
@@ -123,6 +120,14 @@ export function MainNav() {
                                   <span>Todos os Clientes</span>
                               </Link>
                           </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Consulta" isActive={pathname.includes('/consultation')}>
+                            <Link href={`/clients/${clientId}/consultation`}>
+                                <FileSearch />
+                                <span>Consulta</span>
+                            </Link>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarSeparator/>
                   </SidebarMenu>

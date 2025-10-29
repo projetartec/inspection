@@ -25,7 +25,6 @@ import {
 import { deleteBuildingAction, updateBuildingOrderAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { ClientReportGenerator } from '@/components/client-report-generator';
 import { GpsLinkManager } from '@/components/gps-link-manager';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
@@ -142,12 +141,7 @@ export default function ClientPage() {
   return (
     <>
       <div className="space-y-8">
-        <PageHeader title={`Cliente: ${client.name}`} href="/">
-             <Button variant="outline" onClick={() => router.push(`/clients/${clientId}/consultation`)}>
-                <FileSearch className="h-4 w-4 mr-2" />
-                Consulta
-            </Button>
-        </PageHeader>
+        <PageHeader title={`Cliente: ${client.name}`} href="/" />
 
         <div className="w-full max-w-2xl mx-auto">
           <Card>
