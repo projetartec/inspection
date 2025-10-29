@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2 } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2, FileSearch } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import {
   SidebarHeader,
@@ -20,6 +20,7 @@ import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ClientReportGenerator } from "./client-report-generator";
 
 export function MainNav() {
   const pathname = usePathname();
@@ -97,8 +98,20 @@ export function MainNav() {
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>
+                      <SidebarSeparator/>
+                       <SidebarMenuItem>
+                           <SidebarMenuButton asChild isActive={pathname.includes('/consultation')} tooltip="Consulta Geral">
+                                <Link href={`/clients/${clientId}/consultation`}>
+                                    <FileSearch />
+                                    <span>Consulta</span>
+                                </Link>
+                           </SidebarMenuButton>
+                      </SidebarMenuItem>
                   </SidebarMenu>
               </SidebarContent>
+               <SidebarFooter>
+                {clientId && <ClientReportGenerator clientId={clientId} />}
+              </SidebarFooter>
           </>
       )
   }

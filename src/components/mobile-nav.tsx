@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2 } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2, FileSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from "./ui/button";
@@ -61,12 +61,18 @@ export function MobileNav() {
     // Building list page for a client
      return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-            <nav className="flex items-center justify-around h-full">
+            <nav className="grid grid-cols-3 items-center justify-around h-full">
                  <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
                     <ChevronLeft className="h-6 w-6" />
+                    <span className="text-xs">Clientes</span>
                 </Link>
                 <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === `/clients/${clientId}` ? "text-primary" : "text-muted-foreground")}>
                     <Building className="h-6 w-6" />
+                     <span className="text-xs">Prédios</span>
+                </Link>
+                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.includes('/consultation') ? "text-primary" : "text-muted-foreground")}>
+                    <FileSearch className="h-6 w-6" />
+                     <span className="text-xs">Consulta</span>
                 </Link>
             </nav>
         </div>

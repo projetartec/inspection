@@ -205,15 +205,16 @@ export function ClientReportGenerator({ clientId }: ClientReportGeneratorProps) 
           <DropdownMenuTrigger asChild>
               <Button
                   disabled={isLoading}
-                  className="bg-sky-200 hover:bg-sky-300 text-black"
+                  className="justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
+                  variant='outline'
               >
                   {isLoading ? (
-                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                      <Loader2 className="animate-spin h-4 w-4" />
                   ) : (
-                      <FileText className="h-4 w-4 mr-2" />
+                      <FileText className="h-4 w-4" />
                   )}
-                  Relatórios
-                  <ChevronDown className="h-4 w-4 ml-2" />
+                  <span className="group-data-[collapsible=icon]:hidden ml-2">Relatórios</span>
+                  <ChevronDown className="h-4 w-4 ml-auto group-data-[collapsible=icon]:hidden" />
               </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

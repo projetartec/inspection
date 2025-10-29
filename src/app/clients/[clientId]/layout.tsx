@@ -21,7 +21,7 @@ export default function ClientLayout({
           <main className="p-4 sm:p-6 lg:p-8 pb-24">
             {children}
           </main>
-          <div className="h-16 md:hidden" /> {/* Spacer for mobile nav */}
+          {/* <div className="h-16 md:hidden" /> Spacer for mobile nav */}
           <MobileNav />
         </SidebarInset>
       </SidebarProvider>
