@@ -79,6 +79,32 @@ export function MainNav() {
         </>
     );
   }
+  
+  if (pathname.endsWith('/consultation')) {
+     return (
+          <>
+              <SidebarHeader>
+                  <AppLogo />
+                  <SidebarTrigger className="hidden md:flex" />
+              </SidebarHeader>
+              <SidebarContent>
+                  <SidebarMenu>
+                      <SidebarMenuItem>
+                           <SidebarMenuButton asChild tooltip="Todos os Prédios">
+                                <Link href={`/clients/${clientId}`}>
+                                    <ChevronLeft />
+                                    <span>Todos os Prédios</span>
+                                </Link>
+                           </SidebarMenuButton>
+                      </SidebarMenuItem>
+                  </SidebarMenu>
+              </SidebarContent>
+               <SidebarFooter>
+                {clientId && <ClientReportGenerator clientId={clientId} />}
+              </SidebarFooter>
+          </>
+      )
+  }
 
   if (clientId && !buildingId) {
       // Client Page - Building List
@@ -99,14 +125,6 @@ export function MainNav() {
                           </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarSeparator/>
-                       <SidebarMenuItem>
-                           <SidebarMenuButton asChild isActive={pathname.includes('/consultation')} tooltip="Consulta Geral">
-                                <Link href={`/clients/${clientId}/consultation`}>
-                                    <FileSearch />
-                                    <span>Consulta</span>
-                                </Link>
-                           </SidebarMenuButton>
-                      </SidebarMenuItem>
                   </SidebarMenu>
               </SidebarContent>
                <SidebarFooter>

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, X } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X, FileSearch } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -28,10 +28,13 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { ClientReportGenerator } from '@/components/client-report-generator';
 import { GpsLinkManager } from '@/components/gps-link-manager';
 import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
+
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
   const clientId = params.clientId;
+  const router = useRouter();
 
   const [client, setClient] = useState<Client | null>(null);
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -139,7 +142,12 @@ export default function ClientPage() {
   return (
     <>
       <div className="space-y-8">
-        <PageHeader title={`Cliente: ${client.name}`} href="/" />
+        <PageHeader title={`Cliente: ${client.name}`} href="/">
+             <Button variant="outline" onClick={() => router.push(`/clients/${clientId}/consultation`)}>
+                <FileSearch className="h-4 w-4 mr-2" />
+                Consulta
+            </Button>
+        </PageHeader>
 
         <div className="w-full max-w-2xl mx-auto">
           <Card>

@@ -171,7 +171,7 @@ export default function ConsultationPage() {
     const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name })));
 
     const filteredExtinguishers = showOnlyNC 
-        ? allExtinguishers.filter(e => e.inspections?.some(i => i.status === 'N/C'))
+        ? allExtinguishers.filter(e => e.inspections?.some(i => Object.values(i.itemStatuses || {}).includes('N/C')))
         : allExtinguishers;
     
     const filteredHoses = showOnlyNC
@@ -191,12 +191,7 @@ export default function ConsultationPage() {
 
     return (
         <div className="space-y-8">
-            <PageHeader title={`Consulta: ${client.name}`}>
-                 <Button variant="outline" onClick={() => router.push(`/clients/${clientId}`)}>
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Voltar para Prédios
-                </Button>
-            </PageHeader>
+            <PageHeader title={`Consulta: ${client.name}`} />
             
             <Card>
                 <CardHeader>
@@ -253,4 +248,3 @@ export default function ConsultationPage() {
         </div>
     );
 }
-

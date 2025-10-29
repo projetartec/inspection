@@ -56,6 +56,24 @@ export function MobileNav() {
         </div>
     )
   }
+  
+  if (pathname.endsWith('/consultation')) {
+     return (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
+            <nav className="grid grid-cols-2 items-center justify-around h-full">
+                 <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
+                    <ChevronLeft className="h-6 w-6" />
+                    <span className="text-xs">Prédios</span>
+                </Link>
+                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.includes('/consultation') ? "text-primary" : "text-muted-foreground")}>
+                    <FileSearch className="h-6 w-6" />
+                     <span className="text-xs">Consulta</span>
+                </Link>
+            </nav>
+        </div>
+    )
+  }
+
 
   if (clientId && !buildingId) {
     // Building list page for a client
