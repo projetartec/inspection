@@ -21,6 +21,8 @@ import { Button } from "./ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ClientReportGenerator } from "./client-report-generator";
+import Image from 'next/image';
+
 
 export function MainNav() {
   const pathname = usePathname();
@@ -142,9 +144,9 @@ export function MainNav() {
   const buildingBasePath = `/clients/${clientId}/${buildingId}`;
 
   const menuItems = [
-    { href: `${buildingBasePath}/dashboard`, label: "Painel do Prédio", icon: LayoutDashboard },
-    { href: `${buildingBasePath}/extinguishers`, label: "Extintores", icon: Flame },
-    { href: `${buildingBasePath}/hoses`, label: "Mangueiras", icon: Droplets },
+    { href: `${buildingBasePath}/dashboard`, label: "Painel do Prédio", icon: LayoutDashboard, iconUrl: null },
+    { href: `${buildingBasePath}/extinguishers`, label: "Extintores", icon: null, iconUrl: 'https://i.imgur.com/acESc0O.png' },
+    { href: `${buildingBasePath}/hoses`, label: "Mangueiras", icon: null, iconUrl: 'https://i.imgur.com/Fq1OHRb.png' },
   ];
 
   return (
@@ -180,7 +182,7 @@ export function MainNav() {
                 tooltip={item.label}
               >
                 <Link href={item.href}>
-                  <item.icon />
+                  {item.iconUrl ? <Image src={item.iconUrl} alt={item.label} width={20} height={20} /> : item.icon && <item.icon />}
                   <span>{item.label}</span>
                 </Link>
               </SidebarMenuButton>

@@ -5,18 +5,19 @@ import React, { useState, useEffect } from 'react';
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Droplets, AlertTriangle, Play, Eye } from "lucide-react";
+import { AlertTriangle, Play, Eye } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Extinguisher, Hydrant as Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
+import Image from 'next/image';
 
 interface Stat {
     title: string;
     value: number;
-    icon: React.ElementType;
+    icon: React.ElementType | string;
     color: string;
     description?: string;
     href: string | null;
@@ -86,8 +87,8 @@ export default function DashboardPage() {
                 const expiredHoses = hoses.filter(isExpired).length;
 
                 setStats([
-                    { title: "Total de Extintores", value: extinguishers.length, icon: Flame, color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
-                    { title: "Total de Mangueiras", value: hoses.length, icon: Droplets, color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
+                    { title: "Total de Extintores", value: extinguishers.length, icon: "https://i.imgur.com/acESc0O.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
+                    { title: "Total de Mangueiras", value: hoses.length, icon: "https://i.imgur.com/Fq1OHRb.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
                     { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
                 ]);
 
@@ -128,11 +129,17 @@ export default function DashboardPage() {
                     </>
                 ) : (
                     stats.map((stat) => {
+                         const StatIcon = typeof stat.icon === 'string' ? (
+                            <Image src={stat.icon} alt={stat.title} width={16} height={16} className="h-4 w-4" />
+                        ) : (
+                            <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                        );
+                        
                         const CardComponent = (
                             <Card className={stat.href ? "hover:bg-muted/50 transition-colors" : ""}>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                                    {StatIcon}
                                 </CardHeader>
                                 <CardContent>
                                     <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
