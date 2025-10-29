@@ -172,22 +172,11 @@ export default function ConsultationPage() {
     const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name })));
     
     const filteredExtinguishers = showOnlyNC
-    ? allExtinguishers.filter(e => {
-        const lastInsp = e.inspections?.[e.inspections.length - 1];
-        if (!lastInsp) return false;
-        
-        if (lastInsp.status === 'N/C') return true;
-
-        return Object.values(lastInsp.itemStatuses || {}).includes('N/C');
-    })
+    ? allExtinguishers.filter(e => e.inspections?.[e.inspections.length - 1]?.status === 'N/C')
     : allExtinguishers;
 
     const filteredHoses = showOnlyNC
-    ? allHoses.filter(h => {
-        const lastInsp = h.inspections?.[h.inspections.length - 1];
-        if (!lastInsp) return false;
-        return lastInsp.status === 'N/C';
-    })
+    ? allHoses.filter(h => h.inspections?.[h.inspections.length - 1]?.status === 'N/C')
     : allHoses;
 
 
@@ -225,17 +214,17 @@ export default function ConsultationPage() {
                                 <TabsList>
                                     <TabsTrigger value="all">
                                         <div className="flex items-center gap-2 md:hidden">
-                                            <Image src="https://i.imgur.com/s40tH5m.png" alt="Extintor" width={16} height={16} />
-                                            <Image src="https://i.imgur.com/k6c8v1J.png" alt="Mangueira" width={16} height={16} />
+                                            <Image src="https://i.imgur.com/3cWIB7a.png" alt="Extintor" width={16} height={16} />
+                                            <Image src="https://i.imgur.com/xHY4WoL.png" alt="Mangueira" width={16} height={16} />
                                         </div>
                                         <span className="hidden md:inline">Todos os Itens</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="extinguishers">
-                                        <Image src="https://i.imgur.com/s40tH5m.png" alt="Extintor" width={20} height={20} className="md:hidden" />
+                                        <Image src="https://i.imgur.com/3cWIB7a.png" alt="Extintor" width={20} height={20} className="md:hidden" />
                                         <span className="hidden md:inline">Extintores</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="hoses">
-                                        <Image src="https://i.imgur.com/k6c8v1J.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
+                                        <Image src="https://i.imgur.com/xHY4WoL.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
                                         <span className="hidden md:inline">Mangueiras</span>
                                     </TabsTrigger>
                                 </TabsList>
