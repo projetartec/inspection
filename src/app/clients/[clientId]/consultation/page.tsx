@@ -214,17 +214,17 @@ export default function ConsultationPage() {
                                 <TabsList>
                                     <TabsTrigger value="all">
                                         <div className="flex items-center gap-2 md:hidden">
-                                            <Image src="https://i.imgur.com/3cWIB7a.png" alt="Extintor" width={16} height={16} />
-                                            <Image src="https://i.imgur.com/xHY4WoL.png" alt="Mangueira" width={16} height={16} />
+                                            <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
+                                            <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
                                         </div>
                                         <span className="hidden md:inline">Todos os Itens</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="extinguishers">
-                                        <Image src="https://i.imgur.com/3cWIB7a.png" alt="Extintor" width={20} height={20} className="md:hidden" />
+                                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={20} height={20} className="md:hidden" />
                                         <span className="hidden md:inline">Extintores</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="hoses">
-                                        <Image src="https://i.imgur.com/xHY4WoL.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
+                                        <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
                                         <span className="hidden md:inline">Mangueiras</span>
                                     </TabsTrigger>
                                 </TabsList>
