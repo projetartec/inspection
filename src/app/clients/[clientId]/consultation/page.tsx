@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Flame, Droplets } from 'lucide-react';
+import Image from 'next/image';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -174,6 +175,9 @@ export default function ConsultationPage() {
     ? allExtinguishers.filter(e => {
         const lastInsp = e.inspections?.[e.inspections.length - 1];
         if (!lastInsp) return false;
+        
+        if (lastInsp.status === 'N/C') return true;
+
         return Object.values(lastInsp.itemStatuses || {}).includes('N/C');
     })
     : allExtinguishers;
@@ -217,20 +221,21 @@ export default function ConsultationPage() {
                 <CardContent>
                     <div className="space-y-4">
                         <div className="border-b pb-4">
-                            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                             <Tabs value={activeTab} onValueChange={setActiveTab}>
                                 <TabsList>
                                     <TabsTrigger value="all">
                                         <div className="flex items-center gap-2 md:hidden">
-                                            <Flame /> <Droplets />
+                                            <Image src="https://i.imgur.com/s40tH5m.png" alt="Extintor" width={16} height={16} />
+                                            <Image src="https://i.imgur.com/k6c8v1J.png" alt="Mangueira" width={16} height={16} />
                                         </div>
                                         <span className="hidden md:inline">Todos os Itens</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="extinguishers">
-                                        <Flame className="md:hidden"/>
+                                        <Image src="https://i.imgur.com/s40tH5m.png" alt="Extintor" width={20} height={20} className="md:hidden" />
                                         <span className="hidden md:inline">Extintores</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="hoses">
-                                        <Droplets className="md:hidden"/>
+                                        <Image src="https://i.imgur.com/k6c8v1J.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
                                         <span className="hidden md:inline">Mangueiras</span>
                                     </TabsTrigger>
                                 </TabsList>
@@ -270,4 +275,3 @@ export default function ConsultationPage() {
         </div>
     );
 }
-
