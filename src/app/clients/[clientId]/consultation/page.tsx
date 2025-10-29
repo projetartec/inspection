@@ -216,21 +216,23 @@ export default function ConsultationPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4 mb-4">
-                        <Tabs value={activeTab} onValueChange={setActiveTab}>
-                            <TabsList>
-                                <TabsTrigger value="all">Todos os Itens</TabsTrigger>
-                                <TabsTrigger value="extinguishers">Apenas Extintores</TabsTrigger>
-                                <TabsTrigger value="hoses">Apenas Mangueiras</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                    <div className="space-y-4">
+                        <div className="border-b pb-4">
+                            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                                <TabsList>
+                                    <TabsTrigger value="all">Todos os Itens</TabsTrigger>
+                                    <TabsTrigger value="extinguishers">Extintores</TabsTrigger>
+                                    <TabsTrigger value="hoses">Mangueiras</TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
                          <div className="flex items-center space-x-2">
                             <Switch id="nc-filter" checked={showOnlyNC} onCheckedChange={setShowOnlyNC} />
-                            <Label htmlFor="nc-filter">Mostrar Apenas N/C</Label>
+                            <Label htmlFor="nc-filter">N/C</Label>
                         </div>
                     </div>
 
-                    <div className="space-y-8">
+                    <div className="space-y-8 mt-6">
                         {isLoading ? (
                              <div className="space-y-4">
                                 <Skeleton className="h-8 w-1/4" />
