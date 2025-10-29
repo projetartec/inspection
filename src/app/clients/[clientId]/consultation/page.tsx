@@ -171,11 +171,21 @@ export default function ConsultationPage() {
     const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name })));
 
     const filteredExtinguishers = showOnlyNC 
-        ? allExtinguishers.filter(e => e.inspections?.some(i => Object.values(i.itemStatuses || {}).includes('N/C')))
+        ? allExtinguishers.filter(e => {
+            const lastInsp = e.inspections?.[e.inspections.length - 1];
+            if (!lastInsp) return false;
+            // Check based on the same logic as the table rendering: check individual statuses.
+            return Object.values(lastInsp.itemStatuses || {}).includes('N/C');
+        })
         : allExtinguishers;
     
     const filteredHoses = showOnlyNC
-        ? allHoses.filter(h => h.inspections?.some(i => i.status === 'N/C'))
+        ? allHoses.filter(h => {
+            const lastInsp = h.inspections?.[h.inspections.length - 1];
+            if (!lastInsp) return false;
+            // Check based on the overall status, as it reflects the individual items for hoses.
+            return lastInsp.status === 'N/C';
+        })
         : allHoses;
 
     if (isLoading) {
