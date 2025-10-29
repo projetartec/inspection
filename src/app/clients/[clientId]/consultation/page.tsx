@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { getClientReportDataAction } from '@/lib/actions';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,8 @@ import { ClientReportGenerator } from '@/components/client-report-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -135,6 +137,7 @@ function HoseTable({ items }: { items: (Hydrant & { buildingName: string })[] })
 export default function ConsultationPage() {
     const params = useParams() as { clientId: string };
     const clientId = params.clientId;
+    const router = useRouter();
 
     const [client, setClient] = useState<Client | null>(null);
     const [buildings, setBuildings] = useState<(Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]>([]);
@@ -188,7 +191,12 @@ export default function ConsultationPage() {
 
     return (
         <div className="space-y-8">
-            <PageHeader title={`Consulta: ${client.name}`} href={`/clients/${clientId}`} />
+            <PageHeader title={`Consulta: ${client.name}`}>
+                 <Button variant="outline" onClick={() => router.push(`/clients/${clientId}`)}>
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Voltar para Prédios
+                </Button>
+            </PageHeader>
             
             <Card>
                 <CardHeader>
