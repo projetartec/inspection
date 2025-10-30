@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Flame, Droplets } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
@@ -172,11 +172,19 @@ export default function ConsultationPage() {
     const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name })));
     
     const filteredExtinguishers = showOnlyNC
-    ? allExtinguishers.filter(e => e.inspections?.[e.inspections.length - 1]?.status === 'N/C')
+    ? allExtinguishers.filter(e => {
+        const lastInsp = e.inspections?.[e.inspections.length - 1];
+        if (!lastInsp || !lastInsp.itemStatuses) return false;
+        return Object.values(lastInsp.itemStatuses).includes('N/C');
+    })
     : allExtinguishers;
 
     const filteredHoses = showOnlyNC
-    ? allHoses.filter(h => h.inspections?.[h.inspections.length - 1]?.status === 'N/C')
+    ? allHoses.filter(h => {
+        const lastInsp = h.inspections?.[h.inspections.length - 1];
+        if (!lastInsp) return false;
+        return lastInsp.status === 'N/C';
+    })
     : allHoses;
 
 
