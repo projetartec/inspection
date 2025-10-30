@@ -7,6 +7,7 @@ import { UnloadPrompt } from '@/components/unload-prompt';
 export const metadata: Metadata = {
   title: 'FireGuard Inspector',
   description: 'Aplicativo de inspeção para extintores e mangueiras de incêndio',
+  manifest: '/manifest.json',
 };
 
 export const viewport: Viewport = {
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        <link rel="apple-touch-icon" href="https://i.imgur.com/4se4p12.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
