@@ -38,7 +38,6 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
   const lastInspectionDetails = lastInspection ? [
       { label: 'Data da Última Inspeção', value: format(parseISO(lastInspection.date), 'dd/MM/yyyy', { locale: ptBR }) },
       { label: 'Horário da Última Inspeção', value: format(parseISO(lastInspection.date), 'HH:mm', { locale: ptBR }) },
-      { label: 'Localização (GPS)', value: lastInspection.location ? `${lastInspection.location.latitude.toFixed(4)}, ${lastInspection.location.longitude.toFixed(4)}` : 'N/A' },
   ] : [];
 
   return (
@@ -100,7 +99,6 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
                     <TableHeader>
                     <TableRow>
                         <TableHead>Data e Hora</TableHead>
-                        <TableHead>Localização (Lat, Lon)</TableHead>
                         <TableHead>Notas</TableHead>
                     </TableRow>
                     </TableHeader>
@@ -108,14 +106,11 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
                     {extinguisher.inspections && extinguisher.inspections.length > 0 ? [...extinguisher.inspections].reverse().map(insp => (
                         <TableRow key={insp.id}>
                         <TableCell>{format(parseISO(insp.date), 'Pp', { locale: ptBR })}</TableCell>
-                        <TableCell>
-                            {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
-                        </TableCell>
                         <TableCell>{insp.notes}</TableCell>
                         </TableRow>
                     )) : (
                         <TableRow>
-                        <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
+                        <TableCell colSpan={2} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
                         </TableRow>
                     )}
                     </TableBody>

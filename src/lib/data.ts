@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -312,7 +313,6 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             const newInspection: Inspection = {
                 id: `insp-${Date.now()}-${Math.random()}`,
                 date: item.date,
-                location: item.location,
                 notes: item.notes,
                 status: item.status,
                 itemStatuses: item.itemStatuses,

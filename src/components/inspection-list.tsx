@@ -120,68 +120,47 @@ export function InspectionList({ items, type }: InspectionListProps) {
 
     const overallStatus = hasNC ? 'N/C' : 'OK';
 
-    const processInspection = (location?: GeolocationCoordinates) => {
-      const itemData: InspectedItem = {
-        qrCodeValue: selectedItem.qrCodeValue,
-        date: new Date().toISOString(),
-        notes: notes,
-        status: overallStatus,
-        itemStatuses: itemStatuses,
-        location: location ? { latitude: location.latitude, longitude: location.longitude } : undefined,
-      };
-
-      if (overallStatus === 'N/C') {
-        if (type === 'extinguisher') {
-            const originalExtinguisher = selectedItem as Extinguisher;
-            const updatedData: Partial<Extinguisher> = {};
-            if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
-            if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
-            if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
-
-            if (Object.keys(updatedData).length > 0) {
-                itemData.updatedData = { id: originalExtinguisher.id, ...updatedData };
-            }
-        } else if (type === 'hose') {
-            const originalHose = selectedItem as Hydrant;
-            const updatedData: Partial<Hydrant> = {};
-            if (editableHoseLocation !== originalHose.location) updatedData.location = editableHoseLocation;
-            if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = editableHoseQuantity;
-            if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType;
-            if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter;
-            if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = editableHoseLength;
-            if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = editableHoseKeyQuantity;
-            if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = editableHoseNozzleQuantity;
-            if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
-
-            if (Object.keys(updatedData).length > 0) {
-                itemData.updatedData = { id: originalHose.id, ...updatedData };
-            }
-        }
-      }
-
-      addItemToInspection(itemData);
-      
-      setIsSubmitting(false);
-      handleCloseDialog();
+    const itemData: InspectedItem = {
+      qrCodeValue: selectedItem.qrCodeValue,
+      date: new Date().toISOString(),
+      notes: notes,
+      status: overallStatus,
+      itemStatuses: itemStatuses,
     };
-    
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => processInspection(position.coords),
-          (error) => {
-            console.warn("Could not get GPS location, logging without it.", error);
-            toast({
-              variant: 'default',
-              title: 'Aviso de Localização',
-              description: 'Não foi possível obter a localização GPS. Registrando item sem ela.'
-            });
-            processInspection();
-          },
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
-    } else {
-        processInspection();
+
+    if (overallStatus === 'N/C') {
+      if (type === 'extinguisher') {
+          const originalExtinguisher = selectedItem as Extinguisher;
+          const updatedData: Partial<Extinguisher> = {};
+          if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
+          if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
+          if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
+
+          if (Object.keys(updatedData).length > 0) {
+              itemData.updatedData = { id: originalExtinguisher.id, ...updatedData };
+          }
+      } else if (type === 'hose') {
+          const originalHose = selectedItem as Hydrant;
+          const updatedData: Partial<Hydrant> = {};
+          if (editableHoseLocation !== originalHose.location) updatedData.location = editableHoseLocation;
+          if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = editableHoseQuantity;
+          if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType;
+          if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter;
+          if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = editableHoseLength;
+          if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = editableHoseKeyQuantity;
+          if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = editableHoseNozzleQuantity;
+          if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
+
+          if (Object.keys(updatedData).length > 0) {
+              itemData.updatedData = { id: originalHose.id, ...updatedData };
+          }
+      }
     }
+
+    addItemToInspection(itemData);
+    
+    setIsSubmitting(false);
+    handleCloseDialog();
   };
 
   if (items.length === 0) {

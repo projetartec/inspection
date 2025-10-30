@@ -79,7 +79,6 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
                     <TableRow>
                         <TableHead>Data e Hora</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Localização (Lat, Lon)</TableHead>
                         <TableHead>Notas</TableHead>
                     </TableRow>
                     </TableHeader>
@@ -90,14 +89,11 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
                         <TableCell>
                             <Badge variant={insp.status === 'N/C' ? 'destructive' : 'secondary'}>{insp.status}</Badge>
                         </TableCell>
-                        <TableCell>
-                            {insp.location ? `${insp.location.latitude.toFixed(4)}, ${insp.location.longitude.toFixed(4)}` : 'N/A'}
-                        </TableCell>
                         <TableCell>{insp.notes}</TableCell>
                         </TableRow>
                     )) : (
                         <TableRow>
-                        <TableCell colSpan={4} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
+                        <TableCell colSpan={3} className="text-center h-24">Nenhuma inspeção registrada.</TableCell>
                         </TableRow>
                     )}
                     </TableBody>

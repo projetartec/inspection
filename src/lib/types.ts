@@ -3,10 +3,6 @@
 export type Inspection = {
   id: string;
   date: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-  };
   notes: string;
   status: 'OK' | 'N/C'; // General status for the item
   itemStatuses?: { [key: string]: 'OK' | 'N/C' }; // Individual status for checklist items
