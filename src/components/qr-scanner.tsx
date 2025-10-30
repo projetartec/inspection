@@ -126,6 +126,9 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
 
         if (item) {
           setScannedItem(item);
+          const lastInspection = item.inspections?.[item.inspections.length - 1];
+          setNotes(lastInspection?.notes || '');
+          setItemStatuses(lastInspection?.itemStatuses || {});
         } else {
           toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado.' });
         }
@@ -452,4 +455,5 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   );
 }
 
+    
     

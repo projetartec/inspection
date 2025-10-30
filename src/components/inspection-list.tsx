@@ -61,8 +61,9 @@ export function InspectionList({ items, type }: InspectionListProps) {
 
   const handleOpenDialog = (item: Item) => {
     setSelectedItem(item);
-    setNotes('');
-    setItemStatuses({});
+    const lastInspection = item.inspections?.[item.inspections.length - 1];
+    setNotes(lastInspection?.notes || '');
+    setItemStatuses(lastInspection?.itemStatuses || {});
     setIsDataAccordionOpen(false); // Reset accordion state
 
     if (type === 'extinguisher') {
@@ -321,4 +322,5 @@ export function InspectionList({ items, type }: InspectionListProps) {
   );
 }
 
+    
     
