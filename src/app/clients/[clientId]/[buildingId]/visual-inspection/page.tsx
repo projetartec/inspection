@@ -11,6 +11,8 @@ import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 
 
 function ListSkeleton() {
@@ -35,6 +37,11 @@ export default function VisualInspectionPage() {
     const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
     const [hoses, setHoses] = useState<Hydrant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    const [filteredExtinguishers, setFilteredExtinguishers] = useState<Extinguisher[]>([]);
+    const [filteredHoses, setFilteredHoses] = useState<Hydrant[]>([]);
+
 
     const { startInspection } = useInspectionSession();
 
@@ -54,6 +61,8 @@ export default function VisualInspectionPage() {
                 ]);
                 setExtinguishers(extinguishersData);
                 setHoses(hosesData);
+                setFilteredExtinguishers(extinguishersData);
+                setFilteredHoses(hosesData);
             } catch (error) {
                 console.error("Failed to fetch equipment:", error);
             } finally {
@@ -62,6 +71,23 @@ export default function VisualInspectionPage() {
         }
         fetchData();
     }, [clientId, buildingId]);
+    
+     useEffect(() => {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+        const newFilteredExtinguishers = extinguishers.filter(ext => 
+            ext.id.toLowerCase().includes(lowerCaseSearchTerm) ||
+            ext.observations.toLowerCase().includes(lowerCaseSearchTerm)
+        );
+        setFilteredExtinguishers(newFilteredExtinguishers);
+
+        const newFilteredHoses = hoses.filter(hose => 
+            hose.id.toLowerCase().includes(lowerCaseSearchTerm) ||
+            hose.location.toLowerCase().includes(lowerCaseSearchTerm)
+        );
+        setFilteredHoses(newFilteredHoses);
+
+    }, [searchTerm, extinguishers, hoses]);
 
     return (
         <div className="flex flex-col gap-8">
@@ -70,24 +96,45 @@ export default function VisualInspectionPage() {
                     Voltar ao Painel
                 </Button>
             </PageHeader>
+            
+            <div className="relative w-full max-w-md">
+              <Input 
+                type="text"
+                placeholder="Buscar por ID ou Local..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-8"
+              />
+              {searchTerm && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Limpar busca</span>
+                </Button>
+              )}
+            </div>
 
             <Tabs defaultValue="extinguishers" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="extinguishers">Extintores ({extinguishers.length})</TabsTrigger>
-                    <TabsTrigger value="hoses">Hidrantes ({hoses.length})</TabsTrigger>
+                    <TabsTrigger value="extinguishers">Extintores ({filteredExtinguishers.length})</TabsTrigger>
+                    <TabsTrigger value="hoses">Hidrantes ({filteredHoses.length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value="extinguishers">
                    {isLoading ? (
                        <ListSkeleton />
                    ) : (
-                        <InspectionList items={extinguishers} type="extinguisher" />
+                        <InspectionList items={filteredExtinguishers} type="extinguisher" />
                    )}
                 </TabsContent>
                 <TabsContent value="hoses">
                      {isLoading ? (
                        <ListSkeleton />
                    ) : (
-                        <InspectionList items={hoses} type="hose" />
+                        <InspectionList items={filteredHoses} type="hose" />
                    )}
                 </TabsContent>
             </Tabs>
