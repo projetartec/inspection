@@ -173,7 +173,7 @@ export default function DashboardPage() {
                     </p>
                     {isInspectionActive ? (
                          <div className="flex justify-center gap-4">
-                            <Button asChild size="lg" variant="outline">
+                            <Button asChild size="lg" variant="outline" disabled>
                                 <Link href={qrScanUrl}>Continuar Leitura</Link>
                             </Button>
                              <Button asChild size="lg" variant="outline">
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         <div className="flex justify-center gap-4">
-                            <Button size="lg" onClick={handleStartQrInspection}>
+                            <Button size="lg" onClick={handleStartQrInspection} disabled>
                                 <Play className="mr-2" />
                                 Iniciar Leitura
                             </Button>
