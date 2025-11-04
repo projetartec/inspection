@@ -104,11 +104,11 @@ export function MobileNav() {
     { href: `${buildingBasePath}/dashboard`, icon: LayoutDashboard },
     { href: `${buildingBasePath}/extinguishers`, icon: Flame },
     { href: `${buildingBasePath}/hoses`, icon: Droplets },
-    { href: `${buildingBasePath}/scan`, icon: ScanLine },
+    // { href: `${buildingBasePath}/scan`, icon: ScanLine }, // Temporarily disabled
     { href: `/clients/${clientId}`, icon: Building },
   ];
 
-  const gridColsClass = isInspectionActive ? 'grid-cols-6' : 'grid-cols-5';
+  const gridColsClass = isInspectionActive ? 'grid-cols-5' : 'grid-cols-4';
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
