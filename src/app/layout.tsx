@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { UnloadPrompt } from '@/components/unload-prompt';
+import { GlobalInspectionProvider } from '@/hooks/use-inspection-session.tsx';
 
 export const metadata: Metadata = {
   title: 'FireGuard Inspector',
@@ -36,9 +37,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-muted/40">
-        <UnloadPrompt />
-        {children}
-        <Toaster />
+        <GlobalInspectionProvider>
+            <UnloadPrompt />
+            {children}
+            <Toaster />
+        </GlobalInspectionProvider>
       </body>
     </html>
   );

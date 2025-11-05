@@ -3,7 +3,7 @@
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
-import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction, getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/actions';
+import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } from '@/lib/actions';
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
@@ -22,12 +22,9 @@ export interface InspectionSession {
 interface InspectionContextType {
     session: InspectionSession | null;
     startInspection: (clientId: string, buildingId: string) => void;
-    addItemToInspection: (item: InspectedItem, type: 'extinguisher' | 'hose') => void;
+    addItemToInspection: (item: InspectedItem) => void;
     endInspection: () => Promise<void>;
     clearSession: () => void;
-    isLoading: boolean;
-    extinguishers: Extinguisher[];
-    hoses: Hydrant[];
 }
 
 const InspectionContext = createContext<InspectionContextType | null>(null);
@@ -42,52 +39,22 @@ export const useInspectionSession = () => {
 
 const SESSION_STORAGE_KEY = 'inspectionSession';
 
-export const InspectionProvider = ({ children, clientId, buildingId }: { 
-    children: React.ReactNode,
-    clientId: string,
-    buildingId: string,
-}) => {
+// A provider that will wrap the entire app or relevant parts
+export const GlobalInspectionProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<InspectionSession | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
-    const [hoses, setHoses] = useState<Hydrant[]>([]);
 
     useEffect(() => {
-        const loadSession = () => {
-            try {
-                const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
-                if (storedSession) {
-                    setSession(JSON.parse(storedSession));
-                }
-            } catch (error) {
-                console.error("Failed to parse session from storage", error);
-                sessionStorage.removeItem(SESSION_STORAGE_KEY);
-            }
-        };
-        loadSession();
-    }, []);
-
-    const fetchEquipment = useCallback(async () => {
-        if (!clientId || !buildingId) return;
-        setIsLoading(true);
+        // Load session from sessionStorage when the app loads
         try {
-            const [extinguishersData, hosesData] = await Promise.all([
-                getExtinguishersByBuilding(clientId, buildingId),
-                getHosesByBuilding(clientId, buildingId),
-            ]);
-            setExtinguishers(extinguishersData);
-            setHoses(hosesData);
+            const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+            if (storedSession) {
+                setSession(JSON.parse(storedSession));
+            }
         } catch (error) {
-            console.error("Failed to fetch equipment:", error);
-        } finally {
-            setIsLoading(false);
+            console.error("Failed to parse session from storage", error);
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
-    }, [clientId, buildingId]);
-
-    useEffect(() => {
-        fetchEquipment();
-    }, [fetchEquipment]);
-
+    }, []);
 
     const updateSession = (newSession: InspectionSession | null) => {
         setSession(newSession);
@@ -97,25 +64,15 @@ export const InspectionProvider = ({ children, clientId, buildingId }: {
             sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
     };
-    
-    const updateLocalEquipmentState = useCallback((equipmentId: string, type: 'extinguisher' | 'hose', updates: Partial<Extinguisher | Hydrant>) => {
-        if (type === 'extinguisher') {
-            setExtinguishers(prev => prev.map(e => 
-                e.id === equipmentId ? { ...e, ...updates } : e
-            ));
-        } else {
-            setHoses(prev => prev.map(h => 
-                h.id === equipmentId ? { ...h, ...updates } : h
-            ));
-        }
-    }, []);
 
     const startInspection = useCallback((clientId: string, buildingId: string) => {
+        // If a session for a different building is active, clear it.
         if (session && session.buildingId !== buildingId) {
             console.warn("Starting new inspection, clearing previous session for another building.");
             updateSession(null); 
         }
 
+        // Start a new session if none exists for the current building
         if (!session || session.buildingId !== buildingId) {
             const newSession: InspectionSession = {
                 clientId,
@@ -125,41 +82,25 @@ export const InspectionProvider = ({ children, clientId, buildingId }: {
             };
             updateSession(newSession);
         }
-    }, [session]);
-    
-    const addItemToInspection = useCallback((item: InspectedItem, type: 'extinguisher' | 'hose') => {
-        if (!session) return;
+    }, [session]); // dependency on session
 
+    const addItemToInspection = useCallback((item: InspectedItem) => {
+        if (!session) return;
+        
+        // Replace if item with same qrCodeValue already exists
         const otherItems = session.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
         const updatedItems = [...otherItems, item];
         
         updateSession({ ...session, inspectedItems: updatedItems });
+    }, [session]); // dependency on session
 
-        const originalEquipment = type === 'extinguisher' 
-            ? extinguishers.find(e => e.id === item.id) 
-            : hoses.find(h => h.id === item.id);
-
-        const updates: Partial<Extinguisher | Hydrant> = {
-            ...item.updatedData,
-            lastInspected: item.date,
-            inspections: [...(originalEquipment?.inspections || []), {
-                id: `temp-${Date.now()}`,
-                date: item.date,
-                notes: item.notes,
-                status: item.status,
-                itemStatuses: item.itemStatuses
-            }]
-        };
-
-        updateLocalEquipmentState(item.id, type, updates);
-    }, [session, extinguishers, hoses, updateLocalEquipmentState]);
-    
     const endInspection = useCallback(async () => {
         if (!session) {
             throw new Error("Nenhuma sessão de inspeção ativa para finalizar.");
         };
         
         try {
+            // 1. Update equipment data if changed
             const itemsToUpdate = session.inspectedItems.filter(item => !!item.updatedData);
 
             const updatePromises = itemsToUpdate.map(item => {
@@ -174,17 +115,20 @@ export const InspectionProvider = ({ children, clientId, buildingId }: {
                 }
                 return Promise.resolve();
             });
-
+            
             await Promise.all(updatePromises);
             
+            // 2. Add all inspections in a batch
             await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
             
+            // 3. Clear the session
             updateSession(null);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
             throw e;
         }
-    }, [session]);
+
+    }, [session]); // dependency on session
 
     const clearSession = useCallback(() => {
         updateSession(null);
@@ -196,9 +140,6 @@ export const InspectionProvider = ({ children, clientId, buildingId }: {
         addItemToInspection,
         endInspection,
         clearSession,
-        isLoading,
-        extinguishers,
-        hoses
     };
 
     return (
@@ -207,3 +148,6 @@ export const InspectionProvider = ({ children, clientId, buildingId }: {
         </InspectionContext.Provider>
     );
 };
+
+// Re-exporting the original InspectionProvider for compatibility with existing files that use it.
+export const InspectionProvider = GlobalInspectionProvider;

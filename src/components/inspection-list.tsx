@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
-import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePickerInput } from './date-picker-input';
 
@@ -60,14 +60,25 @@ export function InspectionList({ items, type }: InspectionListProps) {
   const [editableHoseTestDate, setEditableHoseTestDate] = useState<string | undefined>();
 
 
-  const { addItemToInspection } = useInspectionSession();
+  const { session, addItemToInspection } = useInspectionSession();
   const { toast } = useToast();
 
   const handleOpenDialog = (item: Item) => {
     setSelectedItem(item);
-    const lastInspection = item.inspections?.[item.inspections.length - 1];
-    setNotes(lastInspection?.notes || '');
-    setItemStatuses(lastInspection?.itemStatuses || {});
+    
+    // Check if there's a pending inspection for this item in the current session
+    const pendingInspection = session?.inspectedItems.find(i => i.qrCodeValue === item.qrCodeValue);
+    
+    if (pendingInspection) {
+        setNotes(pendingInspection.notes || '');
+        setItemStatuses(pendingInspection.itemStatuses || {});
+    } else {
+        // Otherwise, use the last saved inspection data
+        const lastInspection = item.inspections?.[item.inspections.length - 1];
+        setNotes(lastInspection?.notes || '');
+        setItemStatuses(lastInspection?.itemStatuses || {});
+    }
+
     setIsDataAccordionOpen(false); // Reset accordion state
 
     if (type === 'extinguisher') {
@@ -163,8 +174,13 @@ export function InspectionList({ items, type }: InspectionListProps) {
       }
     }
 
-    addItemToInspection(itemData, type as 'extinguisher' | 'hose');
+    addItemToInspection(itemData);
     
+    toast({
+        title: 'Confirmado!',
+        description: `Inspeção do item ${selectedItem.id} registrada na sessão.`,
+    });
+
     setIsSubmitting(false);
     handleCloseDialog();
   };
@@ -178,11 +194,9 @@ export function InspectionList({ items, type }: InspectionListProps) {
   return (
     <div className="space-y-2">
       {items.map((item) => {
-        const today = new Date();
-        const lastInspectedDate = item.lastInspected ? parseISO(item.lastInspected) : null;
-        const inspectedThisMonth = lastInspectedDate 
-            ? isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today)
-            : false;
+        const isInspectedInSession = session?.inspectedItems.some(i => i.qrCodeValue === item.qrCodeValue);
+        const lastInspectionDate = item.inspections.length > 0 ? parseISO(item.inspections[item.inspections.length-1].date) : null;
+        const inspectedThisMonth = lastInspectionDate ? lastInspectionDate.getMonth() === new Date().getMonth() && lastInspectionDate.getFullYear() === new Date().getFullYear() : false;
 
         let displayTitle = '';
         let displaySubtitle = '';
@@ -207,7 +221,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
                 </p>
             </div>
             <div className="ml-4">
-                {inspectedThisMonth ? (
+                {isInspectedInSession ? (
                     <Button variant="ghost" className="text-green-600 hover:bg-green-600/10 hover:text-green-700" onClick={() => handleOpenDialog(item)}>
                         <CheckCircle2 className="mr-2" /> Inspecionado
                     </Button>
