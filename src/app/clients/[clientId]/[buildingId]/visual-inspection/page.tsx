@@ -33,40 +33,30 @@ function VisualInspectionContent() {
     const { clientId, buildingId } = params;
     const router = useRouter();
 
-    const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
-    const [hoses, setHoses] = useState<Hydrant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     
     const [filteredExtinguishers, setFilteredExtinguishers] = useState<Extinguisher[]>([]);
     const [filteredHoses, setFilteredHoses] = useState<Hydrant[]>([]);
 
-    const { startInspection, updateLocalEquipmentState } = useInspectionSession();
+    const { startInspection, extinguishers, hoses } = useInspectionSession();
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [extinguishersData, hosesData] = await Promise.all([
-                getExtinguishersByBuilding(clientId, buildingId),
-                getHosesByBuilding(clientId, buildingId),
-            ]);
-            setExtinguishers(extinguishersData);
-            setHoses(hosesData);
-            setFilteredExtinguishers(extinguishersData);
-            setFilteredHoses(hosesData);
+            await startInspection(clientId, buildingId);
         } catch (error) {
             console.error("Failed to fetch equipment:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [clientId, buildingId]);
+    }, [clientId, buildingId, startInspection]);
 
     useEffect(() => {
         if (clientId && buildingId) {
-            startInspection(clientId, buildingId);
             fetchData();
         }
-    }, [startInspection, clientId, buildingId, fetchData]);
+    }, [clientId, buildingId, fetchData]);
     
     useEffect(() => {
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -84,11 +74,6 @@ function VisualInspectionContent() {
         setFilteredHoses(newFilteredHoses);
 
     }, [searchTerm, extinguishers, hoses]);
-
-    const handleStateChange = (newExtinguishers: Extinguisher[], newHoses: Hydrant[]) => {
-        setExtinguishers(newExtinguishers);
-        setHoses(newHoses);
-    };
 
     return (
         <div className="flex flex-col gap-8">
@@ -145,23 +130,8 @@ function VisualInspectionContent() {
 
 
 export default function VisualInspectionPage() {
-    const params = useParams() as { clientId: string, buildingId: string };
-    const { clientId, buildingId } = params;
-
-    const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
-    const [hoses, setHoses] = useState<Hydrant[]>([]);
-
-    const handleStateChange = (newExtinguishers: Extinguisher[], newHoses: Hydrant[]) => {
-        setExtinguishers(newExtinguishers);
-        setHoses(newHoses);
-    };
-    
     return (
-        <InspectionProvider 
-            initialExtinguishers={extinguishers} 
-            initialHoses={hoses} 
-            onStateChange={handleStateChange}
-        >
+        <InspectionProvider>
             <VisualInspectionContent />
         </InspectionProvider>
     );
