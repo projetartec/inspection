@@ -31,9 +31,15 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
 
   React.useEffect(() => {
     if (value) {
-      const date = parse(value, internalFormat, new Date());
-      if (isValid(date)) {
-        setDisplayValue(format(date, displayFormat));
+      try {
+        const date = parse(value, internalFormat, new Date());
+        if (isValid(date)) {
+          setDisplayValue(format(date, displayFormat));
+        } else {
+            setDisplayValue('');
+        }
+      } catch (e) {
+          setDisplayValue('');
       }
     } else {
       setDisplayValue('');
@@ -41,26 +47,43 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
   }, [value]);
   
   const handleDateSelect = (date: Date | undefined) => {
+    setIsPopoverOpen(false);
     if (date && isValid(date)) {
-      onValueChange(format(date, internalFormat));
+      const internalDate = format(date, internalFormat);
+      onValueChange(internalDate);
       setDisplayValue(format(date, displayFormat));
     } else {
       onValueChange(undefined);
       setDisplayValue('');
     }
-    setIsPopoverOpen(false);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    setDisplayValue(inputValue);
+    let inputValue = e.target.value;
+
+    // Apply mask: dd/MM/yyyy
+    const digitsOnly = inputValue.replace(/\D/g, '');
+    let maskedValue = '';
+    if (digitsOnly.length > 0) {
+        maskedValue = digitsOnly.slice(0, 2);
+    }
+    if (digitsOnly.length > 2) {
+        maskedValue += '/' + digitsOnly.slice(2, 4);
+    }
+    if (digitsOnly.length > 4) {
+        maskedValue += '/' + digitsOnly.slice(4, 8);
+    }
     
-    // Check if the input is a valid date in dd/MM/yyyy format
-    const parsedDate = parse(inputValue, displayFormat, new Date());
-    if (isValid(parsedDate) && inputValue.length >= 8) {
-      onValueChange(format(parsedDate, internalFormat));
+    setDisplayValue(maskedValue);
+    
+    if (maskedValue.length === 10) {
+      const parsedDate = parse(maskedValue, displayFormat, new Date());
+      if (isValid(parsedDate)) {
+        onValueChange(format(parsedDate, internalFormat));
+      } else {
+        onValueChange(undefined);
+      }
     } else {
-      // If user is clearing the input or it's incomplete, send undefined
       onValueChange(undefined);
     }
   };
@@ -77,6 +100,7 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
         onChange={handleInputChange}
         className="pr-10"
         placeholder="DD/MM/AAAA"
+        maxLength={10}
       />
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
