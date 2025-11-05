@@ -19,6 +19,7 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Skeleton } from './ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { DatePickerInput } from './date-picker-input';
 
 
 interface QrScannerProps {
@@ -327,7 +328,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="insp-expiry">Recarga</Label>
-                                        <Input id="insp-expiry" name="expiryDate" type="date" value={editableExpiry} onChange={(e) => setEditableExpiry(e.target.value)} />
+                                        <DatePickerInput value={editableExpiry} onValueChange={(v) => setEditableExpiry(v)} />
                                     </div>
                                     </div>
                                 </div>
@@ -346,7 +347,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2"> <Label>Qtd Chaves</Label> <Select value={String(editableHoseKeyQuantity)} onValueChange={v => setEditableHoseKeyQuantity(Number(v) as HydrantKeyQuantity)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantKeyQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent></Select> </div>
                                     <div className="space-y-2"> <Label>Qtd Esguichos</Label> <Select value={String(editableHoseNozzleQuantity)} onValueChange={v => setEditableHoseNozzleQuantity(Number(v) as HydrantNozzleQuantity)}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{hydrantNozzleQuantities.map(q => <SelectItem key={q} value={String(q)}>{q}</SelectItem>)}</SelectContent></Select> </div>
-                                    <div className="space-y-2"> <Label>Próx. Teste</Label> <Input type="date" value={editableHoseTestDate} onChange={e => setEditableHoseTestDate(e.target.value)} /> </div>
+                                    <div className="space-y-2"> <Label>Próx. Teste</Label> <DatePickerInput value={editableHoseTestDate} onValueChange={(v) => setEditableHoseTestDate(v)} /> </div>
                                 </div>
                             </div>
                             )}
@@ -454,6 +455,3 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     </div>
   );
 }
-
-    
-    
