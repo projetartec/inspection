@@ -17,57 +17,66 @@ import {
 import { Input } from '@/components/ui/input';
 
 interface DatePickerInputProps {
-  value: string | undefined;
-  onValueChange: (dateString: string | undefined) => void;
+  value: string | undefined; // Expects yyyy-MM-dd
+  onValueChange: (dateString: string | undefined) => void; // Sends yyyy-MM-dd
   className?: string;
 }
 
+const displayFormat = 'dd/MM/yyyy';
+const internalFormat = 'yyyy-MM-dd';
+
 export function DatePickerInput({ value, onValueChange, className }: DatePickerInputProps) {
-  const [internalValue, setInternalValue] = React.useState(value);
+  const [displayValue, setDisplayValue] = React.useState('');
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
 
   React.useEffect(() => {
-    setInternalValue(value);
+    if (value) {
+      const date = parse(value, internalFormat, new Date());
+      if (isValid(date)) {
+        setDisplayValue(format(date, displayFormat));
+      }
+    } else {
+      setDisplayValue('');
+    }
   }, [value]);
   
   const handleDateSelect = (date: Date | undefined) => {
     if (date && isValid(date)) {
-      const formattedDate = format(date, 'yyyy-MM-dd');
-      setInternalValue(formattedDate);
-      onValueChange(formattedDate);
+      onValueChange(format(date, internalFormat));
+      setDisplayValue(format(date, displayFormat));
     } else {
-      setInternalValue(undefined);
       onValueChange(undefined);
+      setDisplayValue('');
     }
     setIsPopoverOpen(false);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
-    setInternalValue(inputValue);
+    setDisplayValue(inputValue);
     
-    // Check if the input is a valid date in yyyy-MM-dd format
-    const parsedDate = parse(inputValue, 'yyyy-MM-dd', new Date());
-    if (isValid(parsedDate) && inputValue.length === 10) {
-      onValueChange(inputValue);
+    // Check if the input is a valid date in dd/MM/yyyy format
+    const parsedDate = parse(inputValue, displayFormat, new Date());
+    if (isValid(parsedDate) && inputValue.length >= 8) {
+      onValueChange(format(parsedDate, internalFormat));
     } else {
       // If user is clearing the input or it's incomplete, send undefined
       onValueChange(undefined);
     }
   };
   
-  const selectedDate = internalValue && isValid(parse(internalValue, 'yyyy-MM-dd', new Date())) 
-    ? parse(internalValue, 'yyyy-MM-dd', new Date()) 
+  const selectedDate = value && isValid(parse(value, internalFormat, new Date())) 
+    ? parse(value, internalFormat, new Date()) 
     : undefined;
 
   return (
     <div className={cn('relative w-full', className)}>
       <Input
         type="text"
-        value={internalValue || ''}
+        value={displayValue}
         onChange={handleInputChange}
         className="pr-10"
-        placeholder="YYYY-MM-DD"
+        placeholder="DD/MM/AAAA"
       />
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
