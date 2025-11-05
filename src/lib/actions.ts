@@ -3,6 +3,7 @@
 
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
@@ -166,6 +167,7 @@ export async function addInspectionBatchAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
+    revalidatePath(`/clients/${clientId}`);
 }
 
 // --- Report Actions ---

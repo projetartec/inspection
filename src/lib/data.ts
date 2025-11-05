@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -308,6 +309,8 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
         }
         
         const building = client.buildings[buildingIndex];
+        
+        building.lastInspected = new Date().toISOString();
 
         inspectedItems.forEach(item => {
             const newInspection: Inspection = {

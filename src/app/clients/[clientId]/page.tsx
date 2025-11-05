@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -28,6 +29,8 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { GpsLinkManager } from '@/components/gps-link-manager';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 
 
 export default function ClientPage() {
@@ -185,7 +188,14 @@ export default function ClientPage() {
                           {...provided.droppableProps}
                           className="flex flex-col gap-2"
                         >
-                          {filteredBuildings.map((building, index) => (
+                          {filteredBuildings.map((building, index) => {
+                            const today = new Date();
+                            const lastInspectedDate = building.lastInspected ? parseISO(building.lastInspected) : null;
+                            const wasInspectedThisMonth = lastInspectedDate 
+                                ? isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today)
+                                : false;
+                            
+                            return (
                             <Draggable key={building.id} draggableId={building.id} index={index}>
                               {(provided, snapshot) => (
                                 <div
@@ -196,6 +206,15 @@ export default function ClientPage() {
                                   <div {...provided.dragHandleProps} className="p-2 cursor-grab text-muted-foreground">
                                     <GripVertical className="h-5 w-5" />
                                   </div>
+
+                                  <div 
+                                    className={cn(
+                                        "h-3 w-3 rounded-full mr-3 flex-shrink-0",
+                                        wasInspectedThisMonth ? "bg-green-500" : "bg-red-500"
+                                    )}
+                                    title={wasInspectedThisMonth ? "Inspecionado este mês" : "Inspeção pendente este mês"}
+                                  />
+                                  
                                   <Button
                                     asChild
                                     variant="link"
@@ -251,7 +270,7 @@ export default function ClientPage() {
                                 </div>
                               )}
                             </Draggable>
-                          ))}
+                          )})}
                           {provided.placeholder}
                         </div>
                       )}

@@ -68,6 +68,7 @@ export type Building = {
   hoses: Hydrant[];
   manualInspections?: ManualInspection[];
   gpsLink?: string;
+  lastInspected?: string;
 };
 
 export type Client = {
