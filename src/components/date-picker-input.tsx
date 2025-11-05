@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { format, parse } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { ptBR } from 'date-fns/locale';
 
@@ -30,7 +31,7 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
   }, [value]);
   
   const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
+    if (date && isValid(date)) {
       const formattedDate = format(date, 'yyyy-MM-dd');
       setInternalValue(formattedDate);
       onValueChange(formattedDate);
@@ -42,23 +43,36 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInternalValue(e.target.value);
-    onValueChange(e.target.value);
+    const inputValue = e.target.value;
+    setInternalValue(inputValue);
+    
+    // Check if the input is a valid date in yyyy-MM-dd format
+    const parsedDate = parse(inputValue, 'yyyy-MM-dd', new Date());
+    if (isValid(parsedDate) && inputValue.length === 10) {
+      onValueChange(inputValue);
+    } else {
+      // If user is clearing the input or it's incomplete, send undefined
+      onValueChange(undefined);
+    }
   };
   
-  const selectedDate = internalValue ? parse(internalValue, 'yyyy-MM-dd', new Date()) : undefined;
+  const selectedDate = internalValue && isValid(parse(internalValue, 'yyyy-MM-dd', new Date())) 
+    ? parse(internalValue, 'yyyy-MM-dd', new Date()) 
+    : undefined;
 
   return (
     <div className={cn('relative w-full', className)}>
       <Input
-        type="date"
+        type="text"
         value={internalValue || ''}
         onChange={handleInputChange}
         className="pr-10"
+        placeholder="YYYY-MM-DD"
       />
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant={'ghost'}
             size="icon"
             className={cn(
