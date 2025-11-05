@@ -3,6 +3,7 @@
 
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -325,8 +326,14 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
 
             if (item.qrCodeValue.startsWith('fireguard-ext-')) {
                 targetEquipment = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);
+                 if (targetEquipment) {
+                    targetEquipment.lastInspected = item.date;
+                }
             } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
                 targetEquipment = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
+                 if (targetEquipment) {
+                    targetEquipment.lastInspected = item.date;
+                }
             } else if (item.qrCodeValue.startsWith('manual:')) {
                 if (!building.manualInspections) {
                     building.manualInspections = [];

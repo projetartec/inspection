@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePickerInput } from './date-picker-input';
 
@@ -60,7 +60,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
   const [editableHoseTestDate, setEditableHoseTestDate] = useState<string | undefined>();
 
 
-  const { addItemToInspection, isItemInspected } = useInspectionSession();
+  const { addItemToInspection } = useInspectionSession();
   const { toast } = useToast();
 
   const handleOpenDialog = (item: Item) => {
@@ -126,6 +126,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
     const overallStatus = hasNC ? 'N/C' : 'OK';
 
     const itemData: InspectedItem = {
+      id: selectedItem.id,
       qrCodeValue: selectedItem.qrCodeValue,
       date: new Date().toISOString(),
       notes: notes,
@@ -162,7 +163,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
       }
     }
 
-    addItemToInspection(itemData);
+    addItemToInspection(itemData, type as 'extinguisher' | 'hose');
     
     setIsSubmitting(false);
     handleCloseDialog();
@@ -177,7 +178,12 @@ export function InspectionList({ items, type }: InspectionListProps) {
   return (
     <div className="space-y-2">
       {items.map((item) => {
-        const inspected = isItemInspected(item.qrCodeValue);
+        const today = new Date();
+        const lastInspectedDate = item.lastInspected ? parseISO(item.lastInspected) : null;
+        const inspectedThisMonth = lastInspectedDate 
+            ? isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today)
+            : false;
+
         let displayTitle = '';
         let displaySubtitle = '';
 
@@ -201,7 +207,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
                 </p>
             </div>
             <div className="ml-4">
-                {inspected ? (
+                {inspectedThisMonth ? (
                     <Button variant="ghost" className="text-green-600 hover:bg-green-600/10 hover:text-green-700" onClick={() => handleOpenDialog(item)}>
                         <CheckCircle2 className="mr-2" /> Inspecionado
                     </Button>

@@ -1,8 +1,8 @@
 
+
 import { Sidebar, SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { MainNav } from "@/components/main-nav";
 import { MobileNav } from "@/components/mobile-nav";
-import { InspectionProvider } from "@/hooks/use-inspection-session.tsx";
 
 export default function ClientLayout({
   children,
@@ -12,7 +12,6 @@ export default function ClientLayout({
   params: { clientId: string };
 }) {
   return (
-    <InspectionProvider>
       <SidebarProvider>
         <Sidebar>
           <MainNav />
@@ -25,6 +24,5 @@ export default function ClientLayout({
           <MobileNav />
         </SidebarInset>
       </SidebarProvider>
-    </InspectionProvider>
   );
 }

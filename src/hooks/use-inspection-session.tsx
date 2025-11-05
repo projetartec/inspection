@@ -7,6 +7,7 @@ import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } 
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
+    id: string; // The ID of the extinguisher or hose
     qrCodeValue: string;
     updatedData?: Partial<ExtinguisherFormValues> | Partial<HydrantFormValues>;
 }
@@ -21,11 +22,11 @@ export interface InspectionSession {
 interface InspectionContextType {
     session: InspectionSession | null;
     startInspection: (clientId: string, buildingId: string) => void;
-    addItemToInspection: (item: InspectedItem) => void;
+    addItemToInspection: (item: InspectedItem, type: 'extinguisher' | 'hose') => void;
     endInspection: () => Promise<void>;
     clearSession: () => void;
     isLoading: boolean;
-    isItemInspected: (qrCodeValue: string) => boolean;
+    updateLocalEquipmentState: (equipmentId: string, type: 'extinguisher' | 'hose', updates: Partial<Extinguisher | Hydrant>) => void;
 }
 
 const InspectionContext = createContext<InspectionContextType | null>(null);
@@ -40,7 +41,12 @@ export const useInspectionSession = () => {
 
 const SESSION_STORAGE_KEY = 'inspectionSession';
 
-export const InspectionProvider = ({ children }: { children: React.ReactNode }) => {
+export const InspectionProvider = ({ children, initialExtinguishers, initialHoses, onStateChange }: { 
+    children: React.ReactNode, 
+    initialExtinguishers: Extinguisher[], 
+    initialHoses: Hydrant[],
+    onStateChange: (extinguishers: Extinguisher[], hoses: Hydrant[]) => void 
+}) => {
     const [session, setSession] = useState<InspectionSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -67,16 +73,29 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
             sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
     };
+    
+    const updateLocalEquipmentState = (equipmentId: string, type: 'extinguisher' | 'hose', updates: Partial<Extinguisher | Hydrant>) => {
+        let newExtinguishers = initialExtinguishers;
+        let newHoses = initialHoses;
+
+        if (type === 'extinguisher') {
+            newExtinguishers = initialExtinguishers.map(e => 
+                e.id === equipmentId ? { ...e, ...updates } : e
+            );
+        } else {
+            newHoses = initialHoses.map(h => 
+                h.id === equipmentId ? { ...h, ...updates } : h
+            );
+        }
+        onStateChange(newExtinguishers, newHoses);
+    };
 
     const startInspection = useCallback((clientId: string, buildingId: string) => {
-        // If a session for a different building is active, clear it first
         if (session && session.buildingId !== buildingId) {
-            // In a real scenario, you might want to prompt the user
             console.warn("Starting new inspection, clearing previous session for another building.");
             updateSession(null); 
         }
 
-        // Only start a new session if there isn't one for the current building
         if (!session || session.buildingId !== buildingId) {
             const newSession: InspectionSession = {
                 clientId,
@@ -88,18 +107,29 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
         }
     }, [session]);
     
-    const addItemToInspection = useCallback((item: InspectedItem) => {
+    const addItemToInspection = useCallback((item: InspectedItem, type: 'extinguisher' | 'hose') => {
         if (!session) return;
 
         const otherItems = session.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
         const updatedItems = [...otherItems, item];
         
         updateSession({ ...session, inspectedItems: updatedItems });
-    }, [session]);
 
-    const isItemInspected = useCallback((qrCodeValue: string) => {
-        return session?.inspectedItems.some(item => item.qrCodeValue === qrCodeValue) || false;
-    }, [session]);
+        // Update local state immediately
+        const updates: Partial<Extinguisher | Hydrant> = {
+            ...item.updatedData,
+            lastInspected: item.date,
+            inspections: [...(initialExtinguishers.find(e => e.id === item.id)?.inspections || initialHoses.find(h => h.id === item.id)?.inspections || []), {
+                id: `temp-${Date.now()}`,
+                date: item.date,
+                notes: item.notes,
+                status: item.status,
+                itemStatuses: item.itemStatuses
+            }]
+        };
+
+        updateLocalEquipmentState(item.id, type, updates);
+    }, [session, initialExtinguishers, initialHoses, onStateChange]);
     
     const endInspection = useCallback(async () => {
         if (!session) {
@@ -150,7 +180,7 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
         endInspection,
         clearSession,
         isLoading,
-        isItemInspected,
+        updateLocalEquipmentState,
     };
 
     return (
@@ -159,3 +189,26 @@ export const InspectionProvider = ({ children }: { children: React.ReactNode }) 
         </InspectionContext.Provider>
     );
 };
+
+export function InspectionWrapper({ children, clientId, buildingId }: { children: React.ReactNode, clientId: string, buildingId: string }) {
+    const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
+    const [hoses, setHoses] = useState<Hydrant[]>([]);
+    
+    // This wrapper would fetch the initial data and pass it down
+    // For now, we'll use placeholder empty arrays.
+    
+    const handleStateChange = (newExtinguishers: Extinguisher[], newHoses: Hydrant[]) => {
+        setExtinguishers(newExtinguishers);
+        setHoses(newHoses);
+    };
+
+    return (
+        <InspectionProvider 
+            initialExtinguishers={extinguishers} 
+            initialHoses={hoses}
+            onStateChange={handleStateChange}
+        >
+            {children}
+        </InspectionProvider>
+    );
+}
