@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
-import { getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
 import type { Extinguisher, Hydrant } from '@/lib/types';
 import { InspectionList } from '@/components/inspection-list';
 import { InspectionProvider, useInspectionSession } from '@/hooks/use-inspection-session.tsx';
@@ -33,30 +32,18 @@ function VisualInspectionContent() {
     const { clientId, buildingId } = params;
     const router = useRouter();
 
-    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     
     const [filteredExtinguishers, setFilteredExtinguishers] = useState<Extinguisher[]>([]);
     const [filteredHoses, setFilteredHoses] = useState<Hydrant[]>([]);
 
-    const { startInspection, extinguishers, hoses } = useInspectionSession();
-
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            await startInspection(clientId, buildingId);
-        } catch (error) {
-            console.error("Failed to fetch equipment:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [clientId, buildingId, startInspection]);
+    const { startInspection, extinguishers, hoses, isLoading } = useInspectionSession();
 
     useEffect(() => {
         if (clientId && buildingId) {
-            fetchData();
+            startInspection(clientId, buildingId);
         }
-    }, [clientId, buildingId, fetchData]);
+    }, [clientId, buildingId, startInspection]);
     
     useEffect(() => {
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -130,8 +117,11 @@ function VisualInspectionContent() {
 
 
 export default function VisualInspectionPage() {
+    const params = useParams() as { clientId: string, buildingId: string };
+    const { clientId, buildingId } = params;
+
     return (
-        <InspectionProvider>
+        <InspectionProvider clientId={clientId} buildingId={buildingId}>
             <VisualInspectionContent />
         </InspectionProvider>
     );
