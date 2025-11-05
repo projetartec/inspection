@@ -16,6 +16,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
 
 type Item = Extinguisher | Hydrant;
 
@@ -174,12 +177,26 @@ export function InspectionList({ items, type }: InspectionListProps) {
     <div className="space-y-2">
       {items.map((item) => {
         const inspected = isItemInspected(item.qrCodeValue);
+        let displayTitle = '';
+        let displaySubtitle = '';
+
+        if (type === 'extinguisher') {
+          const ext = item as Extinguisher;
+          displayTitle = ext.observations || 'Local não especificado';
+          const expiryDate = ext.expiryDate ? format(parseISO(ext.expiryDate), 'MM/yyyy', { locale: ptBR }) : 'N/A';
+          displaySubtitle = `${ext.type} | Venc: ${expiryDate}`;
+        } else {
+          const hose = item as Hydrant;
+          displayTitle = hose.id;
+          displaySubtitle = hose.location;
+        }
+
         return (
           <Card key={item.id} className="flex items-center justify-between p-3">
             <div className="flex-1 overflow-hidden">
-                <p className="font-bold truncate">{item.id}</p>
+                <p className="font-bold truncate">{displayTitle}</p>
                 <p className="text-sm text-muted-foreground truncate">
-                    {type === 'extinguisher' ? (item as Extinguisher).observations : (item as Hydrant).location}
+                    {displaySubtitle}
                 </p>
             </div>
             <div className="ml-4">
@@ -323,4 +340,6 @@ export function InspectionList({ items, type }: InspectionListProps) {
 }
 
     
+    
+
     
