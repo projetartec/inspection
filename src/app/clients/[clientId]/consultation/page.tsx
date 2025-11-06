@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { getClientReportDataAction } from '@/lib/actions';
 import { PageHeader } from '@/components/page-header';
@@ -9,16 +10,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Building, Client, Extinguisher, Hydrant, Inspection } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameMonth, isSameYear, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClientReportGenerator } from '@/components/client-report-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
+import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -138,13 +138,14 @@ function HoseTable({ items }: { items: (Hydrant & { buildingName: string })[] })
 export default function ConsultationPage() {
     const params = useParams() as { clientId: string };
     const clientId = params.clientId;
-    const router = useRouter();
 
     const [client, setClient] = useState<Client | null>(null);
     const [buildings, setBuildings] = useState<(Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showOnlyNC, setShowOnlyNC] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
+    const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
+    const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>({ type: 'none' });
 
     useEffect(() => {
         if (clientId) {
@@ -168,24 +169,63 @@ export default function ConsultationPage() {
         }
     }, [clientId]);
 
-    const allExtinguishers = buildings.flatMap(b => b.extinguishers.map(e => ({ ...e, buildingName: b.name })));
-    const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name })));
-    
-    const filteredExtinguishers = showOnlyNC
-    ? allExtinguishers.filter(e => {
-        const lastInsp = e.inspections?.[e.inspections.length - 1];
-        if (!lastInsp || !lastInsp.itemStatuses) return false;
-        return Object.values(lastInsp.itemStatuses).includes('N/C');
-    })
-    : allExtinguishers;
+    const filteredItems = useMemo(() => {
+        const allExtinguishers = buildings.flatMap(b => b.extinguishers.map(e => ({ ...e, buildingName: b.name, buildingId: b.id })));
+        const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
 
-    const filteredHoses = showOnlyNC
-    ? allHoses.filter(h => {
-        const lastInsp = h.inspections?.[h.inspections.length - 1];
-        if (!lastInsp) return false;
-        return lastInsp.status === 'N/C';
-    })
-    : allHoses;
+        let finalExtinguishers = allExtinguishers;
+        let finalHoses = allHoses;
+
+        // N/C Filter
+        if (showOnlyNC) {
+            finalExtinguishers = finalExtinguishers.filter(e => {
+                const lastInsp = e.inspections?.[e.inspections.length - 1];
+                if (!lastInsp || !lastInsp.itemStatuses) return false;
+                return Object.values(lastInsp.itemStatuses).includes('N/C');
+            });
+            finalHoses = finalHoses.filter(h => {
+                const lastInsp = h.inspections?.[h.inspections.length - 1];
+                if (!lastInsp) return false;
+                return lastInsp.status === 'N/C';
+            });
+        }
+        
+        // Building Filter
+        if (selectedBuildingIds.length > 0) {
+            finalExtinguishers = finalExtinguishers.filter(e => selectedBuildingIds.includes(e.buildingId));
+            finalHoses = finalHoses.filter(h => selectedBuildingIds.includes(h.buildingId));
+        }
+
+        // Expiry Filter
+        if (expiryFilter.type !== 'none') {
+            const now = new Date();
+            finalExtinguishers = finalExtinguishers.filter(e => {
+                if (!e.expiryDate) return false;
+                const expiry = startOfDay(parseISO(e.expiryDate));
+                if (expiryFilter.type === 'this_month') {
+                    return isSameMonth(expiry, now) && isSameYear(expiry, now);
+                }
+                if (expiryFilter.type === 'future' && expiryFilter.date) {
+                    return expiry.getTime() === startOfDay(expiryFilter.date).getTime();
+                }
+                return false;
+            });
+            finalHoses = finalHoses.filter(h => {
+                 if (!h.hydrostaticTestDate) return false;
+                 const expiry = startOfDay(parseISO(h.hydrostaticTestDate));
+                 if (expiryFilter.type === 'this_month') {
+                    return isSameMonth(expiry, now) && isSameYear(expiry, now);
+                }
+                if (expiryFilter.type === 'future' && expiryFilter.date) {
+                    return expiry.getTime() === startOfDay(expiryFilter.date).getTime();
+                }
+                return false;
+            });
+        }
+
+
+        return { extinguishers: finalExtinguishers, hoses: finalHoses };
+    }, [buildings, showOnlyNC, selectedBuildingIds, expiryFilter]);
 
 
     if (isLoading) {
@@ -216,31 +256,39 @@ export default function ConsultationPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        <div className="border-b pb-4">
-                             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                <TabsList>
-                                    <TabsTrigger value="all">
-                                        <div className="flex items-center gap-2 md:hidden">
-                                            <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
-                                            <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
-                                        </div>
-                                        <span className="hidden md:inline">Todos os Itens</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="extinguishers">
-                                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={20} height={20} className="md:hidden" />
-                                        <span className="hidden md:inline">Extintores</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="hoses">
-                                        <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
-                                        <span className="hidden md:inline">Mangueiras</span>
-                                    </TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
-                         <div className="flex items-center space-x-2 pt-2">
-                            <Switch id="nc-filter" checked={showOnlyNC} onCheckedChange={setShowOnlyNC} />
-                            <Label htmlFor="nc-filter">N/C</Label>
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b pb-4">
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+                            <TabsList>
+                                <TabsTrigger value="all">
+                                    <div className="flex items-center gap-2 md:hidden">
+                                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
+                                        <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
+                                    </div>
+                                    <span className="hidden md:inline">Todos os Itens</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="extinguishers">
+                                    <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={20} height={20} className="md:hidden" />
+                                    <span className="hidden md:inline">Extintores</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="hoses">
+                                    <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
+                                    <span className="hidden md:inline">Mangueiras</span>
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center space-x-2">
+                                <Switch id="nc-filter" checked={showOnlyNC} onCheckedChange={setShowOnlyNC} />
+                                <Label htmlFor="nc-filter">N/C</Label>
+                            </div>
+                            <ConsultationFilters
+                                buildings={buildings}
+                                selectedBuildingIds={selectedBuildingIds}
+                                onSelectedBuildingIdsChange={setSelectedBuildingIds}
+                                expiryFilter={expiryFilter}
+                                onExpiryFilterChange={setExpiryFilter}
+                            />
                         </div>
                     </div>
 
@@ -255,13 +303,13 @@ export default function ConsultationPage() {
                                 {showExtinguishers && (
                                     <div>
                                         <h3 className="text-lg font-semibold mb-2">Extintores</h3>
-                                        <ExtinguisherTable items={filteredExtinguishers} />
+                                        <ExtinguisherTable items={filteredItems.extinguishers} />
                                     </div>
                                 )}
                                 {showHoses && (
                                      <div>
                                         <h3 className="text-lg font-semibold mb-2">Hidrantes</h3>
-                                        <HoseTable items={filteredHoses} />
+                                        <HoseTable items={filteredItems.hoses} />
                                     </div>
                                 )}
                             </>
