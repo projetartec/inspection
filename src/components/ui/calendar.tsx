@@ -4,10 +4,6 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker, DropdownProps } from "react-day-picker"
-import useEmblaCarousel, {
-  type EmblaCarouselType,
-  type EmblaOptionsType,
-} from "embla-carousel-react"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -30,44 +26,16 @@ function Calendar({
   showNavButtons = false,
   ...props
 }: CalendarProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    axis: "x",
-    dragFree: false,
-    containScroll: "trimSnaps",
-  })
-  const [prevBtnDisabled, setPrevBtnDisabled] = React.useState(true)
-  const [nextBtnDisabled, setNextBtnDisabled] = React.useState(true)
-
-  const onSelect = React.useCallback((emblaApi: EmblaCarouselType) => {
-    setPrevBtnDisabled(!emblaApi.canScrollPrev())
-    setNextBtnDisabled(!emblaApi.canScrollNext())
-  }, [])
-
-  React.useEffect(() => {
-    if (!emblaApi) return
-    onSelect(emblaApi)
-    emblaApi.on("reInit", onSelect)
-    emblaApi.on("select", onSelect)
-  }, [emblaApi, onSelect])
-
   return (
     <div className="relative">
-      <style>{`
-        .embla__month {
-          flex: 0 0 100%;
-          min-width: 0;
-        }
-      `}</style>
       <DayPicker
         showOutsideDays={showOutsideDays}
         className={cn("p-3", className)}
         classNames={{
-          months: "flex overflow-hidden",
-          month:
-            "embla__month w-full space-y-4 focus-visible:outline-none [&:has([name=caption-dropdowns])]:-mt-4",
+          months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+          month: "space-y-4",
           caption: "flex justify-center pt-1 relative items-center",
-          caption_label: "text-sm font-medium hidden", // Hide default label
-          caption_dropdowns: "flex items-center gap-1.5",
+          caption_label: "text-sm font-medium",
           nav: "space-x-1 flex items-center",
           nav_button: cn(
             buttonVariants({ variant: "outline" }),
@@ -95,14 +63,10 @@ function Calendar({
           day_range_middle:
             "aria-selected:bg-accent aria-selected:text-accent-foreground",
           day_hidden: "invisible",
+          caption_dropdowns: "flex items-center gap-1.5",
           ...classNames,
         }}
         components={{
-          Months: ({ children }) => (
-            <div className="embla" ref={emblaRef}>
-              {children}
-            </div>
-          ),
           Dropdown: ({
             value,
             onChange,
@@ -153,29 +117,6 @@ function Calendar({
         toYear={2040}
         {...props}
       />
-      {showNavButtons && (
-        <div className="absolute top-[0.6rem] flex w-full items-center justify-center gap-1.5">
-          <Button
-            onClick={() => emblaApi?.scrollPrev()}
-            disabled={prevBtnDisabled}
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1" />
-          <Button
-            onClick={() => emblaApi?.scrollNext()}
-            disabled={nextBtnDisabled}
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
