@@ -12,6 +12,8 @@ import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -117,6 +119,9 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
           </Button>
         </DialogTrigger>
         <DialogContent className="w-auto p-0">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Selecione a data</DialogTitle>
+          </DialogHeader>
           <Calendar
             mode="single"
             selected={selectedDate}
