@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
@@ -151,3 +152,4 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
 
 // Re-exporting the original InspectionProvider for compatibility with existing files that use it.
 export const InspectionProvider = GlobalInspectionProvider;
+

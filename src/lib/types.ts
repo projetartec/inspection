@@ -86,3 +86,4 @@ export type Client = {
   caretakerContact?: string;
   buildings: Building[];
 };
+

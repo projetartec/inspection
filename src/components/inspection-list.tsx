@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -195,9 +196,7 @@ export function InspectionList({ items, type }: InspectionListProps) {
     <div className="space-y-2">
       {items.map((item) => {
         const isInspectedInSession = session?.inspectedItems.some(i => i.qrCodeValue === item.qrCodeValue);
-        const lastInspectionDate = item.inspections.length > 0 ? parseISO(item.inspections[item.inspections.length-1].date) : null;
-        const inspectedThisMonth = lastInspectionDate ? lastInspectionDate.getMonth() === new Date().getMonth() && lastInspectionDate.getFullYear() === new Date().getFullYear() : false;
-
+        
         let displayTitle = '';
         let displaySubtitle = '';
 
@@ -359,3 +358,4 @@ export function InspectionList({ items, type }: InspectionListProps) {
     </div>
   );
 }
+
