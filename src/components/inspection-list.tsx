@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DatePickerInput } from './date-picker-input';
 
@@ -172,6 +172,7 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
     const finalItemState: Item = {
         ...selectedItem,
         ...updatedItemData,
+        lastInspected: newInspection.date,
         inspections: [...(selectedItem.inspections || []), newInspection],
     };
 
@@ -209,7 +210,11 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
   return (
     <div className="space-y-2">
       {items.map((item) => {
-        const isInspectedInSession = session?.inspectedItems.some(i => i.qrCodeValue === item.qrCodeValue);
+        const today = new Date();
+        const lastInspectedDate = item.lastInspected ? parseISO(item.lastInspected) : null;
+        const wasInspectedThisMonth = lastInspectedDate 
+            ? isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today)
+            : false;
         
         let displayTitle = '';
         let displaySubtitle = '';
@@ -234,7 +239,7 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
                 </p>
             </div>
             <div className="ml-4">
-                {isInspectedInSession ? (
+                {wasInspectedThisMonth ? (
                     <Button variant="ghost" className="text-green-600 hover:bg-green-600/10 hover:text-green-700" onClick={() => handleOpenDialog(item)}>
                         <CheckCircle2 className="mr-2" /> Inspecionado
                     </Button>

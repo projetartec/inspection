@@ -4,6 +4,8 @@
 
 
 
+
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';

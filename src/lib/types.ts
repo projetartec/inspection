@@ -23,6 +23,7 @@ export type Extinguisher = {
   hydrostaticTestYear: number; // Corresponds to TEST. HIDROSTATICO
   observations: string; // Corresponds to LOCALIZAÇÃO
   inspections: Inspection[];
+  lastInspected?: string;
 };
 
 // --- Hydrant (Hose) Types ---
@@ -57,6 +58,7 @@ export type Hydrant = {
   nozzleQuantity: HydrantNozzleQuantity; // ESG (Esguicho)
   hydrostaticTestDate: string; // PROX. TESTE HIDR.
   inspections: Inspection[];
+  lastInspected?: string;
 };
 
 export type ManualInspection = Inspection & { manualId: string };
@@ -86,4 +88,5 @@ export type Client = {
   caretakerContact?: string;
   buildings: Building[];
 };
+
 
