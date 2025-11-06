@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
-import type { Extinguisher, Hydrant } from '@/lib/types';
+import type { Extinguisher, Hydrant, Inspection } from '@/lib/types';
 import { InspectionList } from '@/components/inspection-list';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,14 @@ export default function VisualInspectionPage() {
 
     }, [searchTerm, extinguishers, hoses]);
 
+    const handleUpdateItem = (itemType: 'extinguisher' | 'hose', updatedItem: Extinguisher | Hydrant) => {
+        if (itemType === 'extinguisher') {
+            setExtinguishers(prev => prev.map(e => e.id === updatedItem.id ? updatedItem as Extinguisher : e));
+        } else {
+            setHoses(prev => prev.map(h => h.id === updatedItem.id ? updatedItem as Hydrant : h));
+        }
+    };
+
     return (
         <div className="flex flex-col gap-8">
             <PageHeader title="Inspeção Visual">
@@ -127,18 +135,17 @@ export default function VisualInspectionPage() {
                    {isLoading ? (
                        <ListSkeleton />
                    ) : (
-                        <InspectionList items={filteredExtinguishers} type="extinguisher" />
+                        <InspectionList items={filteredExtinguishers} type="extinguisher" onUpdateItem={handleUpdateItem} />
                    )}
                 </TabsContent>
                 <TabsContent value="hoses">
                      {isLoading ? (
                        <ListSkeleton />
                    ) : (
-                        <InspectionList items={filteredHoses} type="hose" />
+                        <InspectionList items={filteredHoses} type="hose" onUpdateItem={handleUpdateItem} />
                    )}
                 </TabsContent>
             </Tabs>
         </div>
     );
 }
-

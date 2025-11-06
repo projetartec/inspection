@@ -27,6 +27,7 @@ type Item = Extinguisher | Hydrant;
 interface InspectionListProps {
   items: Item[];
   type: 'extinguisher' | 'hose';
+  onUpdateItem: (type: 'extinguisher' | 'hose', item: Item) => void;
 }
 
 const extinguisherIssues = [
@@ -38,7 +39,7 @@ const hoseIssues = [
     "Acrílico", "Sinalização"
 ];
 
-export function InspectionList({ items, type }: InspectionListProps) {
+export function InspectionList({ items, type, onUpdateItem }: InspectionListProps) {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,49 +138,62 @@ export function InspectionList({ items, type }: InspectionListProps) {
 
     const overallStatus = hasNC ? 'N/C' : 'OK';
 
-    const itemData: InspectedItem = {
-      id: selectedItem.id,
-      qrCodeValue: selectedItem.qrCodeValue,
-      date: new Date().toISOString(),
-      notes: notes,
-      status: overallStatus,
-      itemStatuses: itemStatuses,
+    const newInspection: Inspection = {
+        id: `insp-${Date.now()}-${Math.random()}`, // Temporary ID for client-side
+        date: new Date().toISOString(),
+        notes: notes,
+        status: overallStatus,
+        itemStatuses: itemStatuses,
     };
 
-    if (overallStatus === 'N/C') {
-      if (type === 'extinguisher') {
-          const originalExtinguisher = selectedItem as Extinguisher;
-          const updatedData: Partial<Extinguisher> = {};
-          if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
-          if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
-          if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
-
-          if (Object.keys(updatedData).length > 0) {
-              itemData.updatedData = { id: originalExtinguisher.id, ...updatedData };
-          }
-      } else if (type === 'hose') {
-          const originalHose = selectedItem as Hydrant;
-          const updatedData: Partial<Hydrant> = {};
-          if (editableHoseLocation !== originalHose.location) updatedData.location = editableHoseLocation;
-          if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = editableHoseQuantity;
-          if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType;
-          if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter;
-          if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = editableHoseLength;
-          if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = editableHoseKeyQuantity;
-          if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = editableHoseNozzleQuantity;
-          if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
-
-          if (Object.keys(updatedData).length > 0) {
-              itemData.updatedData = { id: originalHose.id, ...updatedData };
-          }
-      }
+    let updatedItemData: Partial<Item> = {};
+    if (type === 'extinguisher') {
+        const originalExtinguisher = selectedItem as Extinguisher;
+        const updatedExtinguisherData: Partial<Extinguisher> = {};
+        if (editableType !== originalExtinguisher.type) updatedExtinguisherData.type = editableType;
+        if (editableWeight !== originalExtinguisher.weight) updatedExtinguisherData.weight = editableWeight;
+        if (editableExpiry !== originalExtinguisher.expiryDate) updatedExtinguisherData.expiryDate = editableExpiry;
+        updatedItemData = updatedExtinguisherData;
+    } else {
+        const originalHose = selectedItem as Hydrant;
+        const updatedHoseData: Partial<Hydrant> = {};
+        if (editableHoseLocation !== originalHose.location) updatedHoseData.location = editableHoseLocation;
+        if (editableHoseQuantity !== originalHose.quantity) updatedHoseData.quantity = editableHoseQuantity;
+        if (editableHoseType !== originalHose.hoseType) updatedHoseData.hoseType = editableHoseType;
+        if (editableHoseDiameter !== originalHose.diameter) updatedHoseData.diameter = editableHoseDiameter;
+        if (editableHoseLength !== originalHose.hoseLength) updatedHoseData.hoseLength = editableHoseLength;
+        if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedHoseData.keyQuantity = editableHoseKeyQuantity;
+        if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedHoseData.nozzleQuantity = editableHoseNozzleQuantity;
+        if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedHoseData.hydrostaticTestDate = editableHoseTestDate;
+        updatedItemData = updatedHoseData;
     }
 
-    addItemToInspection(itemData);
+
+    const finalItemState: Item = {
+        ...selectedItem,
+        ...updatedItemData,
+        inspections: [...(selectedItem.inspections || []), newInspection],
+    };
+
+    // Update parent state
+    onUpdateItem(type, finalItemState);
+
+
+    const itemForSession: InspectedItem = {
+      id: selectedItem.id,
+      qrCodeValue: selectedItem.qrCodeValue,
+      date: newInspection.date,
+      notes: newInspection.notes,
+      status: newInspection.status,
+      itemStatuses: newInspection.itemStatuses,
+      updatedData: Object.keys(updatedItemData).length > 0 ? { id: selectedItem.id, ...updatedItemData } : undefined,
+    };
+
+    addItemToInspection(itemForSession);
     
     toast({
         title: 'Confirmado!',
-        description: `Inspeção do item ${selectedItem.id} registrada na sessão.`,
+        description: `Inspeção do item ${selectedItem.id} registrada.`,
     });
 
     setIsSubmitting(false);
@@ -358,4 +372,3 @@ export function InspectionList({ items, type }: InspectionListProps) {
     </div>
   );
 }
-
