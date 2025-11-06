@@ -10,10 +10,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
 interface DatePickerInputProps {
@@ -27,7 +27,7 @@ const internalFormat = 'yyyy-MM-dd';
 
 export function DatePickerInput({ value, onValueChange, className }: DatePickerInputProps) {
   const [displayValue, setDisplayValue] = React.useState('');
-  const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (value) {
@@ -47,7 +47,7 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
   }, [value]);
   
   const handleDateSelect = (date: Date | undefined) => {
-    setIsPopoverOpen(false);
+    setIsDialogOpen(false);
     if (date && isValid(date)) {
       const internalDate = format(date, internalFormat);
       onValueChange(internalDate);
@@ -102,8 +102,8 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
         placeholder="DD/MM/AAAA"
         maxLength={10}
       />
-      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-        <PopoverTrigger asChild>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
           <Button
             type="button"
             variant={'ghost'}
@@ -115,8 +115,8 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
             <CalendarIcon className="h-4 w-4" />
             <span className="sr-only">Abrir calendário</span>
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        </DialogTrigger>
+        <DialogContent className="w-auto p-0">
           <Calendar
             mode="single"
             selected={selectedDate}
@@ -124,8 +124,8 @@ export function DatePickerInput({ value, onValueChange, className }: DatePickerI
             initialFocus
             locale={ptBR}
           />
-        </PopoverContent>
-      </Popover>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
