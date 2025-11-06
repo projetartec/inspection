@@ -2,32 +2,43 @@
 import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-let app: App;
-let adminDb: Firestore;
+let app: App | undefined;
+let adminDb: Firestore | undefined;
 
-// This will throw an error if the environment variable is not set, which is good.
-// It's better to fail fast than to have silent errors.
-const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+function initializeFirebaseAdmin() {
+    if (getApps().length > 0) {
+        app = getApps()[0];
+        adminDb = getFirestore(app);
+        return;
+    }
 
-if (!serviceAccountString) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set. Application cannot start.');
+    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    if (!serviceAccountString) {
+        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set. Application cannot start.');
+    }
+
+    try {
+        const serviceAccount = JSON.parse(serviceAccountString);
+
+        if (serviceAccount.private_key) {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+
+        app = initializeApp({
+          credential: cert(serviceAccount)
+        });
+        adminDb = getFirestore(app);
+    } catch (e) {
+        console.error("Failed to parse or initialize Firebase Admin SDK", e);
+        throw new Error("Could not initialize Firebase Admin. Check service account key.")
+    }
 }
 
-const serviceAccount = JSON.parse(serviceAccountString);
-
-// The private key needs to have newlines restored.
-if (serviceAccount.private_key) {
-    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+// Initialize on first import in a server environment.
+if (typeof window === 'undefined') {
+    initializeFirebaseAdmin();
 }
 
-if (!getApps().length) {
-    app = initializeApp({
-      credential: cert(serviceAccount)
-    });
-} else {
-  app = getApps()[0];
-}
-
-adminDb = getFirestore(app);
 
 export { adminDb };
