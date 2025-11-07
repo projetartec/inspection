@@ -31,6 +31,8 @@ import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 export default function ClientPage() {
@@ -45,6 +47,7 @@ export default function ClientPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredBuildings, setFilteredBuildings] = useState<Building[]>([]);
+  const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
   const fetchClientAndBuildings = async () => {
     setIsLoading(true);
@@ -61,7 +64,6 @@ export default function ClientPage() {
 
       setClient(clientData);
       setBuildings(buildingsData);
-      setFilteredBuildings(buildingsData);
     } catch (error) {
       console.error('Falha ao buscar dados do cliente e locais:', error);
       toast({
@@ -81,11 +83,24 @@ export default function ClientPage() {
   }, [clientId]);
   
   useEffect(() => {
-    const results = buildings.filter(building =>
-        building.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let results = buildings;
+
+    if (searchTerm) {
+        results = results.filter(building =>
+            building.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+
+    if (showNotInspectedOnly) {
+        const today = new Date();
+        results = results.filter(building => {
+            const lastInspectedDate = building.lastInspected ? parseISO(building.lastInspected) : null;
+            return !(lastInspectedDate && isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today));
+        });
+    }
+    
     setFilteredBuildings(results);
-  }, [searchTerm, buildings]);
+  }, [searchTerm, buildings, showNotInspectedOnly]);
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
@@ -149,32 +164,38 @@ export default function ClientPage() {
         <div className="w-full max-w-2xl mx-auto">
           <Card>
               <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div>
                           <CardTitle>Selecione um Local</CardTitle>
                           <CardDescription className="mt-1">
                               Escolha um local para gerenciar ou adicione um novo. Arraste para reordenar.
                           </CardDescription>
                       </div>
-                      <div className="relative w-full max-w-xs">
-                          <Input 
-                              type="text"
-                              placeholder="Buscar local..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="h-9 pr-8"
-                          />
-                          {searchTerm && (
-                              <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => setSearchTerm('')}
-                              >
-                                  <X className="h-4 w-4" />
-                                  <span className="sr-only">Limpar busca</span>
-                              </Button>
-                          )}
+                      <div className="flex flex-col gap-2 w-full max-w-xs">
+                          <div className="relative">
+                              <Input 
+                                  type="text"
+                                  placeholder="Buscar local..."
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  className="h-9 pr-8"
+                              />
+                              {searchTerm && (
+                                  <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                                      onClick={() => setSearchTerm('')}
+                                  >
+                                      <X className="h-4 w-4" />
+                                      <span className="sr-only">Limpar busca</span>
+                                  </Button>
+                              )}
+                          </div>
+                           <div className="flex items-center space-x-2 self-end">
+                              <Switch id="ni-filter" checked={showNotInspectedOnly} onCheckedChange={setShowNotInspectedOnly} />
+                              <Label htmlFor="ni-filter" className="font-semibold">N/I</Label>
+                          </div>
                       </div>
                   </div>
               </CardHeader>
