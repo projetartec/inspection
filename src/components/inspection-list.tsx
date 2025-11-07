@@ -221,7 +221,7 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
 
         if (type === 'extinguisher') {
           const ext = item as Extinguisher;
-          displayTitle = ext.observations || 'Local não especificado';
+          displayTitle = `${ext.id} - ${ext.observations || 'Local não especificado'}`;
           const expiryDate = ext.expiryDate ? format(parseISO(ext.expiryDate), 'MM/yyyy', { locale: ptBR }) : 'N/A';
           displaySubtitle = `${ext.type} | Venc: ${expiryDate}`;
         } else {
