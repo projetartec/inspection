@@ -7,11 +7,15 @@ import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
 import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } from '@/lib/actions';
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
-export interface InspectedItem extends Omit<Inspection, 'id'> {
+export interface InspectedItem {
     uid: string; // The UID of the extinguisher or hose
     id: string; // The user-facing ID
     qrCodeValue: string;
-    updatedData?: Partial<ExtinguisherFormValues> | Partial<HydrantFormValues>;
+    date: string;
+    notes: string;
+    status: 'OK' | 'N/C';
+    itemStatuses?: { [key: string]: 'OK' | 'N/C' };
+    updatedData?: Partial<ExtinguisherFormValues | HydrantFormValues>;
 }
 
 export interface InspectionSession {
