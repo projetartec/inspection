@@ -1,16 +1,17 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Building, Calendar as CalendarIcon, Check, ChevronsUpDown, Filter } from 'lucide-react';
+import { Building, Calendar as CalendarIcon, Check, Filter } from 'lucide-react';
 import type { Building as BuildingType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 export type ExpiryFilter = {
     type: 'none' | 'this_month' | 'future';
@@ -33,6 +34,9 @@ export function ConsultationFilters({
     onExpiryFilterChange
 }: ConsultationFiltersProps) {
 
+    const [buildingFilterOpen, setBuildingFilterOpen] = useState(false);
+    const [dateFilterOpen, setDateFilterOpen] = useState(false);
+
     const handleBuildingSelect = (buildingId: string) => {
         const newSelectedIds = selectedBuildingIds.includes(buildingId)
             ? selectedBuildingIds.filter(id => id !== buildingId)
@@ -43,100 +47,109 @@ export function ConsultationFilters({
     const handleFutureDateSelect = (date: Date | undefined) => {
         if (date) {
             onExpiryFilterChange({ type: 'future', date });
+            setDateFilterOpen(false);
         }
+    }
+    
+    const handleThisMonthSelect = () => {
+        onExpiryFilterChange({ type: 'this_month' });
+        setDateFilterOpen(false);
     }
     
     const clearExpiryFilter = () => {
         onExpiryFilterChange({ type: 'none' });
+        setDateFilterOpen(false);
     }
 
     const isAnyFilterActive = selectedBuildingIds.length > 0 || expiryFilter.type !== 'none';
+    
+    const getExpiryFilterLabel = () => {
+        if (expiryFilter.type === 'this_month') return "Vencem este Mês";
+        if (expiryFilter.type === 'future' && expiryFilter.date) return `Venc. em ${format(expiryFilter.date, 'dd/MM/yyyy')}`;
+        return "Filtrar por data...";
+    }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" className={cn(isAnyFilterActive && "ring-2 ring-primary")}>
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filtros
-                    {isAnyFilterActive && <span className="ml-2 h-2 w-2 rounded-full bg-primary" />}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64" align="end">
-                <DropdownMenuLabel>Filtrar Por Vencimento</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => onExpiryFilterChange({ type: 'this_month' })}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    <span>Vencem este Mês</span>
-                </DropdownMenuItem>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <button
-                          className={cn(
-                            "w-full relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                          )}
-                          onClick={(e) => e.preventDefault()}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            Vencimentos Futuros
-                        </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                            mode="single"
-                            selected={expiryFilter.type === 'future' ? expiryFilter.date : undefined}
-                            onSelect={handleFutureDateSelect}
-                            initialFocus
-                            locale={ptBR}
-                        />
-                    </PopoverContent>
-                </Popover>
-                 {(expiryFilter.type !== 'none') && (
-                    <DropdownMenuItem onSelect={clearExpiryFilter} className="text-destructive focus:text-destructive">
-                       Limpar Filtro de Data
-                    </DropdownMenuItem>
-                )}
+        <div className="flex gap-2">
+            {/* Date Filter */}
+            <Popover open={dateFilterOpen} onOpenChange={setDateFilterOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal", expiryFilter.type !== 'none' && "text-primary ring-2 ring-primary")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <span className="truncate">{getExpiryFilterLabel()}</span>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-2">
+                         <Button variant="ghost" className="w-full justify-start" onClick={handleThisMonthSelect}>
+                            Vencem este Mês
+                        </Button>
+                    </div>
+                    <Calendar
+                        mode="single"
+                        selected={expiryFilter.type === 'future' ? expiryFilter.date : undefined}
+                        onSelect={handleFutureDateSelect}
+                        initialFocus
+                        locale={ptBR}
+                        captionLayout="dropdown-nav"
+                        fromYear={new Date().getFullYear()}
+                        toYear={new Date().getFullYear() + 10}
+                    />
+                     <div className="p-2 border-t">
+                        <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive" onClick={clearExpiryFilter}>
+                            Limpar Filtro de Data
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
 
 
-                <DropdownMenuSeparator />
-                
-                <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                        <Building className="mr-2 h-4 w-4" />
-                        <span>Prédio</span>
-                        {selectedBuildingIds.length > 0 && <span className="ml-auto text-xs">{selectedBuildingIds.length}</span>}
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="p-0">
-                        <Command>
-                            <CommandInput placeholder="Buscar prédio..." autoFocus />
-                            <CommandList>
-                                <CommandEmpty>Nenhum prédio encontrado.</CommandEmpty>
+            {/* Building Filter */}
+            <Popover open={buildingFilterOpen} onOpenChange={setBuildingFilterOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={buildingFilterOpen} className={cn("w-[200px] justify-between", selectedBuildingIds.length > 0 && "text-primary ring-2 ring-primary")}>
+                         <Building className="mr-2 h-4 w-4" />
+                        <span className="truncate">
+                           {selectedBuildingIds.length > 0 ? `${selectedBuildingIds.length} prédio(s) selecionado(s)` : "Filtrar por prédio..."}
+                        </span>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="end">
+                     <Command>
+                        <CommandInput placeholder="Buscar prédio..." />
+                        <CommandList>
+                            <CommandEmpty>Nenhum prédio encontrado.</CommandEmpty>
+                            <CommandGroup>
+                                {buildings.map((building) => (
+                                    <CommandItem
+                                        key={building.id}
+                                        value={building.name}
+                                        onSelect={() => handleBuildingSelect(building.id)}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                selectedBuildingIds.includes(building.id) ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {building.name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                         {selectedBuildingIds.length > 0 && (
+                            <>
+                                <CommandSeparator />
                                 <CommandGroup>
-                                    {buildings.map((building) => (
-                                        <CommandItem
-                                            key={building.id}
-                                            value={building.name}
-                                            onSelect={() => handleBuildingSelect(building.id)}
-                                        >
-                                            <Check
-                                                className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    selectedBuildingIds.includes(building.id) ? "opacity-100" : "opacity-0"
-                                                )}
-                                            />
-                                            {building.name}
-                                        </CommandItem>
-                                    ))}
+                                    <CommandItem onSelect={() => onSelectedBuildingIdsChange([])} className="text-destructive">
+                                        Limpar seleção
+                                    </CommandItem>
                                 </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                {selectedBuildingIds.length > 0 && (
-                     <DropdownMenuItem onSelect={() => onSelectedBuildingIdsChange([])} className="text-destructive focus:text-destructive">
-                       Limpar Filtro de Prédios
-                    </DropdownMenuItem>
-                )}
-
-            </DropdownMenuContent>
-        </DropdownMenu>
+                            </>
+                        )}
+                    </Command>
+                </PopoverContent>
+            </Popover>
+        </div>
     )
 }

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { Building, Client, Extinguisher, Hydrant, Inspection } from '@/lib/types';
-import { format, parseISO, isSameMonth, isSameYear, startOfDay } from 'date-fns';
+import { format, parseISO, isSameMonth, isSameYear, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClientReportGenerator } from '@/components/client-report-generator';
@@ -206,7 +206,7 @@ export default function ConsultationPage() {
                     return isSameMonth(expiry, now) && isSameYear(expiry, now);
                 }
                 if (expiryFilter.type === 'future' && expiryFilter.date) {
-                    return expiry.getTime() === startOfDay(expiryFilter.date).getTime();
+                    return expiry >= startOfDay(expiryFilter.date) && expiry <= endOfDay(expiryFilter.date);
                 }
                 return false;
             });
@@ -217,7 +217,7 @@ export default function ConsultationPage() {
                     return isSameMonth(expiry, now) && isSameYear(expiry, now);
                 }
                 if (expiryFilter.type === 'future' && expiryFilter.date) {
-                    return expiry.getTime() === startOfDay(expiryFilter.date).getTime();
+                    return expiry >= startOfDay(expiryFilter.date) && expiry <= endOfDay(expiryFilter.date);
                 }
                 return false;
             });
