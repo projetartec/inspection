@@ -3,7 +3,7 @@
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
+import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema, ExtinguisherUpdateSchema } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
     addClient as addClientData,
@@ -111,9 +111,13 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
     if (!existingExtinguisher) {
         throw new Error('Extintor não encontrado para atualização.');
     }
-    const mergedData = { ...existingExtinguisher, ...partialData };
-    const validatedData = ExtinguisherFormSchema.parse(mergedData);
 
+    // Determine which schema to use
+    const isFullFormUpdate = partialData.id && partialData.type && partialData.weight;
+    const schemaToUse = isFullFormUpdate ? ExtinguisherFormSchema : ExtinguisherUpdateSchema;
+
+    const validatedData = schemaToUse.parse(partialData);
+    
     await updateExtinguisherData(clientId, buildingId, uid, validatedData);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);

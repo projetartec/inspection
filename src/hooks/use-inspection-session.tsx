@@ -95,9 +95,9 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
     const addItemToInspection = useCallback((item: InspectedItem) => {
         if (!session) return;
         
-        // Ensure uid is included in updatedData if it exists
+        // Ensure uid is included in updatedData if it exists, for server action identification.
         if (item.updatedData && Object.keys(item.updatedData).length > 0) {
-            item.updatedData = { uid: item.uid, ...item.updatedData };
+            // This is a partial update, no need to add uid here, the server action will handle it.
         }
 
         // Replace if item with same qrCodeValue already exists
@@ -120,14 +120,10 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
             const updatePromises = itemsToUpdate.map(item => {
                 if (!item.updatedData) return Promise.resolve();
                 
-                const { uid, ...dataToUpdate } = item.updatedData;
-
-                if (!uid) return Promise.resolve(); // Should not happen with the new logic
-
                 if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-                    return updateExtinguisherAction(session.clientId, session.buildingId, uid, dataToUpdate as Partial<ExtinguisherFormValues>);
+                    return updateExtinguisherAction(session.clientId, session.buildingId, item.uid, item.updatedData as Partial<ExtinguisherFormValues>);
                 } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-                    return updateHoseAction(session.clientId, session.buildingId, uid, dataToUpdate as Partial<HydrantFormValues>);
+                    return updateHoseAction(session.clientId, session.buildingId, item.uid, item.updatedData as Partial<HydrantFormValues>);
                 }
                 return Promise.resolve();
             });
