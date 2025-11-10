@@ -95,6 +95,11 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
     const addItemToInspection = useCallback((item: InspectedItem) => {
         if (!session) return;
         
+        // Ensure uid is included in updatedData if it exists
+        if (item.updatedData && Object.keys(item.updatedData).length > 0) {
+            item.updatedData = { uid: item.uid, ...item.updatedData };
+        }
+
         // Replace if item with same qrCodeValue already exists
         const otherItems = session.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
         const updatedItems = [...otherItems, item];
@@ -110,17 +115,19 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
         setIsLoading(true);
         try {
             // 1. Update equipment data if changed
-            const itemsToUpdate = session.inspectedItems.filter(item => !!item.updatedData);
+            const itemsToUpdate = session.inspectedItems.filter(item => !!item.updatedData && Object.keys(item.updatedData).length > 0);
 
             const updatePromises = itemsToUpdate.map(item => {
                 if (!item.updatedData) return Promise.resolve();
                 
+                const { uid, ...dataToUpdate } = item.updatedData;
+
+                if (!uid) return Promise.resolve(); // Should not happen with the new logic
+
                 if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-                    const extinguisherUid = item.uid;
-                    return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherUid, item.updatedData as Partial<ExtinguisherFormValues>);
+                    return updateExtinguisherAction(session.clientId, session.buildingId, uid, dataToUpdate as Partial<ExtinguisherFormValues>);
                 } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-                    const hoseUid = item.uid;
-                    return updateHoseAction(session.clientId, session.buildingId, hoseUid, item.updatedData as Partial<HydrantFormValues>);
+                    return updateHoseAction(session.clientId, session.buildingId, uid, dataToUpdate as Partial<HydrantFormValues>);
                 }
                 return Promise.resolve();
             });

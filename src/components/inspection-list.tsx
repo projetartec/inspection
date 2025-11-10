@@ -181,13 +181,14 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
 
 
     const itemForSession: InspectedItem = {
+      uid: selectedItem.uid,
       id: selectedItem.id,
       qrCodeValue: selectedItem.qrCodeValue,
       date: newInspection.date,
       notes: newInspection.notes,
       status: newInspection.status,
       itemStatuses: newInspection.itemStatuses,
-      updatedData: Object.keys(updatedItemData).length > 0 ? { id: selectedItem.id, ...updatedItemData } : undefined,
+      updatedData: Object.keys(updatedItemData).length > 0 ? updatedItemData : undefined,
     };
 
     addItemToInspection(itemForSession);
@@ -226,12 +227,13 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
           displaySubtitle = `${ext.type} | Venc: ${expiryDate}`;
         } else {
           const hose = item as Hydrant;
-          displayTitle = hose.id;
-          displaySubtitle = hose.location;
+          displayTitle = `${hose.id} - ${hose.location}`;
+          const testDate = hose.hydrostaticTestDate ? format(parseISO(hose.hydrostaticTestDate), 'MM/yyyy', { locale: ptBR }) : 'N/A';
+          displaySubtitle = `Tipo ${hose.hoseType} | Próx. Teste: ${testDate}`;
         }
 
         return (
-          <Card key={item.id} className="flex items-center justify-between p-3">
+          <Card key={item.uid} className="flex items-center justify-between p-3">
             <div className="flex-1 overflow-hidden">
                 <p className="font-bold truncate">{displayTitle}</p>
                 <p className="text-sm text-muted-foreground truncate">
