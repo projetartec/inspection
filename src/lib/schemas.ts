@@ -37,7 +37,7 @@ export const ExtinguisherFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
   type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.' }),
   weight: z.coerce.number({ required_error: 'Por favor, selecione um peso válido.' }),
-  expiryDate: z.string().min(1, 'A data de recarga é obrigatória.'),
+  expiryDate: z.string().optional(),
   hydrostaticTestYear: z.coerce.number().min(1900, 'Ano inválido').max(new Date().getFullYear() + 10, 'Ano inválido'),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
 });
@@ -53,7 +53,7 @@ export const HydrantFormSchema = z.object({
   hoseLength: z.coerce.number({ required_error: 'Por favor, selecione uma medida de mangueira.' }),
   keyQuantity: z.coerce.number().min(0, 'A quantidade de chaves é obrigatória.'),
   nozzleQuantity: z.coerce.number().min(0, 'A quantidade de esguichos é obrigatória.'),
-  hydrostaticTestDate: z.string().min(1, 'A data do próximo teste hidrostático é obrigatória.'),
+  hydrostaticTestDate: z.string().optional(),
 });
 export type HydrantFormValues = z.infer<typeof HydrantFormSchema>;
 

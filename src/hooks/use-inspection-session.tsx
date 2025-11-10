@@ -110,7 +110,7 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
 
             const updatePromises = itemsToUpdate.map(item => {
                 if (!item.updatedData) return Promise.resolve();
-
+                
                 if (item.qrCodeValue.startsWith('fireguard-ext-')) {
                     const extinguisherUid = item.uid;
                     return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherUid, item.updatedData as Partial<ExtinguisherFormValues>);
