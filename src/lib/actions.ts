@@ -3,7 +3,7 @@
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues } from './schemas';
+import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
     addClient as addClientData,
@@ -106,11 +106,18 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, data: Partial<ExtinguisherFormValues>) {
-    await updateExtinguisherData(clientId, buildingId, uid, data);
+export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, partialData: Partial<ExtinguisherFormValues>) {
+    const existingExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
+    if (!existingExtinguisher) {
+        throw new Error('Extintor não encontrado para atualização.');
+    }
+    const mergedData = { ...existingExtinguisher, ...partialData };
+    const validatedData = ExtinguisherFormSchema.parse(mergedData);
+
+    await updateExtinguisherData(clientId, buildingId, uid, validatedData);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${uid}`); // Was id, now should be uid? page is by id
+    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${existingExtinguisher.id}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
@@ -129,11 +136,19 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateHoseAction(clientId: string, buildingId: string, uid: string, data: Partial<HydrantFormValues>) {
-    await updateHoseData(clientId, buildingId, uid, data);
+export async function updateHoseAction(clientId: string, buildingId: string, uid: string, partialData: Partial<HydrantFormValues>) {
+    const existingHose = await getHoseByUid(clientId, buildingId, uid);
+    if (!existingHose) {
+        throw new Error('Hidrante não encontrado para atualização.');
+    }
+
+    const mergedData = { ...existingHose, ...partialData };
+    const validatedData = HydrantFormSchema.parse(mergedData);
+    
+    await updateHoseData(clientId, buildingId, uid, validatedData);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${uid}`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${existingHose.id}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 

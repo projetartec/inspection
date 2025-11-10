@@ -35,7 +35,7 @@ export type BuildingFormValues = z.infer<typeof BuildingFormSchema>;
 
 export const ExtinguisherFormSchema = z.object({
   id: z.string().min(1, 'O ID é obrigatório.'),
-  type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.' }),
+  type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.' }).optional(),
   weight: z.coerce.number({ required_error: 'Por favor, selecione um peso válido.' }),
   expiryDate: z.string().optional(),
   hydrostaticTestYear: z.coerce.number().min(1900, 'Ano inválido').max(new Date().getFullYear() + 10, 'Ano inválido'),
