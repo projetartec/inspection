@@ -27,6 +27,7 @@ interface InspectionContextType {
     addItemToInspection: (item: InspectedItem) => void;
     endInspection: () => Promise<void>;
     clearSession: () => void;
+    isLoading: boolean;
 }
 
 const InspectionContext = createContext<InspectionContextType | null>(null);
@@ -44,6 +45,7 @@ const SESSION_STORAGE_KEY = 'inspectionSession';
 // A provider that will wrap the entire app or relevant parts
 export const GlobalInspectionProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<InspectionSession | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         // Load session from sessionStorage when the app loads
@@ -101,6 +103,7 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
             throw new Error("Nenhuma sessão de inspeção ativa para finalizar.");
         };
         
+        setIsLoading(true);
         try {
             // 1. Update equipment data if changed
             const itemsToUpdate = session.inspectedItems.filter(item => !!item.updatedData);
@@ -128,6 +131,8 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
         } catch(e) {
             console.error("Failed to save inspection batch", e);
             throw e;
+        } finally {
+            setIsLoading(false);
         }
 
     }, [session]); // dependency on session
@@ -142,6 +147,7 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
         addItemToInspection,
         endInspection,
         clearSession,
+        isLoading,
     };
 
     return (
