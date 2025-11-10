@@ -11,6 +11,7 @@ import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
 import { ExtinguisherFormSchema } from "@/lib/schemas";
 import { useState } from "react";
+import { DatePickerInput } from "./date-picker-input";
 
 
 interface ExtinguisherFormProps {
@@ -46,7 +47,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
     try {
       if (isEditMode) {
-        await updateExtinguisherAction(clientId, buildingId, extinguisher.id, validatedFields.data);
+        await updateExtinguisherAction(clientId, buildingId, extinguisher.uid, validatedFields.data);
       } else {
         await createExtinguisherAction(clientId, buildingId, validatedFields.data);
       }
@@ -67,11 +68,10 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
     }
   };
   
-  const defaultExpiryDate = extinguisher?.expiryDate || '';
+  const [expiryDate, setExpiryDate] = useState(extinguisher?.expiryDate || '');
 
   return (
       <form onSubmit={handleSubmit} className="space-y-8">
-        {isEditMode && <input type="hidden" name="id" value={extinguisher.id} />}
         <div className="space-y-2">
             <Label htmlFor="id-input">ID do Equipamento</Label>
             <Input 
@@ -79,11 +79,10 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
                 name="id"
                 placeholder="Ex: EXT-001" 
                 defaultValue={extinguisher?.id} 
-                disabled={isEditMode} 
                 required 
             />
             <p className="text-sm text-muted-foreground">
-                Digite um identificador único para este extintor. Não pode ser alterado após a criação.
+                Este é o identificador visível do extintor. Pode ser alterado a qualquer momento.
             </p>
         </div>
         
@@ -123,13 +122,11 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
                 <Label htmlFor="expiryDate">Recarga</Label>
-                <Input 
-                    id="expiryDate"
-                    name="expiryDate"
-                    type="date"
-                    defaultValue={defaultExpiryDate}
-                    required
+                <DatePickerInput
+                    value={expiryDate}
+                    onValueChange={setExpiryDate}
                 />
+                 <input type="hidden" name="expiryDate" value={expiryDate} />
                  <p className="text-sm text-muted-foreground">
                     Data da próxima recarga.
                  </p>

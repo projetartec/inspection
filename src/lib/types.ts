@@ -15,7 +15,8 @@ export const extinguisherWeights = [2, 4, 4.5, 6, 8, 10, 12, 20, 30, 50] as cons
 export type ExtinguisherWeight = (typeof extinguisherWeights)[number];
 
 export type Extinguisher = {
-  id: string;
+  uid: string; // Unique, immutable identifier.
+  id: string; // User-facing, editable identifier.
   qrCodeValue: string;
   type: ExtinguisherType;
   weight: ExtinguisherWeight; // Corresponds to CAPACIDADE
@@ -47,7 +48,8 @@ export type HydrantNozzleQuantity = (typeof hydrantNozzleQuantities)[number];
 
 
 export type Hydrant = {
-  id: string; // HIDRANTE
+  uid: string; // Unique, immutable identifier.
+  id: string; // User-facing, editable identifier.
   qrCodeValue: string;
   location: string; // LOCAL
   quantity: HydrantQuantity; // QTD MANG.
@@ -88,5 +90,3 @@ export type Client = {
   caretakerContact?: string;
   buildings: Building[];
 };
-
-

@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
@@ -26,7 +20,9 @@ import {
     updateHose as updateHoseData,
     deleteHose as deleteHoseData,
     addInspectionBatch,
-    updateEquipmentOrder
+    updateEquipmentOrder,
+    getExtinguisherByUid,
+    getHoseByUid
 } from './data';
 import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding, getBuildingsByClient } from './data';
 
@@ -110,16 +106,16 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateExtinguisherAction(clientId: string, buildingId: string, id: string, data: Partial<ExtinguisherFormValues>) {
-    await updateExtinguisherData(clientId, buildingId, id, data);
+export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, data: Partial<ExtinguisherFormValues>) {
+    await updateExtinguisherData(clientId, buildingId, uid, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${id}`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${uid}`); // Was id, now should be uid? page is by id
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function deleteExtinguisherAction(clientId: string, buildingId: string, id: string) {
-    await deleteExtinguisherData(clientId, buildingId, id);
+export async function deleteExtinguisherAction(clientId: string, buildingId: string, uid: string) {
+    await deleteExtinguisherData(clientId, buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -133,16 +129,16 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateHoseAction(clientId: string, buildingId: string, id: string, data: Partial<HydrantFormValues>) {
-    await updateHoseData(clientId, buildingId, id, data);
+export async function updateHoseAction(clientId: string, buildingId: string, uid: string, data: Partial<HydrantFormValues>) {
+    await updateHoseData(clientId, buildingId, uid, data);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${id}`);
+    revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${uid}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function deleteHoseAction(clientId: string, buildingId: string, id: string) {
-    await deleteHoseData(clientId, buildingId, id);
+export async function deleteHoseAction(clientId: string, buildingId: string, uid: string) {
+    await deleteHoseData(clientId, buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -155,10 +151,10 @@ export async function addInspectionBatchAction(clientId: string, buildingId: str
     const revalidatedPaths: Set<string> = new Set();
     inspectedItems.forEach(item => {
         if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-            const extId = item.qrCodeValue.replace('fireguard-ext-', '');
+            const extId = item.id; // user-facing ID
             revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${extId}`);
         } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-            const hoseId = item.qrCodeValue.replace('fireguard-hose-', '');
+            const hoseId = item.id; // user-facing ID
             revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
         }
         // Manual entries don't have a specific page to revalidate, but they affect the dashboard.

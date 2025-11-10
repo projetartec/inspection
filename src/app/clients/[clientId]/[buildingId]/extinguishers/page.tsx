@@ -83,8 +83,8 @@ export default function ExtinguishersPage() {
     fetchData();
   }, [clientId, buildingId]);
 
-  const handleDeleteSuccess = (deletedId: string) => {
-    setExtinguishers(prev => prev.filter(ext => ext.id !== deletedId));
+  const handleDeleteSuccess = (deletedUid: string) => {
+    setExtinguishers(prev => prev.filter(ext => ext.uid !== deletedUid));
     toast({
         title: "Sucesso!",
         description: "Extintor deletado com sucesso."
@@ -152,7 +152,7 @@ export default function ExtinguishersPage() {
                               {isLoading ? (
                                   <TableSkeleton />
                               ) : extinguishers.length > 0 ? extinguishers.map((ext, index) => (
-                                <Draggable key={ext.id} draggableId={ext.id} index={index}>
+                                <Draggable key={ext.uid} draggableId={ext.uid} index={index}>
                                     {(provided, snapshot) => {
                                         return (
                                         <TableRow 
@@ -197,7 +197,7 @@ export default function ExtinguishersPage() {
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                        <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.id)} onSuccess={() => handleDeleteSuccess(ext.id)} />
+                                                        <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.uid)} onSuccess={() => handleDeleteSuccess(ext.uid)} />
                                                         </AlertDialogFooter>
                                                       </AlertDialogContent>
                                                     </AlertDialog>

@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { getHoseById } from '@/lib/data';
+import { getHosesByBuilding } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { HoseForm } from '@/components/hose-form';
@@ -8,7 +8,9 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default async function EditHosePage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hose = await getHoseById(clientId, buildingId, id);
+  const hoses = await getHosesByBuilding(clientId, buildingId);
+  const hose = hoses.find(h => h.id === id);
+
 
   if (!hose) {
     notFound();
@@ -31,8 +33,18 @@ export default async function EditHosePage({ params }: { params: { clientId: str
                 </CardContent>
             </Card>
         </div>
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 space-y-4">
             <QrCodeDisplay value={hose.qrCodeValue} label={hose.id} />
+             <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base">ID Secreto</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground font-mono bg-muted/50 p-2 rounded-md break-all">
+                        {hose.uid}
+                    </p>
+                </CardContent>
+            </Card>
         </div>
       </div>
     </>

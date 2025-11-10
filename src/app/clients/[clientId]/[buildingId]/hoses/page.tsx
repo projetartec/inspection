@@ -82,8 +82,8 @@ export default function HosesPage() {
     fetchData();
   }, [clientId, buildingId]);
 
-  const handleDeleteSuccess = (deletedId: string) => {
-    setHoses(prev => prev.filter(hose => hose.id !== deletedId));
+  const handleDeleteSuccess = (deletedUid: string) => {
+    setHoses(prev => prev.filter(hose => hose.uid !== deletedUid));
     toast({
         title: "Sucesso!",
         description: "Hidrante deletado com sucesso."
@@ -152,7 +152,7 @@ export default function HosesPage() {
                           {isLoading ? (
                               <TableSkeleton />
                           ) : hoses.length > 0 ? hoses.map((hose, index) => (
-                            <Draggable key={hose.id} draggableId={hose.id} index={index}>
+                            <Draggable key={hose.uid} draggableId={hose.uid} index={index}>
                                 {(provided, snapshot) => {
                                     const dateValue = hose.hydrostaticTestDate ? parseISO(hose.hydrostaticTestDate) : null;
                                     const isValidDate = dateValue && !isNaN(dateValue.getTime());
@@ -203,7 +203,7 @@ export default function HosesPage() {
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                    <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.id)} onSuccess={() => handleDeleteSuccess(hose.id)} />
+                                                    <DeleteButton action={() => deleteHoseAction(clientId, buildingId, hose.uid)} onSuccess={() => handleDeleteSuccess(hose.uid)} />
                                                     </AlertDialogFooter>
                                                   </AlertDialogContent>
                                                 </AlertDialog>

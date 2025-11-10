@@ -19,6 +19,7 @@ import { Input } from "./ui/input";
 import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
 import { HydrantFormSchema } from "@/lib/schemas";
+import { DatePickerInput } from "./date-picker-input";
 
 
 interface HoseFormProps {
@@ -32,6 +33,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
   const { toast } = useToast();
   const isEditMode = !!hydrant;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [testDate, setTestDate] = useState(hydrant?.hydrostaticTestDate || '');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,7 +56,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
 
     try {
         if (isEditMode) {
-            await updateHoseAction(clientId, buildingId, hydrant.id, validatedFields.data);
+            await updateHoseAction(clientId, buildingId, hydrant.uid, validatedFields.data);
         } else {
             await createHoseAction(clientId, buildingId, validatedFields.data);
         }
@@ -75,12 +77,8 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
     }
   };
 
-  const defaultTestDate = hydrant?.hydrostaticTestDate || '';
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-        {isEditMode && <input type="hidden" name="id" value={hydrant.id} />}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
                 <Label htmlFor="id-input">ID do Hidrante</Label>
@@ -89,9 +87,11 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
                     name="id"
                     placeholder="Ex: HID-01" 
                     defaultValue={hydrant?.id}
-                    disabled={isEditMode}
                     required
                 />
+                 <p className="text-sm text-muted-foreground">
+                    Este é o identificador visível do hidrante. Pode ser alterado a qualquer momento.
+                </p>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="location-input">Local</Label>
@@ -153,13 +153,11 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
             </div>
             <div className="space-y-2">
                 <Label htmlFor="hydrostaticTestDate">Próx. Teste Hidrostático</Label>
-                <Input
-                    id="hydrostaticTestDate"
-                    name="hydrostaticTestDate"
-                    type="date"
-                    defaultValue={defaultTestDate}
-                    required
+                <DatePickerInput
+                    value={testDate}
+                    onValueChange={setTestDate}
                 />
+                <input type="hidden" name="hydrostaticTestDate" value={testDate} />
             </div>
         </div>
         

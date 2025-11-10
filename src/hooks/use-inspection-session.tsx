@@ -8,7 +8,8 @@ import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } 
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
 export interface InspectedItem extends Omit<Inspection, 'id'> {
-    id: string; // The ID of the extinguisher or hose
+    uid: string; // The UID of the extinguisher or hose
+    id: string; // The user-facing ID
     qrCodeValue: string;
     updatedData?: Partial<ExtinguisherFormValues> | Partial<HydrantFormValues>;
 }
@@ -108,11 +109,11 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
                 if (!item.updatedData) return Promise.resolve();
 
                 if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-                    const extinguisherId = item.id;
-                    return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherId, item.updatedData as Partial<ExtinguisherFormValues>);
+                    const extinguisherUid = item.uid;
+                    return updateExtinguisherAction(session.clientId, session.buildingId, extinguisherUid, item.updatedData as Partial<ExtinguisherFormValues>);
                 } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-                    const hoseId = item.id;
-                    return updateHoseAction(session.clientId, session.buildingId, hoseId, item.updatedData as Partial<HydrantFormValues>);
+                    const hoseUid = item.uid;
+                    return updateHoseAction(session.clientId, session.buildingId, hoseUid, item.updatedData as Partial<HydrantFormValues>);
                 }
                 return Promise.resolve();
             });
@@ -152,4 +153,3 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
 
 // Re-exporting the original InspectionProvider for compatibility with existing files that use it.
 export const InspectionProvider = GlobalInspectionProvider;
-
