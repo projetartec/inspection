@@ -13,6 +13,7 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
+import { LocalDateTime } from '@/components/local-date-time';
 
 export default async function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
@@ -86,7 +87,7 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
                     <TableBody>
                     {hose.inspections && hose.inspections.length > 0 ? [...hose.inspections].reverse().map(insp => (
                         <TableRow key={insp.id}>
-                        <TableCell>{format(parseISO(insp.date), 'Pp', { locale: ptBR })}</TableCell>
+                        <TableCell><LocalDateTime dateString={insp.date} formatString="Pp" /></TableCell>
                         <TableCell>
                             <Badge variant={insp.status === 'N/C' ? 'destructive' : 'secondary'}>{insp.status}</Badge>
                         </TableCell>

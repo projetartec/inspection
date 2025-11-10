@@ -12,6 +12,7 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
+import { LocalDateTime } from '@/components/local-date-time';
 
 export default async function ExtinguisherDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
@@ -38,8 +39,8 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
   ];
 
   const lastInspectionDetails = lastInspection ? [
-      { label: 'Data da Última Inspeção', value: format(parseISO(lastInspection.date), 'dd/MM/yyyy', { locale: ptBR }) },
-      { label: 'Horário da Última Inspeção', value: format(parseISO(lastInspection.date), 'HH:mm', { locale: ptBR }) },
+      { label: 'Data da Última Inspeção', value: <LocalDateTime dateString={lastInspection.date} formatString="dd/MM/yyyy" /> },
+      { label: 'Horário da Última Inspeção', value: <LocalDateTime dateString={lastInspection.date} formatString="HH:mm" /> },
   ] : [];
 
   return (
@@ -107,7 +108,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
                     <TableBody>
                     {extinguisher.inspections && extinguisher.inspections.length > 0 ? [...extinguisher.inspections].reverse().map(insp => (
                         <TableRow key={insp.id}>
-                        <TableCell>{format(parseISO(insp.date), 'Pp', { locale: ptBR })}</TableCell>
+                        <TableCell><LocalDateTime dateString={insp.date} formatString="Pp" /></TableCell>
                         <TableCell>{insp.notes}</TableCell>
                         </TableRow>
                     )) : (
