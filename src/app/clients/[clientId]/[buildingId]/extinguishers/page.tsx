@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -141,6 +142,7 @@ export default function ExtinguishersPage() {
                           <TableHead>ID</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead className="hidden md:table-cell">Carga (kg)</TableHead>
+                          <TableHead className="hidden md:table-cell">Vencimento</TableHead>
                           <TableHead className="hidden md:table-cell">Test. Hidrostático</TableHead>
                           <TableHead className="hidden md:table-cell">Local</TableHead>
                           <TableHead><span className="sr-only">Ações</span></TableHead>
@@ -154,6 +156,8 @@ export default function ExtinguishersPage() {
                               ) : extinguishers.length > 0 ? extinguishers.map((ext, index) => (
                                 <Draggable key={ext.uid} draggableId={ext.uid} index={index}>
                                     {(provided, snapshot) => {
+                                        const dateValue = ext.expiryDate ? parseISO(ext.expiryDate) : null;
+                                        const isValidDate = dateValue && !isNaN(dateValue.getTime());
                                         return (
                                         <TableRow 
                                             ref={provided.innerRef}
@@ -169,6 +173,7 @@ export default function ExtinguishersPage() {
                                             </TableCell>
                                             <TableCell>{ext.type}</TableCell>
                                             <TableCell className="hidden md:table-cell">{ext.weight}</TableCell>
+                                            <TableCell className="hidden md:table-cell">{isValidDate ? format(dateValue, 'dd/MM/yyyy', { locale: ptBR }) : 'N/A'}</TableCell>
                                             <TableCell className="hidden md:table-cell">{ext.hydrostaticTestYear}</TableCell>
                                             <TableCell className="hidden md:table-cell truncate max-w-xs">{ext.observations}</TableCell>
                                             <TableCell className="text-right">
@@ -216,7 +221,7 @@ export default function ExtinguishersPage() {
                                 </Draggable>
                               )) : (
                                   <TableRow>
-                                      <TableCell colSpan={7} className="text-center h-24">
+                                      <TableCell colSpan={8} className="text-center h-24">
                                           Nenhum extintor encontrado.
                                       </TableCell>
                                   </TableRow>
