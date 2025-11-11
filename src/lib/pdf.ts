@@ -5,7 +5,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Extinguisher, Hydrant, Client, Building, ManualInspection, Inspection } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection, Inspection, ExtinguisherType } from '@/lib/types';
 
 // Extend jsPDF with autoTable
 interface jsPDFWithAutoTable extends jsPDF {
@@ -417,6 +417,7 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
 
         const generationDate = new Date();
         const targetMonthName = format(new Date(year, month), 'MMMM', { locale: ptBR });
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
 
         let finalY = await addHeaderAndLogo(doc, client, generationDate);
         
@@ -467,6 +468,10 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             .filter(h => filterByMonthYear(h.hydrostaticTestDate));
         
         if (expiringHoses.length > 0) {
+            if (finalY > pageHeight - 40) {
+                doc.addPage();
+                finalY = await addHeaderAndLogo(doc, client, generationDate);
+            }
             doc.setFontSize(14);
             doc.text("Hidrantes a Vencer", 14, finalY);
             finalY += 8;
@@ -485,7 +490,33 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
 
         if (expiringExtinguishers.length === 0 && expiringHoses.length === 0) {
             doc.text(`Nenhum item encontrado com vencimento em ${targetMonthName}/${year}.`, 14, finalY);
+            finalY += 10;
         }
+
+        // --- Summary Page ---
+        if (expiringExtinguishers.length > 0) {
+            doc.addPage();
+            finalY = await addHeaderAndLogo(doc, client, generationDate);
+
+            doc.setFontSize(16);
+            doc.text(`Resumo de Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
+            finalY += 10;
+
+            const summary = expiringExtinguishers.reduce((acc, ext) => {
+                acc[ext.type] = (acc[ext.type] || 0) + 1;
+                return acc;
+            }, {} as Record<ExtinguisherType, number>);
+
+            const summaryBody = Object.entries(summary).map(([type, quantity]) => [type, quantity]);
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['Tipo de Extintor', 'Quantidade a Vencer']],
+                body: summaryBody,
+            });
+        }
+
         
         const fileName = `Relatorio_Vencimentos_${String(month + 1).padStart(2, '0')}-${year}_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -689,14 +720,14 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Tipo', 'Carga', 'Recarga', 'Observações']],
+                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga']],
                 body: allExtinguishers.map(e => [
                     e.id,
                     e.buildingName,
+                    e.observations || '',
                     e.type,
                     e.weight + ' kg',
                     formatDate(e.expiryDate),
-                    e.observations || ''
                 ]),
             });
             finalY = (doc as any).lastAutoTable.finalY + 10;
@@ -704,7 +735,7 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
         
         if (finalY > pageHeight - 40) {
             doc.addPage();
-            finalY = 20;
+            finalY = await addHeaderAndLogo(doc, client, generationDate);
         }
 
         // --- Hoses Table ---
@@ -845,4 +876,5 @@ export async function generateNonConformityPdfReport(
     
 
     
+
 
