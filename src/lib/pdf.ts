@@ -508,12 +508,15 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             }, {} as Record<ExtinguisherType, number>);
 
             const summaryBody = Object.entries(summary).map(([type, quantity]) => [type, quantity]);
+            const total = Object.values(summary).reduce((sum, count) => sum + count, 0);
 
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
                 head: [['Tipo de Extintor', 'Quantidade a Vencer']],
                 body: summaryBody,
+                foot: [['Total Geral', total]],
+                footStyles: { fillColor: HEADER_BG_COLOR, textColor: [255, 255, 255], fontStyle: 'bold' },
             });
         }
 
@@ -876,5 +879,6 @@ export async function generateNonConformityPdfReport(
     
 
     
+
 
 
