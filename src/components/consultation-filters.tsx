@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -66,7 +66,7 @@ export function ConsultationFilters({
     const getExpiryFilterLabel = () => {
         if (expiryFilter.type === 'this_month') return "Vencem este Mês";
         if (expiryFilter.type === 'future' && expiryFilter.date) return `Venc. em ${format(expiryFilter.date, 'dd/MM/yyyy')}`;
-        return "Filtrar por data...";
+        return "Outras datas";
     }
 
     return (
