@@ -69,10 +69,10 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
             <SidebarContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Todos os Clientes">
+                        <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Clientes">
                             <Link href="/">
                                 <Users />
-                                <span>Todos os Clientes</span>
+                                <span>Clientes</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -95,10 +95,10 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
               <SidebarContent>
                   <SidebarMenu>
                       <SidebarMenuItem>
-                          <SidebarMenuButton asChild tooltip="Todos os Clientes">
+                          <SidebarMenuButton asChild tooltip="Clientes">
                               <Link href="/">
                                   <ChevronLeft />
-                                  <span>Todos os Clientes</span>
+                                  <span>Clientes</span>
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -131,7 +131,7 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                   )}
               </SidebarContent>
                <SidebarFooter>
-                {clientId && <ClientReportGenerator clientId={clientId} />}
+                {/* No report generator here since it's on the specific building page */}
               </SidebarFooter>
           </>
       )
@@ -154,10 +154,10 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Todos os Clientes">
+            <SidebarMenuButton asChild tooltip="Clientes">
                 <Link href={`/`}>
                     <Users />
-                    <span>Todos os Clientes</span>
+                    <span>Clientes</span>
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

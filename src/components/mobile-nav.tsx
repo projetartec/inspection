@@ -51,6 +51,7 @@ export function MobileNav() {
             <nav className="flex items-center justify-around h-full">
                 <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
                     <Users className="h-6 w-6" />
+                    <span className="text-xs">Clientes</span>
                 </Link>
             </nav>
         </div>
