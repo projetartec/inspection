@@ -2,18 +2,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Play, Eye } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Building, Client, Extinguisher, Hydrant as Hose } from '@/lib/types';
+import type { Extinguisher, Hydrant as Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import Image from 'next/image';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
 
 interface Stat {
     title: string;
@@ -51,59 +50,56 @@ export default function DashboardPage() {
     const { session: inspectionSession, startInspection } = useInspectionSession();
 
     useEffect(() => {
-        if (!clientId || !buildingId) return;
-        setIsLoading(true);
+        async function fetchData() {
+            if (!clientId || !buildingId) return;
 
-        const clientDocRef = doc(db, 'clients', clientId);
+            try {
+                setIsLoading(true);
 
-        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
-            if (!docSnap.exists()) {
-                setIsLoading(false);
-                notFound();
-                return;
-            }
+                const buildingPromise = getBuildingById(clientId, buildingId);
+                const extinguishersPromise = getExtinguishersByBuilding(clientId, buildingId);
+                const hosesPromise = getHosesByBuilding(clientId, buildingId);
 
-            const clientData = docSnap.data() as Client;
-            const building = clientData.buildings?.find(b => b.id === buildingId);
+                const [building, extinguishers, hoses] = await Promise.all([
+                    buildingPromise,
+                    extinguishersPromise,
+                    hosesPromise,
+                ]);
 
-            if (!building) {
-                setIsLoading(false);
-                notFound();
-                return;
-            }
-
-            setBuildingName(building.name);
-
-            const extinguishers = building.extinguishers || [];
-            const hoses = building.hoses || [];
-
-            const isExpired = (item: { expiryDate?: string, hydrostaticTestDate?: string }) => {
-                const dateStr = item.expiryDate || item.hydrostaticTestDate;
-                if (!dateStr || typeof dateStr !== 'string') return false;
-                try {
-                    const date = new Date(dateStr);
-                    return date < new Date();
-                } catch {
-                    return false;
+                if (!building) {
+                    notFound();
+                    return;
                 }
-            };
+                setBuildingName(building.name);
 
-            const expiredExtinguishers = extinguishers.filter(isExpired).length;
-            const expiredHoses = hoses.filter(isExpired).length;
+                const isExpired = (item: { expiryDate?: string, hydrostaticTestDate?: string }) => {
+                    const dateStr = item.expiryDate || item.hydrostaticTestDate;
+                    if (!dateStr || typeof dateStr !== 'string') return false;
+                    try {
+                        const date = new Date(dateStr);
+                        return date < new Date();
+                    } catch {
+                        return false;
+                    }
+                };
 
-            setStats([
-                { title: "Total de Extintores", value: extinguishers.length, icon: "https://i.imgur.com/acESc0O.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
-                { title: "Total de Mangueiras", value: hoses.length, icon: "https://i.imgur.com/Fq1OHRb.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
-                { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
-            ]);
+                const expiredExtinguishers = extinguishers.filter(isExpired).length;
+                const expiredHoses = hoses.filter(isExpired).length;
 
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Failed to fetch dashboard data in real-time:", error);
-            setIsLoading(false);
-        });
+                setStats([
+                    { title: "Total de Extintores", value: extinguishers.length, icon: "https://i.imgur.com/acESc0O.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
+                    { title: "Total de Mangueiras", value: hoses.length, icon: "https://i.imgur.com/Fq1OHRb.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
+                    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
+                ]);
 
-        return () => unsubscribe();
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchData();
     }, [clientId, buildingId]);
 
     const handleStartQrInspection = () => {
@@ -133,12 +129,12 @@ export default function DashboardPage() {
                     </>
                 ) : (
                     stats.map((stat) => {
-                        const StatIcon = typeof stat.icon === 'string' ? (
+                         const StatIcon = typeof stat.icon === 'string' ? (
                             <Image src={stat.icon} alt={stat.title} width={16} height={16} className="h-4 w-4" />
                         ) : (
                             <stat.icon className={`h-4 w-4 ${stat.color}`} />
                         );
-
+                        
                         const CardComponent = (
                             <Card className={stat.href ? "hover:bg-muted/50 transition-colors" : ""}>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

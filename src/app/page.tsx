@@ -7,6 +7,7 @@ import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
+import { getClients } from '@/lib/data';
 import type { Client } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, X } from 'lucide-react';
@@ -23,8 +24,7 @@ import {
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { Input } from '@/components/ui/input';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -33,37 +33,25 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setIsLoading(true);
-    const q = query(collection(db, "clients"), orderBy("name"));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const clientsData: Client[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            clientsData.push({
-                id: doc.id,
-                name: data.name,
-                fantasyName: data.fantasyName,
-                buildings: data.buildings || [],
-                // include other client fields as needed
-            });
-        });
-        setClients(clientsData);
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Falha ao buscar clientes em tempo real:", error);
-        toast({
+  const fetchClients = async () => {
+    try {
+      setIsLoading(true);
+      const clientsData = await getClients();
+      setClients(clientsData);
+    } catch (error) {
+       toast({
             variant: 'destructive',
-            title: 'Erro de Conexão',
-            description: 'Não foi possível buscar os dados dos clientes em tempo real.'
+            title: 'Erro ao Carregar',
+            description: 'Não foi possível buscar os dados dos clientes.'
         });
-        setIsLoading(false);
-    });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, [toast]);
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   useEffect(() => {
     const results = clients.filter(client =>
@@ -74,7 +62,7 @@ export default function Home() {
   }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
-    // State is now managed by onSnapshot, so we just show a toast.
+    setClients(prev => prev.filter(c => c.id !== deletedClientId));
     toast({
       title: "Sucesso!",
       description: "Cliente deletado com sucesso."
@@ -82,7 +70,7 @@ export default function Home() {
   };
 
   const handleCreateSuccess = () => {
-    // State is now managed by onSnapshot, no manual refetch needed.
+    fetchClients();
   }
 
   return (

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useContext } from 'react';
+import { getBuildingsByClient, getClientById, getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +20,6 @@ import { ConsultationFilters, type ExpiryFilter } from '@/components/consultatio
 import { KeyRound, SprayCan, Hash } from 'lucide-react';
 import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -207,41 +206,40 @@ export default function ConsultationPage() {
     const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>({ type: 'none' });
 
     useEffect(() => {
-        if (!clientId) return;
-        setIsLoading(true);
+        async function fetchConsultationData() {
+            if (!clientId) return;
+            setIsLoading(true);
+            try {
+                const clientData = await getClientById(clientId);
+                if (!clientData) {
+                    notFound();
+                    return;
+                }
+                setClient(clientData);
 
-        const clientDocRef = doc(db, 'clients', clientId);
-
-        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const clientData = docSnap.data() as Omit<Client, 'id'>;
-                setClient({ id: docSnap.id, ...clientData });
-
-                const buildingsWithEquipment = (clientData.buildings || []).map(b => ({
-                    ...b,
-                    extinguishers: b.extinguishers || [],
-                    hoses: b.hoses || [],
-                }));
+                const buildingsData = await getBuildingsByClient(clientId);
+                const buildingsWithEquipment = await Promise.all(
+                    buildingsData.map(async (b) => {
+                        const [extinguishers, hoses] = await Promise.all([
+                            getExtinguishersByBuilding(clientId, b.id),
+                            getHosesByBuilding(clientId, b.id),
+                        ]);
+                        return { ...b, extinguishers, hoses };
+                    })
+                );
                 setBuildings(buildingsWithEquipment);
-            } else {
-                console.error("Cliente não encontrado.");
-                notFound();
+            } catch (error) {
+                console.error("Falha ao buscar dados para consulta:", error);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Falha ao buscar dados para consulta em tempo real:", error);
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
+        }
+        fetchConsultationData();
     }, [clientId]);
 
     const filteredItems = useMemo(() => {
-        const allExtinguishers = buildings.flatMap(b => b.extinguishers.map(e => ({ ...e, buildingName: b.name, buildingId: b.id })));
-        const allHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
-
-        let finalExtinguishers = allExtinguishers;
-        let finalHoses = allHoses;
+        let finalExtinguishers = buildings.flatMap(b => b.extinguishers.map(e => ({ ...e, buildingName: b.name, buildingId: b.id })));
+        let finalHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
 
         // N/C Filter
         if (showOnlyNC) {

@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
+import { getBuildingsByClient, getClientById } from '@/lib/data';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, GripVertical, X } from 'lucide-react';
@@ -31,8 +32,6 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -48,34 +47,38 @@ export default function ClientPage() {
   const [filteredBuildings, setFilteredBuildings] = useState<Building[]>([]);
   const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [clientData, buildingsData] = await Promise.all([
+        getClientById(clientId),
+        getBuildingsByClient(clientId),
+      ]);
+      
+      if (!clientData) {
+        notFound();
+        return;
+      }
+
+      setClient(clientData);
+      setBuildings(buildingsData);
+      
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao Carregar',
+        description: 'Não foi possível buscar os dados do cliente.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!clientId) return;
-    
-    setIsLoading(true);
-    const clientDocRef = doc(db, 'clients', clientId);
-
-    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const clientData = docSnap.data() as Omit<Client, 'id'>;
-            setClient({ id: docSnap.id, ...clientData });
-            setBuildings(clientData.buildings || []);
-        } else {
-            console.error("Cliente não encontrado.");
-            notFound();
-        }
-        setIsLoading(false);
-    }, (error) => {
-        console.error('Falha ao buscar dados do cliente em tempo real:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Erro de Conexão',
-            description: 'Não foi possível buscar os dados. Verifique sua conexão.',
-        });
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [clientId, toast]);
+    if (clientId) {
+      fetchData();
+    }
+  }, [clientId]);
   
   useEffect(() => {
     let results = buildings;
@@ -99,7 +102,7 @@ export default function ClientPage() {
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
-    // State updated by onSnapshot
+    setBuildings(prev => prev.filter(b => b.id !== deletedBuildingId));
     toast({
       title: 'Sucesso!',
       description: 'Local deletado com sucesso.',
@@ -107,7 +110,7 @@ export default function ClientPage() {
   };
 
   const handleCreateSuccess = () => {
-    // State updated by onSnapshot
+    fetchData(); // Refetch all data
   }
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
@@ -145,14 +148,14 @@ export default function ClientPage() {
       await updateBuildingOrderAction(clientId, newMasterOrder);
     } catch (error) {
       console.error("Failed to update building order:", error);
+      // Revert optimistic update
+      setFilteredBuildings(buildings.filter(b => filteredBuildings.map(fb => fb.id).includes(b.id)));
+      setBuildings(buildings);
       toast({
           variant: "destructive",
           title: "Erro",
           description: "Não foi possível salvar a nova ordem."
       })
-      // The onSnapshot listener will automatically revert the state if the DB update fails and something else reverts it.
-      // Or if the server action fails, the local state might be temporarily inconsistent.
-      // We could force a re-fetch or rely on the snapshot to correct it.
     }
   };
 
