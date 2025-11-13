@@ -59,8 +59,8 @@ export default function Home() {
 
   useEffect(() => {
     const results = clients.filter(client =>
-        (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (client.fantasyName?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (client && client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (client && client.fantasyName && client.fantasyName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredClients(results);
   }, [searchTerm, clients]);
