@@ -8,10 +8,9 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
-import { getBuildingsByClient, getClientById } from '@/lib/data';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, X } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X, Loader2, Circle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -32,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -47,38 +48,34 @@ export default function ClientPage() {
   const [filteredBuildings, setFilteredBuildings] = useState<Building[]>([]);
   const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      const [clientData, buildingsData] = await Promise.all([
-        getClientById(clientId),
-        getBuildingsByClient(clientId),
-      ]);
-      
-      if (!clientData) {
-        notFound();
-        return;
-      }
+  useEffect(() => {
+    if (!clientId) return;
 
-      setClient(clientData);
-      setBuildings(buildingsData);
-      
-    } catch (error) {
+    setIsLoading(true);
+    const clientDocRef = doc(db, 'clients', clientId);
+
+    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const clientData = { id: docSnap.id, ...docSnap.data() } as Client;
+        setClient(clientData);
+        setBuildings(clientData.buildings || []);
+      } else {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
+        notFound();
+      }
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Falha ao buscar dados do cliente em tempo real:", error);
       toast({
         variant: 'destructive',
-        title: 'Erro ao Carregar',
-        description: 'Não foi possível buscar os dados do cliente.',
+        title: 'Erro de Conexão',
+        description: 'Não foi possível buscar os dados do cliente.'
       });
-    } finally {
       setIsLoading(false);
-    }
-  };
+    });
 
-  useEffect(() => {
-    if (clientId) {
-      fetchData();
-    }
-  }, [clientId]);
+    return () => unsubscribe();
+  }, [clientId, toast]);
   
   useEffect(() => {
     let results = buildings;
@@ -102,7 +99,6 @@ export default function ClientPage() {
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
-    setBuildings(prev => prev.filter(b => b.id !== deletedBuildingId));
     toast({
       title: 'Sucesso!',
       description: 'Local deletado com sucesso.',
@@ -110,13 +106,11 @@ export default function ClientPage() {
   };
 
   const handleCreateSuccess = () => {
-    fetchData(); // Refetch all data
+    // No action needed, real-time listener will update the list
   }
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
-    setBuildings(prevBuildings => 
-        prevBuildings.map(b => b.id === buildingId ? {...b, gpsLink: newLink} : b)
-    );
+    // Optimistic update handled by real-time listener
   }
 
   const onDragEnd = async (result: any) => {
@@ -129,9 +123,9 @@ export default function ClientPage() {
     const [removed] = reorderedBuildings.splice(source.index, 1);
     reorderedBuildings.splice(destination.index, 0, removed);
     
+    const originalFilteredOrder = [...filteredBuildings];
     setFilteredBuildings(reorderedBuildings);
 
-    // Create the new full ordered list of buildings
     const buildingIdOrder = reorderedBuildings.map(b => b.id);
     const originalUnfiltered = [...buildings];
     const newMasterOrder = originalUnfiltered.sort((a,b) => {
@@ -141,16 +135,12 @@ export default function ClientPage() {
         if (indexB === -1) indexB = Infinity;
         return indexA - indexB;
     })
-
-    setBuildings(newMasterOrder);
     
     try {
       await updateBuildingOrderAction(clientId, newMasterOrder);
     } catch (error) {
       console.error("Failed to update building order:", error);
-      // Revert optimistic update
-      setFilteredBuildings(buildings.filter(b => filteredBuildings.map(fb => fb.id).includes(b.id)));
-      setBuildings(buildings);
+      setFilteredBuildings(originalFilteredOrder); // Revert on error
       toast({
           variant: "destructive",
           title: "Erro",
@@ -161,7 +151,11 @@ export default function ClientPage() {
 
 
   if (isLoading || !client) {
-    return <PageHeader title="Carregando..." />;
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    );
   }
 
   return (
@@ -201,8 +195,8 @@ export default function ClientPage() {
                               )}
                           </div>
                            <div className="flex items-center space-x-2 self-end">
+                              <Label htmlFor="ni-filter" className="font-semibold text-xs text-muted-foreground">Pendente</Label>
                               <Switch id="ni-filter" checked={showNotInspectedOnly} onCheckedChange={setShowNotInspectedOnly} />
-                              <Label htmlFor="ni-filter" className="font-semibold">N/I</Label>
                           </div>
                       </div>
                   </div>
@@ -224,6 +218,14 @@ export default function ClientPage() {
                                 ? isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today)
                                 : false;
                             
+                            const statusColor = building.inspectionStatus === 'in_progress'
+                                ? "bg-yellow-400"
+                                : wasInspectedThisMonth ? "bg-green-500" : "bg-red-500";
+                            
+                            const statusTitle = building.inspectionStatus === 'in_progress'
+                                ? "Inspeção em andamento"
+                                : wasInspectedThisMonth ? "Inspecionado este mês" : "Inspeção pendente este mês";
+
                             return (
                             <Draggable key={building.id} draggableId={building.id} index={index}>
                               {(provided, snapshot) => (
@@ -236,12 +238,12 @@ export default function ClientPage() {
                                     <GripVertical className="h-5 w-5" />
                                   </div>
 
-                                  <div 
-                                    className={cn(
-                                        "h-3 w-3 rounded-full mr-3 flex-shrink-0",
-                                        wasInspectedThisMonth ? "bg-green-500" : "bg-red-500"
-                                    )}
-                                    title={wasInspectedThisMonth ? "Inspecionado este mês" : "Inspeção pendente este mês"}
+                                  <Circle 
+                                      className={cn(
+                                          "h-3 w-3 mr-3 flex-shrink-0 fill-current",
+                                          statusColor
+                                      )}
+                                      title={statusTitle}
                                   />
                                   
                                   <Button

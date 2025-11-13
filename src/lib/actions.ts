@@ -22,7 +22,8 @@ import {
     addInspectionBatch,
     updateEquipmentOrder,
     getExtinguisherByUid,
-    getHoseByUid
+    getHoseByUid,
+    updateBuildingInspectionStatus
 } from './data';
 import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding, getBuildingsByClient } from './data';
 
@@ -97,6 +98,12 @@ export async function updateBuildingOrderAction(clientId: string, orderedBuildin
     await updateBuildingOrderData(clientId, orderedBuildings);
     revalidatePath(`/clients/${clientId}`);
 }
+
+export async function updateBuildingInspectionStatusAction(clientId: string, buildingId: string, status: 'idle' | 'in_progress') {
+    await updateBuildingInspectionStatus(clientId, buildingId, status);
+    revalidatePath(`/clients/${clientId}`); // Revalidate the client page to show the yellow dot
+}
+
 
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {

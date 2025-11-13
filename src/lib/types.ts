@@ -73,6 +73,7 @@ export type Building = {
   manualInspections?: ManualInspection[];
   gpsLink?: string;
   lastInspected?: string;
+  inspectionStatus?: 'idle' | 'in_progress';
 };
 
 export type Client = {

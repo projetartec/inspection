@@ -7,10 +7,9 @@ import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
-import { getClients } from '@/lib/data';
 import type { Client } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, X } from 'lucide-react';
+import { Pencil, Trash2, X, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -24,7 +23,8 @@ import {
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { Input } from '@/components/ui/input';
-
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -33,36 +33,40 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchClients = async () => {
-    try {
-      setIsLoading(true);
-      const clientsData = await getClients();
-      setClients(clientsData);
-    } catch (error) {
-       toast({
-            variant: 'destructive',
-            title: 'Erro ao Carregar',
-            description: 'Não foi possível buscar os dados dos clientes.'
-        });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchClients();
-  }, []);
+    setIsLoading(true);
+    const q = query(collection(db, 'clients'), orderBy('name'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const clientsData: Client[] = [];
+      querySnapshot.forEach((doc) => {
+        clientsData.push({ id: doc.id, ...doc.data() } as Client);
+      });
+      setClients(clientsData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Falha ao buscar clientes em tempo real:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro de Conexão',
+        description: 'Não foi possível buscar os dados dos clientes em tempo real.'
+      });
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on component unmount
+  }, [toast]);
 
   useEffect(() => {
     const results = clients.filter(client =>
-        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.fantasyName?.toLowerCase().includes(searchTerm.toLowerCase())
+        (client.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (client.fantasyName?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
     setFilteredClients(results);
   }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
-    setClients(prev => prev.filter(c => c.id !== deletedClientId));
+    // Optimistic update is no longer needed with real-time listeners
     toast({
       title: "Sucesso!",
       description: "Cliente deletado com sucesso."
@@ -70,7 +74,7 @@ export default function Home() {
   };
 
   const handleCreateSuccess = () => {
-    fetchClients();
+    // No action needed, real-time listener will update the list
   }
 
   return (
@@ -107,7 +111,10 @@ export default function Home() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {isLoading ? (
-              <p>Buscando dados...</p>
+                <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="ml-4 text-muted-foreground">Buscando dados...</p>
+                </div>
             ) : filteredClients.length > 0 ? (
               filteredClients.map((client) => (
                 <div key={client.id} className="flex items-center justify-between p-2 rounded-lg border">

@@ -24,7 +24,7 @@ function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
           ...h,
           uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
       }));
-      return { ...b, extinguishers, hoses };
+      return { ...b, extinguishers, hoses, inspectionStatus: b.inspectionStatus || 'idle' };
   });
 
   return {
@@ -130,7 +130,8 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
             id: `bldg-${Date.now()}`,
             name: newBuildingData.name,
             extinguishers: [],
-            hoses: []
+            hoses: [],
+            inspectionStatus: 'idle',
         };
         client.buildings.push(newBuilding);
         transaction.update(clientRef, { buildings: client.buildings });
@@ -166,7 +167,23 @@ export async function deleteBuilding(clientId: string, buildingId: string) {
 
 export async function updateBuildingOrder(clientId: string, orderedBuildings: Building[]) {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    await clientRef.update({ buildings: orderedBuildings });
+    const buildingsToSave = orderedBuildings.map(({ ...rest }) => rest);
+    await clientRef.update({ buildings: buildingsToSave });
+}
+
+export async function updateBuildingInspectionStatus(clientId: string, buildingId: string, status: 'idle' | 'in_progress') {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    await adminDb.runTransaction(async (transaction) => {
+        const clientDoc = await transaction.get(clientRef);
+        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+
+        const client = docToClient(clientDoc);
+        const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
+        if (buildingIndex === -1) throw new Error('Local não encontrado.');
+        
+        client.buildings[buildingIndex].inspectionStatus = status;
+        transaction.update(clientRef, { buildings: client.buildings });
+    });
 }
 
 

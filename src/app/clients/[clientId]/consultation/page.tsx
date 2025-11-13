@@ -2,8 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useContext } from 'react';
-import { getBuildingsByClient, getClientById, getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,9 +16,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
-import { KeyRound, SprayCan, Hash } from 'lucide-react';
+import { KeyRound, SprayCan, Hash, Loader2 } from 'lucide-react';
 import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
+import { useToast } from '@/hooks/use-toast';
+
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -196,9 +199,10 @@ function ConsultationSummary({ totals }: { totals: any }) {
 export default function ConsultationPage() {
     const params = useParams() as { clientId: string };
     const clientId = params.clientId;
+    const { toast } = useToast();
 
     const [client, setClient] = useState<Client | null>(null);
-    const [buildings, setBuildings] = useState<(Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]>([]);
+    const [buildings, setBuildings] = useState<Building[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showOnlyNC, setShowOnlyNC] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
@@ -206,40 +210,31 @@ export default function ConsultationPage() {
     const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>({ type: 'none' });
 
     useEffect(() => {
-        async function fetchConsultationData() {
-            if (!clientId) return;
-            setIsLoading(true);
-            try {
-                const clientData = await getClientById(clientId);
-                if (!clientData) {
-                    notFound();
-                    return;
-                }
+        if (!clientId) return;
+        setIsLoading(true);
+        const clientDocRef = doc(db, 'clients', clientId);
+        
+        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const clientData = { id: docSnap.id, ...docSnap.data() } as Client;
                 setClient(clientData);
-
-                const buildingsData = await getBuildingsByClient(clientId);
-                const buildingsWithEquipment = await Promise.all(
-                    buildingsData.map(async (b) => {
-                        const [extinguishers, hoses] = await Promise.all([
-                            getExtinguishersByBuilding(clientId, b.id),
-                            getHosesByBuilding(clientId, b.id),
-                        ]);
-                        return { ...b, extinguishers, hoses };
-                    })
-                );
-                setBuildings(buildingsWithEquipment);
-            } catch (error) {
-                console.error("Falha ao buscar dados para consulta:", error);
-            } finally {
-                setIsLoading(false);
+                setBuildings(clientData.buildings || []);
+            } else {
+                notFound();
             }
-        }
-        fetchConsultationData();
-    }, [clientId]);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Falha ao buscar dados para consulta:", error);
+            toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível carregar os dados.' });
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [clientId, toast]);
 
     const filteredItems = useMemo(() => {
-        let finalExtinguishers = buildings.flatMap(b => b.extinguishers.map(e => ({ ...e, buildingName: b.name, buildingId: b.id })));
-        let finalHoses = buildings.flatMap(b => b.hoses.map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
+        let finalExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name, buildingId: b.id })));
+        let finalHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
 
         // N/C Filter
         if (showOnlyNC) {
@@ -323,7 +318,11 @@ export default function ConsultationPage() {
 
 
     if (isLoading) {
-        return <PageHeader title="Carregando Consulta..." />;
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
     }
 
     if (!client) {

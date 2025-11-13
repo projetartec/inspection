@@ -3,8 +3,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Permite acesso de leitura e escrita a qualquer usuário.
-    // ATENÇÃO: Esta regra é insegura para produção.
-    // Ela será substituída por regras mais restritivas quando a autenticação for implementada.
+    // ATENÇÃO: Esta regra é insegura para produção e será ajustada
+    // quando a autenticação for implementada.
     match /{document=**} {
       allow read, write: if true;
     }
