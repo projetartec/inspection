@@ -102,6 +102,14 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>
+                       <SidebarMenuItem>
+                          <SidebarMenuButton asChild tooltip="Prédios">
+                              <Link href={`/clients/${clientId}`}>
+                                  <ChevronLeft />
+                                  <span>Prédios</span>
+                              </Link>
+                          </SidebarMenuButton>
+                      </SidebarMenuItem>
                       <SidebarSeparator/>
                        <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Consulta" isActive={isConsultationPage}>
@@ -154,10 +162,10 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Todos os Prédios">
+            <SidebarMenuButton asChild tooltip="Prédios">
                 <Link href={`/clients/${clientId}`}>
                     <ChevronLeft />
-                    <span>Todos os Prédios</span>
+                    <span>Prédios</span>
                 </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
