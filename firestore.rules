@@ -2,8 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Permite acesso de leitura e escrita a qualquer usuário autenticado.
+    // Esta é uma regra básica de segurança para garantir que apenas usuários
+    // logados possam interagir com o banco de dados.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }
