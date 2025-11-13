@@ -1,18 +1,16 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
-import { getClientById, getBuildingsByClient } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, X, FileSearch } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -33,7 +31,8 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -49,38 +48,34 @@ export default function ClientPage() {
   const [filteredBuildings, setFilteredBuildings] = useState<Building[]>([]);
   const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
-  const fetchClientAndBuildings = async () => {
-    setIsLoading(true);
-    try {
-      const [clientData, buildingsData] = await Promise.all([
-        getClientById(clientId),
-        getBuildingsByClient(clientId),
-      ]);
-
-      if (!clientData) {
-        notFound();
-        return;
-      }
-
-      setClient(clientData);
-      setBuildings(buildingsData);
-    } catch (error) {
-      console.error('Falha ao buscar dados do cliente e locais:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Conexão',
-        description: 'Não foi possível buscar os dados. Verifique sua conexão.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (clientId) {
-      fetchClientAndBuildings();
-    }
-  }, [clientId]);
+    if (!clientId) return;
+    
+    setIsLoading(true);
+    const clientDocRef = doc(db, 'clients', clientId);
+
+    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const clientData = docSnap.data() as Omit<Client, 'id'>;
+            setClient({ id: docSnap.id, ...clientData });
+            setBuildings(clientData.buildings || []);
+        } else {
+            console.error("Cliente não encontrado.");
+            notFound();
+        }
+        setIsLoading(false);
+    }, (error) => {
+        console.error('Falha ao buscar dados do cliente em tempo real:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Conexão',
+            description: 'Não foi possível buscar os dados. Verifique sua conexão.',
+        });
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [clientId, toast]);
   
   useEffect(() => {
     let results = buildings;
@@ -104,9 +99,7 @@ export default function ClientPage() {
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
-    setBuildings(prevBuildings =>
-      prevBuildings.filter(building => building.id !== deletedBuildingId)
-    );
+    // State updated by onSnapshot
     toast({
       title: 'Sucesso!',
       description: 'Local deletado com sucesso.',
@@ -114,7 +107,7 @@ export default function ClientPage() {
   };
 
   const handleCreateSuccess = () => {
-    fetchClientAndBuildings();
+    // State updated by onSnapshot
   }
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
@@ -135,11 +128,16 @@ export default function ClientPage() {
     
     setFilteredBuildings(reorderedBuildings);
 
-    // Update the master list
-    const buildingMap = new Map(buildings.map(b => [b.id, b]));
-    const newMasterOrder = reorderedBuildings.map(b => buildingMap.get(b.id)).concat(
-        buildings.filter(b => !reorderedBuildings.find(rb => rb.id === b.id))
-    ).filter((b): b is Building => b !== undefined);
+    // Create the new full ordered list of buildings
+    const buildingIdOrder = reorderedBuildings.map(b => b.id);
+    const originalUnfiltered = [...buildings];
+    const newMasterOrder = originalUnfiltered.sort((a,b) => {
+        let indexA = buildingIdOrder.indexOf(a.id);
+        let indexB = buildingIdOrder.indexOf(b.id);
+        if (indexA === -1) indexA = Infinity;
+        if (indexB === -1) indexB = Infinity;
+        return indexA - indexB;
+    })
 
     setBuildings(newMasterOrder);
     
@@ -147,7 +145,14 @@ export default function ClientPage() {
       await updateBuildingOrderAction(clientId, newMasterOrder);
     } catch (error) {
       console.error("Failed to update building order:", error);
-      fetchClientAndBuildings(); // Revert on error by refetching
+      toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Não foi possível salvar a nova ordem."
+      })
+      // The onSnapshot listener will automatically revert the state if the DB update fails and something else reverts it.
+      // Or if the server action fails, the local state might be temporarily inconsistent.
+      // We could force a re-fetch or rely on the snapshot to correct it.
     }
   };
 

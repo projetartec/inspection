@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { getClientReportDataAction } from '@/lib/actions';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +19,8 @@ import { ConsultationFilters, type ExpiryFilter } from '@/components/consultatio
 import { KeyRound, SprayCan, Hash } from 'lucide-react';
 import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -206,25 +207,33 @@ export default function ConsultationPage() {
     const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>({ type: 'none' });
 
     useEffect(() => {
-        if (clientId) {
-            const fetchData = async () => {
-                setIsLoading(true);
-                try {
-                    const { client: clientData, buildings: buildingsData } = await getClientReportDataAction(clientId);
-                    if (!clientData) {
-                        notFound();
-                        return;
-                    }
-                    setClient(clientData);
-                    setBuildings(buildingsData);
-                } catch (error) {
-                    console.error("Falha ao buscar dados para consulta:", error);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            fetchData();
-        }
+        if (!clientId) return;
+        setIsLoading(true);
+
+        const clientDocRef = doc(db, 'clients', clientId);
+
+        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const clientData = docSnap.data() as Omit<Client, 'id'>;
+                setClient({ id: docSnap.id, ...clientData });
+
+                const buildingsWithEquipment = (clientData.buildings || []).map(b => ({
+                    ...b,
+                    extinguishers: b.extinguishers || [],
+                    hoses: b.hoses || [],
+                }));
+                setBuildings(buildingsWithEquipment);
+            } else {
+                console.error("Cliente não encontrado.");
+                notFound();
+            }
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Falha ao buscar dados para consulta em tempo real:", error);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
     }, [clientId]);
 
     const filteredItems = useMemo(() => {

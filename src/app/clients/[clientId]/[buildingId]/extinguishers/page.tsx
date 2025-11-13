@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -7,7 +6,6 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getExtinguishersByBuilding, getBuildingById } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -25,12 +23,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteExtinguisherAction, updateEquipmentOrderAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Extinguisher } from '@/lib/types';
+import type { Extinguisher, Building, Client } from '@/lib/types';
 import { DeleteButton } from '@/components/delete-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { useParams } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 function TableSkeleton() {
   return (
@@ -62,30 +62,43 @@ export default function ExtinguishersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchData = async () => {
-    if (!clientId || !buildingId) return;
-
-      try {
-          setIsLoading(true);
-          const [extinguishersData, buildingData] = await Promise.all([
-            getExtinguishersByBuilding(clientId, buildingId),
-            getBuildingById(clientId, buildingId)
-          ]);
-          setExtinguishers(extinguishersData);
-          setBuildingName(buildingData?.name || '');
-      } catch (error) {
-          console.error("Failed to fetch data:", error);
-      } finally {
-          setIsLoading(false);
-      }
-  }
-
   useEffect(() => {
-    fetchData();
-  }, [clientId, buildingId]);
+    if (!clientId || !buildingId) return;
+    setIsLoading(true);
+
+    const clientDocRef = doc(db, 'clients', clientId);
+
+    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+        if (!docSnap.exists()) {
+            setIsLoading(false);
+            notFound();
+            return;
+        }
+
+        const clientData = docSnap.data() as Client;
+        const building = clientData.buildings?.find(b => b.id === buildingId);
+
+        if (!building) {
+            setIsLoading(false);
+            notFound();
+            return;
+        }
+        
+        setExtinguishers(building.extinguishers || []);
+        setBuildingName(building.name || '');
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch data in real-time:", error);
+        toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os dados.' });
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [clientId, buildingId, toast]);
+
 
   const handleDeleteSuccess = (deletedUid: string) => {
-    setExtinguishers(prev => prev.filter(ext => ext.uid !== deletedUid));
+    // State is managed by onSnapshot, we just need to show the toast
     toast({
         title: "Sucesso!",
         description: "Extintor deletado com sucesso."
@@ -101,13 +114,14 @@ export default function ExtinguishersPage() {
     const [removed] = reorderedExtinguishers.splice(source.index, 1);
     reorderedExtinguishers.splice(destination.index, 0, removed);
     
+    // Optimistic update
     setExtinguishers(reorderedExtinguishers);
 
     try {
         await updateEquipmentOrderAction(clientId, buildingId, 'extinguishers', reorderedExtinguishers);
     } catch (error) {
         console.error("Failed to update order:", error);
-        setExtinguishers(extinguishers); // Revert on error
+        // onSnapshot will handle reverting to the correct state if the server action fails
         toast({
             variant: "destructive",
             title: "Erro",

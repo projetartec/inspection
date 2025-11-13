@@ -2,17 +2,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { notFound, useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Play, Eye } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Extinguisher, Hydrant as Hose } from '@/lib/types';
+import type { Building, Client, Extinguisher, Hydrant as Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import Image from 'next/image';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 interface Stat {
     title: string;
@@ -47,59 +48,62 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<Stat[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { session: inspectionSession, startInspection, isLoading: isSessionLoading } = useInspectionSession();
+    const { session: inspectionSession, startInspection } = useInspectionSession();
 
     useEffect(() => {
-        async function fetchData() {
-            if (!clientId || !buildingId) return;
+        if (!clientId || !buildingId) return;
+        setIsLoading(true);
 
-            try {
-                setIsLoading(true);
+        const clientDocRef = doc(db, 'clients', clientId);
 
-                const buildingPromise = getBuildingById(clientId, buildingId);
-                const extinguishersPromise = getExtinguishersByBuilding(clientId, buildingId);
-                const hosesPromise = getHosesByBuilding(clientId, buildingId);
-
-                const [building, extinguishers, hoses] = await Promise.all([
-                    buildingPromise,
-                    extinguishersPromise,
-                    hosesPromise,
-                ]);
-
-                if (!building) {
-                    notFound();
-                    return;
-                }
-                setBuildingName(building.name);
-
-                const isExpired = (item: { expiryDate?: string, hydrostaticTestDate?: string }) => {
-                    const dateStr = item.expiryDate || item.hydrostaticTestDate;
-                    if (!dateStr || typeof dateStr !== 'string') return false;
-                    try {
-                        const date = new Date(dateStr);
-                        return date < new Date();
-                    } catch {
-                        return false;
-                    }
-                };
-
-                const expiredExtinguishers = extinguishers.filter(isExpired).length;
-                const expiredHoses = hoses.filter(isExpired).length;
-
-                setStats([
-                    { title: "Total de Extintores", value: extinguishers.length, icon: "https://i.imgur.com/acESc0O.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
-                    { title: "Total de Mangueiras", value: hoses.length, icon: "https://i.imgur.com/Fq1OHRb.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
-                    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
-                ]);
-
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-            } finally {
+        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+            if (!docSnap.exists()) {
                 setIsLoading(false);
+                notFound();
+                return;
             }
-        }
 
-        fetchData();
+            const clientData = docSnap.data() as Client;
+            const building = clientData.buildings?.find(b => b.id === buildingId);
+
+            if (!building) {
+                setIsLoading(false);
+                notFound();
+                return;
+            }
+
+            setBuildingName(building.name);
+
+            const extinguishers = building.extinguishers || [];
+            const hoses = building.hoses || [];
+
+            const isExpired = (item: { expiryDate?: string, hydrostaticTestDate?: string }) => {
+                const dateStr = item.expiryDate || item.hydrostaticTestDate;
+                if (!dateStr || typeof dateStr !== 'string') return false;
+                try {
+                    const date = new Date(dateStr);
+                    return date < new Date();
+                } catch {
+                    return false;
+                }
+            };
+
+            const expiredExtinguishers = extinguishers.filter(isExpired).length;
+            const expiredHoses = hoses.filter(isExpired).length;
+
+            setStats([
+                { title: "Total de Extintores", value: extinguishers.length, icon: "https://i.imgur.com/acESc0O.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
+                { title: "Total de Mangueiras", value: hoses.length, icon: "https://i.imgur.com/Fq1OHRb.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
+                { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
+            ]);
+
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Failed to fetch dashboard data in real-time:", error);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
     }, [clientId, buildingId]);
 
     const handleStartQrInspection = () => {

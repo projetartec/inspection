@@ -15,12 +15,13 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let db: Firestore;
 
-if (typeof window !== "undefined" && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-} else if (typeof window !== "undefined") {
-  app = getApp();
-  db = getFirestore(app);
+if (typeof window !== "undefined") {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    db = getFirestore(app);
 }
 
 // @ts-ignore

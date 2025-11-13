@@ -6,10 +6,8 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getHosesByBuilding, getBuildingById } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -24,12 +22,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteHoseAction, updateEquipmentOrderAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Hydrant } from '@/lib/types';
+import type { Hydrant, Client } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { useParams } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 function TableSkeleton() {
   return (
@@ -60,30 +60,41 @@ export default function HosesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchData = async () => {
-    if (!clientId || !buildingId) return;
-
-    try {
-        setIsLoading(true);
-        const [hosesData, buildingData] = await Promise.all([
-          getHosesByBuilding(clientId, buildingId),
-          getBuildingById(clientId, buildingId)
-        ]);
-        setHoses(hosesData);
-        setBuildingName(buildingData?.name || '');
-    } catch (error) {
-        console.error("Failed to fetch data:", error);
-    } finally {
-        setIsLoading(false);
-    }
-  }
-
   useEffect(() => {
-    fetchData();
-  }, [clientId, buildingId]);
+    if (!clientId || !buildingId) return;
+    setIsLoading(true);
+
+    const clientDocRef = doc(db, 'clients', clientId);
+
+    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+        if (!docSnap.exists()) {
+            setIsLoading(false);
+            notFound();
+            return;
+        }
+
+        const clientData = docSnap.data() as Client;
+        const building = clientData.buildings?.find(b => b.id === buildingId);
+
+        if (!building) {
+            setIsLoading(false);
+            notFound();
+            return;
+        }
+        
+        setHoses(building.hoses || []);
+        setBuildingName(building.name || '');
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch data in real-time:", error);
+        toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os dados.' });
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [clientId, buildingId, toast]);
 
   const handleDeleteSuccess = (deletedUid: string) => {
-    setHoses(prev => prev.filter(hose => hose.uid !== deletedUid));
     toast({
         title: "Sucesso!",
         description: "Hidrante deletado com sucesso."
@@ -105,7 +116,7 @@ export default function HosesPage() {
         await updateEquipmentOrderAction(clientId, buildingId, 'hoses', reorderedHoses);
     } catch (error) {
         console.error("Failed to update order:", error);
-        setHoses(hoses); // Revert on error
+        // onSnapshot will revert the list if the server action fails
         toast({
             variant: "destructive",
             title: "Erro",
@@ -156,8 +167,6 @@ export default function HosesPage() {
                                 {(provided, snapshot) => {
                                     const dateValue = hose.hydrostaticTestDate ? parseISO(hose.hydrostaticTestDate) : null;
                                     const isValidDate = dateValue && !isNaN(dateValue.getTime());
-                                    const isExpired = isValidDate ? dateValue < new Date() : false;
-                                    const lastInspection = hose.inspections?.[hose.inspections.length - 1];
                                     
                                     return (
                                     <TableRow 

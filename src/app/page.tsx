@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
-import { getClients } from "@/lib/data";
 import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,8 @@ import {
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { Input } from '@/components/ui/input';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -32,27 +33,37 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchClients = async () => {
-    setIsLoading(true);
-    try {
-      const clientList = await getClients();
-      setClients(clientList);
-      setFilteredClients(clientList);
-    } catch (error) {
-      console.error("Falha ao buscar clientes:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Conexão',
-        description: 'Não foi possível buscar os dados dos clientes. Verifique sua conexão e as permissões do Firestore.'
-      })
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   useEffect(() => {
-    fetchClients();
-  }, []);
+    setIsLoading(true);
+    const q = query(collection(db, "clients"), orderBy("name"));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const clientsData: Client[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            clientsData.push({
+                id: doc.id,
+                name: data.name,
+                fantasyName: data.fantasyName,
+                buildings: data.buildings || [],
+                // include other client fields as needed
+            });
+        });
+        setClients(clientsData);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Falha ao buscar clientes em tempo real:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Conexão',
+            description: 'Não foi possível buscar os dados dos clientes em tempo real.'
+        });
+        setIsLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [toast]);
 
   useEffect(() => {
     const results = clients.filter(client =>
@@ -63,12 +74,16 @@ export default function Home() {
   }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
-    setClients(prevClients => prevClients.filter(client => client.id !== deletedClientId));
+    // State is now managed by onSnapshot, so we just show a toast.
     toast({
       title: "Sucesso!",
       description: "Cliente deletado com sucesso."
     });
   };
+
+  const handleCreateSuccess = () => {
+    // State is now managed by onSnapshot, no manual refetch needed.
+  }
 
   return (
     <div className="min-h-screen container mx-auto p-4 sm:p-6 lg:p-8 flex flex-col items-center">
@@ -151,7 +166,7 @@ export default function Home() {
         </Card>
         
         <div className="mt-8">
-            <ClientForm onSuccess={fetchClients} />
+            <ClientForm onSuccess={handleCreateSuccess} />
         </div>
       </main>
     </div>

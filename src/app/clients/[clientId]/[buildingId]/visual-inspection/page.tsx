@@ -2,10 +2,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, notFound } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
-import { getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
-import type { Extinguisher, Hydrant, Inspection } from '@/lib/types';
+import type { Client, Extinguisher, Hydrant } from '@/lib/types';
 import { InspectionList } from '@/components/inspection-list';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase-client';
 
 
 function ListSkeleton() {
@@ -51,25 +52,41 @@ export default function VisualInspectionPage() {
     }, [startInspection, clientId, buildingId]);
 
     useEffect(() => {
-        async function fetchData() {
-            if (!clientId || !buildingId) return;
-            setIsLoading(true);
-            try {
-                const [extinguishersData, hosesData] = await Promise.all([
-                    getExtinguishersByBuilding(clientId, buildingId),
-                    getHosesByBuilding(clientId, buildingId),
-                ]);
-                setExtinguishers(extinguishersData);
-                setHoses(hosesData);
-                setFilteredExtinguishers(extinguishersData);
-                setFilteredHoses(hosesData);
-            } catch (error) {
-                console.error("Failed to fetch equipment:", error);
-            } finally {
+        if (!clientId || !buildingId) return;
+        setIsLoading(true);
+
+        const clientDocRef = doc(db, 'clients', clientId);
+
+        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
+            if (!docSnap.exists()) {
                 setIsLoading(false);
+                notFound();
+                return;
             }
-        }
-        fetchData();
+
+            const clientData = docSnap.data() as Client;
+            const building = clientData.buildings?.find(b => b.id === buildingId);
+
+            if (!building) {
+                setIsLoading(false);
+                notFound();
+                return;
+            }
+            
+            const extinguishersData = building.extinguishers || [];
+            const hosesData = building.hoses || [];
+            
+            setExtinguishers(extinguishersData);
+            setHoses(hosesData);
+            setFilteredExtinguishers(extinguishersData);
+            setFilteredHoses(hosesData);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Failed to fetch equipment:", error);
+            setIsLoading(false);
+        });
+        
+        return () => unsubscribe();
     }, [clientId, buildingId]);
     
     useEffect(() => {
@@ -77,7 +94,7 @@ export default function VisualInspectionPage() {
 
         const newFilteredExtinguishers = extinguishers.filter(ext => 
             ext.id.toLowerCase().includes(lowerCaseSearchTerm) ||
-            ext.observations.toLowerCase().includes(lowerCaseSearchTerm)
+            (ext.observations && ext.observations.toLowerCase().includes(lowerCaseSearchTerm))
         );
         setFilteredExtinguishers(newFilteredExtinguishers);
 
@@ -90,6 +107,8 @@ export default function VisualInspectionPage() {
     }, [searchTerm, extinguishers, hoses]);
 
     const handleUpdateItem = (itemType: 'extinguisher' | 'hose', updatedItem: Extinguisher | Hydrant) => {
+        // With real-time updates, the local state will be updated automatically by onSnapshot.
+        // This function is kept for optimistic updates if needed in the future but is now passive.
         if (itemType === 'extinguisher') {
             setExtinguishers(prev => prev.map(e => e.id === updatedItem.id ? updatedItem as Extinguisher : e));
         } else {

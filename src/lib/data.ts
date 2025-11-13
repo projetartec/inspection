@@ -10,19 +10,20 @@ const CLIENTS_COLLECTION = 'clients';
 
 function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
   const data = doc.data();
-  const buildings = (data?.buildings || []).map((b: any) => {
-      const extinguishers = (b.extinguishers || []).map((e: any) => {
-          if (!e.uid) { // Data migration
-              e.uid = e.qrCodeValue; 
-          }
-          return e;
-      });
-      const hoses = (b.hoses || []).map((h: any) => {
-          if (!h.uid) { // Data migration
-              h.uid = h.qrCodeValue;
-          }
-          return h;
-      });
+  // Ensure buildings is an array, defaulting to empty if null or undefined
+  const buildingsData = data?.buildings || [];
+  
+  const buildings = buildingsData.map((b: any) => {
+      // Data migration for extinguishers
+      const extinguishers = (b.extinguishers || []).map((e: any) => ({
+          ...e,
+          uid: e.uid || e.qrCodeValue || `ext-${Math.random()}`
+      }));
+      // Data migration for hoses
+      const hoses = (b.hoses || []).map((h: any) => ({
+          ...h,
+          uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
+      }));
       return { ...b, extinguishers, hoses };
   });
 
@@ -179,6 +180,17 @@ export async function getHosesByBuilding(clientId: string, buildingId: string): 
     const building = await getBuildingById(clientId, buildingId);
     return building?.hoses || [];
 }
+
+export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
+    const building = await getBuildingById(clientId, buildingId);
+    return building?.extinguishers.find(e => e.id === id) || null;
+}
+
+export async function getHoseById(clientId: string, buildingId: string, id: string): Promise<Hydrant | null> {
+    const building = await getBuildingById(clientId, buildingId);
+    return building?.hoses.find(h => h.id === id) || null;
+}
+
 
 export async function getExtinguisherByUid(clientId: string, buildingId: string, uid: string): Promise<Extinguisher | null> {
     const building = await getBuildingById(clientId, buildingId);
