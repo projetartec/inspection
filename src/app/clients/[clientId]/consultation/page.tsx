@@ -19,6 +19,7 @@ import Image from 'next/image';
 import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
 import { KeyRound, SprayCan, Hash } from 'lucide-react';
 import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -140,21 +141,27 @@ function ConsultationSummary({ totals }: { totals: any }) {
     useEffect(() => {
         setSummary(
             <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 text-sidebar-foreground/80">
-                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
-                        Extintores
-                    </span>
-                    <span className="font-bold">{totals.totalExtinguishers}</span>
-                </div>
-                 <div className="pl-6 text-xs text-sidebar-foreground/60 space-y-1">
-                    {Object.entries(totals.extinguishersByTypeAndWeight).map(([type, count]) => (
-                        <div key={type} className="flex justify-between">
-                            <span>{type}:</span>
-                            <span>{count as React.ReactNode}</span>
-                        </div>
-                    ))}
-                </div>
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="extinguishers-summary" className="border-none">
+                        <AccordionTrigger className="flex justify-between items-center p-0 hover:no-underline">
+                             <span className="flex items-center gap-2 text-sidebar-foreground/80">
+                                <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
+                                Extintores
+                            </span>
+                            <span className="font-bold text-sidebar-foreground/80">{totals.totalExtinguishers}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="pl-6 text-xs text-sidebar-foreground/60 space-y-1 pt-2">
+                             {Object.keys(totals.extinguishersByTypeAndWeight).length > 0 ?
+                                Object.entries(totals.extinguishersByTypeAndWeight).map(([type, count]) => (
+                                <div key={type} className="flex justify-between">
+                                    <span>{type}:</span>
+                                    <span>{count as React.ReactNode}</span>
+                                </div>
+                            )) : <p>Nenhum</p>}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+
                 <div className="flex justify-between items-center">
                      <span className="flex items-center gap-2 text-sidebar-foreground/80">
                         <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Hidrante" width={16} height={16} />
