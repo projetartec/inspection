@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import { getClientReportDataAction } from '@/lib/actions';
 import { PageHeader } from '@/components/page-header';
@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
 import { KeyRound, SprayCan, Hash } from 'lucide-react';
+import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -132,6 +133,57 @@ function HoseTable({ items }: { items: (Hydrant & { buildingName: string })[] })
             </TableBody>
         </Table>
     );
+}
+
+function ConsultationSummary({ totals }: { totals: any }) {
+    const { setSummary } = useContext(ConsultationSummaryContext);
+
+    useEffect(() => {
+        setSummary(
+            <div className="flex flex-col gap-2 text-sm">
+                <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-2 text-sidebar-foreground/80">
+                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
+                        Extintores
+                    </span>
+                    <span className="font-bold">{totals.totalExtinguishers}</span>
+                </div>
+                 <div className="pl-6 text-xs text-sidebar-foreground/60 space-y-1">
+                    {Object.entries(totals.extinguishersByType).map(([type, count]) => (
+                        <div key={type} className="flex justify-between">
+                            <span>{type}:</span>
+                            <span>{count as React.ReactNode}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex justify-between items-center">
+                     <span className="flex items-center gap-2 text-sidebar-foreground/80">
+                        <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Hidrante" width={16} height={16} />
+                        Hidrantes
+                    </span>
+                    <span className="font-bold">{totals.totalHoses}</span>
+                </div>
+                 <div className="flex justify-between items-center">
+                     <span className="flex items-center gap-2 text-sidebar-foreground/80">
+                        <KeyRound className="h-4 w-4" />
+                        Chaves Storz
+                    </span>
+                    <span className="font-bold">{totals.totalKeys}</span>
+                </div>
+                 <div className="flex justify-between items-center">
+                     <span className="flex items-center gap-2 text-sidebar-foreground/80">
+                        <SprayCan className="h-4 w-4" />
+                        Esguichos
+                    </span>
+                    <span className="font-bold">{totals.totalNozzles}</span>
+                </div>
+            </div>
+        );
+
+        return () => setSummary(null);
+    }, [totals, setSummary]);
+
+    return null;
 }
 
 
@@ -259,135 +311,86 @@ export default function ConsultationPage() {
     const showHoses = activeTab === 'all' || activeTab === 'hoses';
 
     return (
-        <div className="space-y-8">
-            <PageHeader title={`Consulta: ${client.name}`} />
-            
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                            <CardTitle>Visualização de Equipamentos</CardTitle>
-                            <CardDescription>Consulte todos os equipamentos do cliente e filtre os resultados.</CardDescription>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                           <ClientReportGenerator clientId={clientId} />
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b pb-4">
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-                            <TabsList>
-                                <TabsTrigger value="all">
-                                    <div className="flex items-center gap-2 md:hidden">
-                                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
-                                        <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
-                                    </div>
-                                    <span className="hidden md:inline">Todos os Itens</span>
-                                </TabsTrigger>
-                                <TabsTrigger value="extinguishers">
-                                    <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={20} height={20} className="md:hidden" />
-                                    <span className="hidden md:inline">Extintores</span>
-                                </TabsTrigger>
-                                <TabsTrigger value="hoses">
-                                    <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
-                                    <span className="hidden md:inline">Mangueiras</span>
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-
-                        <div className="flex items-center gap-4">
+        <>
+            <ConsultationSummary totals={totals} />
+            <div className="space-y-8">
+                <PageHeader title={`Consulta: ${client.name}`} />
+                
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <CardTitle>Visualização de Equipamentos</CardTitle>
+                                <CardDescription>Consulte todos os equipamentos do cliente e filtre os resultados.</CardDescription>
+                            </div>
                             <div className="flex items-center space-x-2">
-                                <Switch id="nc-filter" checked={showOnlyNC} onCheckedChange={setShowOnlyNC} />
-                                <Label htmlFor="nc-filter">N/C</Label>
+                            <ClientReportGenerator clientId={clientId} />
                             </div>
-                            <ConsultationFilters
-                                buildings={buildings}
-                                selectedBuildingIds={selectedBuildingIds}
-                                onSelectedBuildingIdsChange={setSelectedBuildingIds}
-                                expiryFilter={expiryFilter}
-                                onExpiryFilterChange={setExpiryFilter}
-                            />
                         </div>
-                    </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b pb-4">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+                                <TabsList>
+                                    <TabsTrigger value="all">
+                                        <div className="flex items-center gap-2 md:hidden">
+                                            <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
+                                            <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
+                                        </div>
+                                        <span className="hidden md:inline">Todos os Itens</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="extinguishers">
+                                        <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={20} height={20} className="md:hidden" />
+                                        <span className="hidden md:inline">Extintores</span>
+                                    </TabsTrigger>
+                                    <TabsTrigger value="hoses">
+                                        <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={20} height={20} className="md:hidden" />
+                                        <span className="hidden md:inline">Mangueiras</span>
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
 
-                    <div className="space-y-8 mt-6">
-                        {isLoading ? (
-                             <div className="space-y-4">
-                                <Skeleton className="h-8 w-1/4" />
-                                <Skeleton className="h-24 w-full" />
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <Switch id="nc-filter" checked={showOnlyNC} onCheckedChange={setShowOnlyNC} />
+                                    <Label htmlFor="nc-filter">N/C</Label>
+                                </div>
+                                <ConsultationFilters
+                                    buildings={buildings}
+                                    selectedBuildingIds={selectedBuildingIds}
+                                    onSelectedBuildingIdsChange={setSelectedBuildingIds}
+                                    expiryFilter={expiryFilter}
+                                    onExpiryFilterChange={setExpiryFilter}
+                                />
                             </div>
-                        ) : (
-                            <>
-                                {showExtinguishers && (
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-2">Extintores</h3>
-                                        <ExtinguisherTable items={filteredItems.extinguishers} />
-                                    </div>
-                                )}
-                                {showHoses && (
-                                     <div>
-                                        <h3 className="text-lg font-semibold mb-2">Hidrantes</h3>
-                                        <HoseTable items={filteredItems.hoses} />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
+                        </div>
 
-             <Card>
-                <CardHeader>
-                    <CardTitle>Resumo dos Itens Filtrados</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="col-span-1">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Extintores</CardTitle>
-                            <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{totals.totalExtinguishers}</div>
-                             <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-                                {Object.entries(totals.extinguishersByType).map(([type, count]) => (
-                                    <span key={type}>{type}: {count}</span>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                     <Card className="col-span-1">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Hidrantes</CardTitle>
-                             <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{totals.totalHoses}</div>
-                            <p className="text-xs text-muted-foreground">(Sistemas de Mangueira)</p>
-                        </CardContent>
-                    </Card>
-                     <Card className="col-span-1">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Chaves Storz</CardTitle>
-                            <KeyRound className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{totals.totalKeys}</div>
-                            <p className="text-xs text-muted-foreground">Total nos hidrantes filtrados</p>
-                        </CardContent>
-                    </Card>
-                     <Card className="col-span-1">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Esguichos</CardTitle>
-                             <SprayCan className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{totals.totalNozzles}</div>
-                            <p className="text-xs text-muted-foreground">Total nos hidrantes filtrados</p>
-                        </CardContent>
-                    </Card>
-                </CardContent>
-            </Card>
-        </div>
+                        <div className="space-y-8 mt-6">
+                            {isLoading ? (
+                                <div className="space-y-4">
+                                    <Skeleton className="h-8 w-1/4" />
+                                    <Skeleton className="h-24 w-full" />
+                                </div>
+                            ) : (
+                                <>
+                                    {showExtinguishers && (
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-2">Extintores</h3>
+                                            <ExtinguisherTable items={filteredItems.extinguishers} />
+                                        </div>
+                                    )}
+                                    {showHoses && (
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-2">Hidrantes</h3>
+                                            <HoseTable items={filteredItems.hoses} />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </>
     );
 }

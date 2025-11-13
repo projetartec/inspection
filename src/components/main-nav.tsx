@@ -24,7 +24,7 @@ import { ClientReportGenerator } from "./client-report-generator";
 import Image from 'next/image';
 
 
-export function MainNav() {
+export function MainNav({ consultationSummary }: { consultationSummary?: React.ReactNode }) {
   const pathname = usePathname();
   const params = useParams() as { clientId?: string, buildingId?: string };
   const { clientId, buildingId } = params;
@@ -83,7 +83,9 @@ export function MainNav() {
   }
   
   if (clientId && !buildingId) {
-      // Client Page - Building List
+      // Client Page - Building List OR Consultation Page
+      const isConsultationPage = pathname.includes('/consultation');
+
       return (
           <>
               <SidebarHeader>
@@ -102,7 +104,7 @@ export function MainNav() {
                       </SidebarMenuItem>
                       <SidebarSeparator/>
                        <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Consulta" isActive={pathname.includes('/consultation')}>
+                        <SidebarMenuButton asChild tooltip="Consulta" isActive={isConsultationPage}>
                             <Link href={`/clients/${clientId}/consultation`}>
                                 <FileSearch />
                                 <span>Consulta</span>
@@ -110,6 +112,15 @@ export function MainNav() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                   </SidebarMenu>
+                  {isConsultationPage && consultationSummary && (
+                    <>
+                        <SidebarSeparator />
+                        <div className="p-2 space-y-2">
+                             <h4 className="px-2 text-xs font-medium text-sidebar-foreground/70">Resumo da Consulta</h4>
+                             {consultationSummary}
+                        </div>
+                    </>
+                  )}
               </SidebarContent>
                <SidebarFooter>
                 {clientId && <ClientReportGenerator clientId={clientId} />}
