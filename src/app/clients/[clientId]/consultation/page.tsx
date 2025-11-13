@@ -12,7 +12,6 @@ import type { Building, Client, Extinguisher, Hydrant, Inspection } from '@/lib/
 import { format, parseISO, isSameMonth, isSameYear, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ClientReportGenerator } from '@/components/client-report-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -322,9 +321,6 @@ export default function ConsultationPage() {
                             <div>
                                 <CardTitle>Visualização de Equipamentos</CardTitle>
                                 <CardDescription>Consulte todos os equipamentos do cliente e filtre os resultados.</CardDescription>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                            <ClientReportGenerator clientId={clientId} />
                             </div>
                         </div>
                     </CardHeader>
