@@ -390,5 +390,4 @@ export default function ConsultationPage() {
             </Card>
         </div>
     );
-
-    
+}
