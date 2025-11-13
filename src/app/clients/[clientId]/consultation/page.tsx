@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -19,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
+import { KeyRound, SprayCan, Hash } from 'lucide-react';
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
     "Pintura solo", "Sinalização", "Fixação", "Obstrução", "Lacre/Mangueira/Anel/manômetro"
@@ -227,6 +227,25 @@ export default function ConsultationPage() {
         return { extinguishers: finalExtinguishers, hoses: finalHoses };
     }, [buildings, showOnlyNC, selectedBuildingIds, expiryFilter]);
 
+    const totals = useMemo(() => {
+        const totalExtinguishers = filteredItems.extinguishers.length;
+        const totalHoses = filteredItems.hoses.length;
+        const totalKeys = filteredItems.hoses.reduce((acc, hose) => acc + hose.keyQuantity, 0);
+        const totalNozzles = filteredItems.hoses.reduce((acc, hose) => acc + hose.nozzleQuantity, 0);
+        const extinguishersByType = filteredItems.extinguishers.reduce((acc, ext) => {
+            acc[ext.type] = (acc[ext.type] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return {
+            totalExtinguishers,
+            totalHoses,
+            totalKeys,
+            totalNozzles,
+            extinguishersByType
+        };
+    }, [filteredItems]);
+
 
     if (isLoading) {
         return <PageHeader title="Carregando Consulta..." />;
@@ -317,6 +336,59 @@ export default function ConsultationPage() {
                     </div>
                 </CardContent>
             </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Resumo dos Itens Filtrados</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Extintores</CardTitle>
+                            <Image src="https://i.imgur.com/acESc0O.png" alt="Extintor" width={16} height={16} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totals.totalExtinguishers}</div>
+                             <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                                {Object.entries(totals.extinguishersByType).map(([type, count]) => (
+                                    <span key={type}>{type}: {count}</span>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <Card className="col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Hidrantes</CardTitle>
+                             <Image src="https://i.imgur.com/Fq1OHRb.png" alt="Mangueira" width={16} height={16} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totals.totalHoses}</div>
+                            <p className="text-xs text-muted-foreground">(Sistemas de Mangueira)</p>
+                        </CardContent>
+                    </Card>
+                     <Card className="col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Chaves Storz</CardTitle>
+                            <KeyRound className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totals.totalKeys}</div>
+                            <p className="text-xs text-muted-foreground">Total nos hidrantes filtrados</p>
+                        </CardContent>
+                    </Card>
+                     <Card className="col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Esguichos</CardTitle>
+                             <SprayCan className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{totals.totalNozzles}</div>
+                            <p className="text-xs text-muted-foreground">Total nos hidrantes filtrados</p>
+                        </CardContent>
+                    </Card>
+                </CardContent>
+            </Card>
         </div>
     );
-}
+
+    
