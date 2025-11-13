@@ -21,7 +21,7 @@ export type Extinguisher = {
   type: ExtinguisherType;
   weight: ExtinguisherWeight; // Corresponds to CAPACIDADE
   expiryDate: string; // Corresponds to RECARGA
-  hydrostaticTestYear: number; // Corresponds to TEST. HIDROSTATICO
+  hydrostaticTestYear: string; // Corresponds to TEST. HIDROSTATICO
   observations: string; // Corresponds to LOCALIZAÇÃO
   inspections: Inspection[];
   lastInspected?: string;

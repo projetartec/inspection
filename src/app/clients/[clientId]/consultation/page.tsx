@@ -148,7 +148,7 @@ function ConsultationSummary({ totals }: { totals: any }) {
                     <span className="font-bold">{totals.totalExtinguishers}</span>
                 </div>
                  <div className="pl-6 text-xs text-sidebar-foreground/60 space-y-1">
-                    {Object.entries(totals.extinguishersByType).map(([type, count]) => (
+                    {Object.entries(totals.extinguishersByTypeAndWeight).map(([type, count]) => (
                         <div key={type} className="flex justify-between">
                             <span>{type}:</span>
                             <span>{count as React.ReactNode}</span>
@@ -283,17 +283,27 @@ export default function ConsultationPage() {
         const totalHoses = filteredItems.hoses.length;
         const totalKeys = filteredItems.hoses.reduce((acc, hose) => acc + hose.keyQuantity, 0);
         const totalNozzles = filteredItems.hoses.reduce((acc, hose) => acc + hose.nozzleQuantity, 0);
-        const extinguishersByType = filteredItems.extinguishers.reduce((acc, ext) => {
-            acc[ext.type] = (acc[ext.type] || 0) + 1;
+        
+        const extinguishersByTypeAndWeight = filteredItems.extinguishers.reduce((acc, ext) => {
+            const key = `${ext.type} ${ext.weight}kg`;
+            acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
+
+        // Sort the keys alphabetically
+        const sortedExtinguishers = Object.entries(extinguishersByTypeAndWeight)
+            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+            .reduce((acc, [key, value]) => {
+                acc[key] = value;
+                return acc;
+            }, {} as Record<string, number>);
 
         return {
             totalExtinguishers,
             totalHoses,
             totalKeys,
             totalNozzles,
-            extinguishersByType
+            extinguishersByTypeAndWeight: sortedExtinguishers,
         };
     }, [filteredItems]);
 
