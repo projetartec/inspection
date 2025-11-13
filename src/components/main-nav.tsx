@@ -85,6 +85,7 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
   if (clientId && !buildingId) {
       // Client Page - Building List OR Consultation Page
       const isConsultationPage = pathname.includes('/consultation');
+      const isClientPage = pathname === `/clients/${clientId}`;
 
       return (
           <>
@@ -102,14 +103,16 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>
-                       <SidebarMenuItem>
-                          <SidebarMenuButton asChild tooltip="Prédios">
-                              <Link href={`/clients/${clientId}`}>
-                                  <ChevronLeft />
-                                  <span>Prédios</span>
-                              </Link>
-                          </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      {isConsultationPage && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Prédios">
+                                <Link href={`/clients/${clientId}`}>
+                                    <ChevronLeft />
+                                    <span>Prédios</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )}
                       <SidebarSeparator/>
                        <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Consulta" isActive={isConsultationPage}>
@@ -131,7 +134,7 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                   )}
               </SidebarContent>
                <SidebarFooter>
-                {/* No report generator here since it's on the specific building page */}
+                 <ClientReportGenerator clientId={clientId} />
               </SidebarFooter>
           </>
       )
