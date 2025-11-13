@@ -56,24 +56,6 @@ export function MobileNav() {
         </div>
     )
   }
-  
-  if (pathname.endsWith('/consultation')) {
-     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-            <nav className="grid grid-cols-2 items-center justify-around h-full">
-                 <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
-                    <ChevronLeft className="h-6 w-6" />
-                    <span className="text-xs">Prédios</span>
-                </Link>
-                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-primary")}>
-                    <FileSearch className="h-6 w-6" />
-                     <span className="text-xs">Consulta</span>
-                </Link>
-            </nav>
-        </div>
-    )
-  }
-
 
   if (clientId && !buildingId) {
     // Building list page for a client
@@ -88,7 +70,7 @@ export function MobileNav() {
                     <Building className="h-6 w-6" />
                      <span className="text-xs">Prédios</span>
                 </Link>
-                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
+                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.includes('/consultation') ? "text-primary" : "text-muted-foreground")}>
                     <FileSearch className="h-6 w-6" />
                      <span className="text-xs">Consulta</span>
                 </Link>
@@ -104,24 +86,27 @@ export function MobileNav() {
     { href: `${buildingBasePath}/dashboard`, icon: LayoutDashboard },
     { href: `${buildingBasePath}/extinguishers`, icon: Flame },
     { href: `${buildingBasePath}/hoses`, icon: Droplets },
-    // { href: `${buildingBasePath}/scan`, icon: ScanLine }, // Temporarily disabled
     { href: `/clients/${clientId}`, icon: Building },
+    { href: `/clients/${clientId}/consultation`, icon: FileSearch },
   ];
 
-  const gridColsClass = isInspectionActive ? 'grid-cols-5' : 'grid-cols-4';
+  const gridColsClass = isInspectionActive ? 'grid-cols-6' : 'grid-cols-5';
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
       <nav className={cn("grid items-center justify-around h-full", gridColsClass)}>
         {menuItems.map((item) => {
-          const isActive = pathname.startsWith(item.href) && item.href.length > (buildingBasePath.length - 2);
+          const isActive = pathname.startsWith(item.href) && (item.href.length > (buildingBasePath.length - 2) || item.icon === FileSearch);
+           if(item.icon === FileSearch && pathname.includes('/consultation')) {
+               // Special case for consultation page
+           }
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center",
-                isActive ? "text-primary" : "text-muted-foreground"
+                 (isActive || (item.icon === FileSearch && pathname.includes('/consultation'))) ? "text-primary" : "text-muted-foreground"
               )}
             >
               <item.icon className="h-6 w-6" />

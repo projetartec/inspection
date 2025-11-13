@@ -82,29 +82,6 @@ export function MainNav() {
     );
   }
   
-  if (pathname.endsWith('/consultation')) {
-     return (
-          <>
-              <SidebarHeader>
-                  <AppLogo />
-                  <SidebarTrigger className="hidden md:flex" />
-              </SidebarHeader>
-              <SidebarContent>
-                  <SidebarMenu>
-                      <SidebarMenuItem>
-                           <SidebarMenuButton asChild tooltip="Voltar para Prédios">
-                                <Link href={`/clients/${clientId}`}>
-                                    <ChevronLeft />
-                                    <span>Voltar para Prédios</span>
-                                </Link>
-                           </SidebarMenuButton>
-                      </SidebarMenuItem>
-                  </SidebarMenu>
-              </SidebarContent>
-          </>
-      )
-  }
-
   if (clientId && !buildingId) {
       // Client Page - Building List
       return (
@@ -123,7 +100,8 @@ export function MainNav() {
                               </Link>
                           </SidebarMenuButton>
                       </SidebarMenuItem>
-                      <SidebarMenuItem>
+                      <SidebarSeparator/>
+                       <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Consulta" isActive={pathname.includes('/consultation')}>
                             <Link href={`/clients/${clientId}/consultation`}>
                                 <FileSearch />
@@ -131,7 +109,6 @@ export function MainNav() {
                             </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                      <SidebarSeparator/>
                   </SidebarMenu>
               </SidebarContent>
                <SidebarFooter>
@@ -188,6 +165,15 @@ export function MainNav() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+           <SidebarSeparator />
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Consulta" isActive={pathname.includes('/consultation')}>
+                    <Link href={`/clients/${clientId}/consultation`}>
+                        <FileSearch />
+                        <span>Consulta</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="flex flex-col gap-2">
