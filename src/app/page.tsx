@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
@@ -7,6 +7,7 @@ import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClientForm } from "@/components/client-form";
+import { getClients } from "@/lib/data";
 import type { Client } from "@/lib/types";
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, X, Loader2 } from 'lucide-react';
@@ -23,8 +24,6 @@ import {
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { Input } from '@/components/ui/input';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -34,47 +33,48 @@ export default function Home() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setIsLoading(true);
-    const q = query(collection(db, 'clients'), orderBy('name'));
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const clientsData: Client[] = [];
-      querySnapshot.forEach((doc) => {
-        clientsData.push({ id: doc.id, ...doc.data() } as Client);
-      });
-      setClients(clientsData);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Falha ao buscar clientes em tempo real:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Conexão',
-        description: 'Não foi possível buscar os dados dos clientes em tempo real.'
-      });
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe(); // Cleanup listener on component unmount
+    async function fetchClients() {
+      setIsLoading(true);
+      try {
+        const clientsData = await getClients();
+        setClients(clientsData);
+      } catch (error) {
+        console.error("Falha ao buscar clientes:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Conexão',
+          description: 'Não foi possível buscar os dados dos clientes.'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchClients();
   }, [toast]);
 
   useEffect(() => {
       const results = clients.filter(client =>
-          (client && client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (client && client.fantasyName && client.fantasyName.toLowerCase().includes(searchTerm.toLowerCase()))
+          (client?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (client?.fantasyName?.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredClients(results);
   }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
-    // Optimistic update is no longer needed with real-time listeners
+    setClients(prev => prev.filter(c => c.id !== deletedClientId));
     toast({
       title: "Sucesso!",
       description: "Cliente deletado com sucesso."
     });
   };
 
-  const handleCreateSuccess = () => {
-    // No action needed, real-time listener will update the list
+  const handleCreateSuccess = async () => {
+     try {
+        const clientsData = await getClients();
+        setClients(clientsData);
+      } catch (error) {
+        console.error("Falha ao buscar clientes após criação:", error);
+      }
   }
 
   return (

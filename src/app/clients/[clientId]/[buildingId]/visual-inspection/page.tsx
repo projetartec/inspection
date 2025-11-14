@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
-import type { Extinguisher, Hydrant, Building } from '@/lib/types';
+import { getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
+import type { Extinguisher, Hydrant } from '@/lib/types';
 import { InspectionList } from '@/components/inspection-list';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from '@/components/ui/button';
@@ -12,9 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
-import { useToast } from '@/hooks/use-toast';
 
 function ListSkeleton() {
     return (
@@ -33,7 +31,6 @@ export default function VisualInspectionPage() {
     const params = useParams() as { clientId: string, buildingId: string };
     const { clientId, buildingId } = params;
     const router = useRouter();
-    const { toast } = useToast();
 
     const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
     const [hoses, setHoses] = useState<Hydrant[]>([]);
@@ -51,28 +48,23 @@ export default function VisualInspectionPage() {
     }, [startInspection, clientId, buildingId]);
 
     useEffect(() => {
-        setIsLoading(true);
-        const clientDocRef = doc(db, 'clients', clientId);
-        const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const clientData = docSnap.data();
-                const buildingData = clientData.buildings?.find((b: Building) => b.id === buildingId);
-                if (buildingData) {
-                    const extinguishersData = buildingData.extinguishers || [];
-                    const hosesData = buildingData.hoses || [];
-                    setExtinguishers(extinguishersData);
-                    setHoses(hosesData);
-                }
+        async function fetchData() {
+            setIsLoading(true);
+            try {
+                const [extinguishersData, hosesData] = await Promise.all([
+                    getExtinguishersByBuilding(clientId, buildingId),
+                    getHosesByBuilding(clientId, buildingId),
+                ]);
+                setExtinguishers(extinguishersData);
+                setHoses(hosesData);
+            } catch (error) {
+                console.error("Failed to fetch equipment:", error);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Failed to fetch equipment:", error);
-            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível buscar os equipamentos.' });
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [clientId, buildingId, toast]);
+        }
+        fetchData();
+    }, [clientId, buildingId]);
     
     useEffect(() => {
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -92,8 +84,11 @@ export default function VisualInspectionPage() {
     }, [searchTerm, extinguishers, hoses]);
 
     const handleUpdateItem = (itemType: 'extinguisher' | 'hose', updatedItem: Extinguisher | Hydrant) => {
-        // No longer needed. Real-time listener will update the state.
-        // This function is kept to avoid breaking the InspectionList component props contract.
+        if (itemType === 'extinguisher') {
+            setExtinguishers(prev => prev.map(e => e.uid === updatedItem.uid ? updatedItem as Extinguisher : e));
+        } else {
+            setHoses(prev => prev.map(h => h.uid === updatedItem.uid ? updatedItem as Hydrant : h));
+        }
     };
 
     return (

@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
+import { getClientById } from '@/lib/data';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, GripVertical, X, Loader2, Circle } from 'lucide-react';
@@ -31,8 +32,6 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -49,32 +48,31 @@ export default function ClientPage() {
   const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
   useEffect(() => {
-    if (!clientId) return;
+    async function fetchClient() {
+      if (!clientId) return;
 
-    setIsLoading(true);
-    const clientDocRef = doc(db, 'clients', clientId);
-
-    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const clientData = { id: docSnap.id, ...docSnap.data() } as Client;
-        setClient(clientData);
-        setBuildings(clientData.buildings || []);
-      } else {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
-        notFound();
+      setIsLoading(true);
+      try {
+        const clientData = await getClientById(clientId);
+        if (clientData) {
+          setClient(clientData);
+          setBuildings(clientData.buildings || []);
+        } else {
+          toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
+          notFound();
+        }
+      } catch (error) {
+        console.error("Falha ao buscar dados do cliente:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Conexão',
+          description: 'Não foi possível buscar os dados do cliente.'
+        });
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Falha ao buscar dados do cliente em tempo real:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Conexão',
-        description: 'Não foi possível buscar os dados do cliente.'
-      });
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
+    fetchClient();
   }, [clientId, toast]);
   
   useEffect(() => {
@@ -99,18 +97,20 @@ export default function ClientPage() {
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
+    setBuildings(prev => prev.filter(b => b.id !== deletedBuildingId));
     toast({
       title: 'Sucesso!',
       description: 'Local deletado com sucesso.',
     });
   };
 
-  const handleCreateSuccess = () => {
-    // No action needed, real-time listener will update the list
+  const handleCreateSuccess = async () => {
+    const clientData = await getClientById(clientId);
+    if(clientData) setBuildings(clientData.buildings);
   }
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
-    // Optimistic update handled by real-time listener
+    setBuildings(prev => prev.map(b => b.id === buildingId ? {...b, gpsLink: newLink} : b));
   }
 
   const onDragEnd = async (result: any) => {

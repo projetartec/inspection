@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
+import { getHosesByBuilding, getBuildingById } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, parseISO } from 'date-fns';
@@ -22,14 +23,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteHoseAction, updateEquipmentOrderAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Hydrant, Building } from '@/lib/types';
+import type { Hydrant } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { notFound, useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
 
 function TableSkeleton() {
   return (
@@ -61,34 +60,34 @@ export default function HosesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!clientId) return;
-    setIsLoading(true);
+    async function fetchData() {
+        if (!clientId || !buildingId) return;
+        setIsLoading(true);
 
-    const clientDocRef = doc(db, 'clients', clientId);
-    const unsubscribe = onSnapshot(clientDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const clientData = docSnap.data();
-            const buildingData = clientData.buildings?.find((b: Building) => b.id === buildingId);
+        try {
+            const [buildingData, hosesData] = await Promise.all([
+                getBuildingById(clientId, buildingId),
+                getHosesByBuilding(clientId, buildingId)
+            ]);
+
             if (buildingData) {
                 setBuildingName(buildingData.name);
-                setHoses(buildingData.hoses || []);
             } else {
                 notFound();
             }
-        } else {
-            notFound();
+            setHoses(hosesData);
+        } catch (error) {
+            console.error("Failed to fetch hoses:", error);
+            toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os hidrantes.' });
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Failed to fetch hoses:", error);
-        toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os hidrantes.' });
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
+    fetchData();
   }, [clientId, buildingId, toast]);
 
   const handleDeleteSuccess = (deletedUid: string) => {
+    setHoses(prev => prev.filter(hose => hose.uid !== deletedUid));
     toast({
         title: "Sucesso!",
         description: "Hidrante deletado com sucesso."
