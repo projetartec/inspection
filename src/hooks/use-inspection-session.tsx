@@ -3,7 +3,7 @@
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
-import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction, updateBuildingInspectionStatusAction } from '@/lib/actions';
+import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } from '@/lib/actions';
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
 export interface InspectedItem {
@@ -76,8 +76,6 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
         // If a session for a different building is active, clear it.
         if (session && session.buildingId !== buildingId) {
             console.warn("Starting new inspection, clearing previous session for another building.");
-            // Also set the old building's status back to idle
-            updateBuildingInspectionStatusAction(session.clientId, session.buildingId, 'idle');
             updateSession(null); 
         }
 
@@ -90,8 +88,6 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
                 inspectedItems: [],
             };
             updateSession(newSession);
-            // Set building status to 'in_progress'
-            updateBuildingInspectionStatusAction(clientId, buildingId, 'in_progress');
         }
     }, [session]); // dependency on session
 
@@ -136,10 +132,8 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
             // 2. Add all inspections in a batch
             await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
             
-            // 3. Set building status back to 'idle'
-            await updateBuildingInspectionStatusAction(session.clientId, session.buildingId, 'idle');
             
-            // 4. Clear the session
+            // 3. Clear the session
             updateSession(null);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
@@ -152,7 +146,6 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
 
     const clearSession = useCallback(() => {
         if (session) {
-            updateBuildingInspectionStatusAction(session.clientId, session.buildingId, 'idle');
         }
         updateSession(null);
     }, [session]);

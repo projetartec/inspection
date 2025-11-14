@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -24,7 +25,7 @@ function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
           ...h,
           uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
       }));
-      return { ...b, extinguishers, hoses, inspectionStatus: b.inspectionStatus || 'idle' };
+      return { ...b, extinguishers, hoses };
   });
 
   return {
@@ -131,7 +132,6 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
             name: newBuildingData.name,
             extinguishers: [],
             hoses: [],
-            inspectionStatus: 'idle',
         };
         client.buildings.push(newBuilding);
         transaction.update(clientRef, { buildings: client.buildings });
@@ -171,24 +171,6 @@ export async function updateBuildingOrder(clientId: string, orderedBuildings: Bu
     await clientRef.update({ buildings: buildingsToSave });
 }
 
-export async function updateBuildingInspectionStatus(clientId: string, buildingId: string, status: 'idle' | 'in_progress') {
-    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    await adminDb.runTransaction(async (transaction) => {
-        const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
-
-        const client = docToClient(clientDoc);
-        const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
-        if (buildingIndex === -1) {
-          // It's possible the building was deleted, so we don't throw an error.
-          console.warn(`Attempted to update inspection status for non-existent building ${buildingId} in client ${clientId}`);
-          return;
-        };
-        
-        client.buildings[buildingIndex].inspectionStatus = status;
-        transaction.update(clientRef, { buildings: client.buildings });
-    });
-}
 
 
 // --- Equipment Functions ---

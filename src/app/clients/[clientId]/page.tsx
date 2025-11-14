@@ -218,13 +218,8 @@ export default function ClientPage() {
                                 ? isSameMonth(lastInspectedDate, today) && isSameYear(lastInspectedDate, today)
                                 : false;
                             
-                            const statusColor = building.inspectionStatus === 'in_progress'
-                                ? "bg-yellow-400"
-                                : wasInspectedThisMonth ? "bg-green-500" : "bg-red-500";
-                            
-                            const statusTitle = building.inspectionStatus === 'in_progress'
-                                ? "Inspeção em andamento"
-                                : wasInspectedThisMonth ? "Inspecionado este mês" : "Inspeção pendente este mês";
+                            const statusColor = wasInspectedThisMonth ? "bg-green-500" : "bg-red-500";
+                            const statusTitle = wasInspectedThisMonth ? "Inspecionado este mês" : "Inspeção pendente este mês";
 
                             return (
                             <Draggable key={building.id} draggableId={building.id} index={index}>
