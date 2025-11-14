@@ -8,10 +8,10 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
-import { getClientById } from '@/lib/data';
+import { getClientById, getBuildingsByClient } from '@/lib/data';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, GripVertical, X, Loader2, Circle } from 'lucide-react';
+import { Pencil, Trash2, GripVertical, X, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -105,9 +105,12 @@ export default function ClientPage() {
   };
 
   const handleCreateSuccess = async () => {
+    // Re-fetch buildings for the client
     const clientData = await getClientById(clientId);
-    if(clientData) setBuildings(clientData.buildings);
-  }
+    if (clientData) {
+      setBuildings(clientData.buildings || []);
+    }
+  };
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
     setBuildings(prev => prev.map(b => b.id === buildingId ? {...b, gpsLink: newLink} : b));
@@ -233,9 +236,9 @@ export default function ClientPage() {
                                     <GripVertical className="h-5 w-5" />
                                   </div>
 
-                                  <Circle 
+                                   <div 
                                       className={cn(
-                                          "h-3 w-3 mr-3 flex-shrink-0 fill-current",
+                                          "h-3 w-3 rounded-full mr-3 flex-shrink-0",
                                           statusColor
                                       )}
                                       title={statusTitle}
