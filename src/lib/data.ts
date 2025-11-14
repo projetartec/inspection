@@ -179,7 +179,11 @@ export async function updateBuildingInspectionStatus(clientId: string, buildingI
 
         const client = docToClient(clientDoc);
         const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
-        if (buildingIndex === -1) throw new Error('Local não encontrado.');
+        if (buildingIndex === -1) {
+          // It's possible the building was deleted, so we don't throw an error.
+          console.warn(`Attempted to update inspection status for non-existent building ${buildingId} in client ${clientId}`);
+          return;
+        };
         
         client.buildings[buildingIndex].inspectionStatus = status;
         transaction.update(clientRef, { buildings: client.buildings });

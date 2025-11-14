@@ -58,11 +58,11 @@ export default function Home() {
   }, [toast]);
 
   useEffect(() => {
-    const results = clients.filter(client =>
-        (client && client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client && client.fantasyName && client.fantasyName.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-    setFilteredClients(results);
+      const results = clients.filter(client =>
+          (client && client.name && client.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (client && client.fantasyName && client.fantasyName.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredClients(results);
   }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
@@ -116,42 +116,45 @@ export default function Home() {
                     <p className="ml-4 text-muted-foreground">Buscando dados...</p>
                 </div>
             ) : filteredClients.length > 0 ? (
-              filteredClients.map((client) => (
-                <div key={client.id} className="flex items-center justify-between p-2 rounded-lg border">
-                  <Button asChild variant="link" className="justify-start flex-grow text-lg p-0 overflow-hidden">
-                    <Link href={`/clients/${client.id}`} className="truncate">{client.name}</Link>
-                  </Button>
-                  <div className="flex items-center space-x-1">
-                    <Button asChild variant="ghost" size="icon">
-                      <Link href={`/clients/${client.id}/edit`}>
-                        <Pencil className="h-5 w-5" />
-                        <span className="sr-only">Editar Cliente</span>
-                      </Link>
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-5 w-5" />
-                          <span className="sr-only">Deletar Cliente</span>
+              filteredClients.map((client) => {
+                  if (!client || !client.name) return null;
+                  return (
+                    <div key={client.id} className="flex items-center justify-between p-2 rounded-lg border">
+                      <Button asChild variant="link" className="justify-start flex-grow text-lg p-0 overflow-hidden">
+                        <Link href={`/clients/${client.id}`} className="truncate">{client.name}</Link>
+                      </Button>
+                      <div className="flex items-center space-x-1">
+                        <Button asChild variant="ghost" size="icon">
+                          <Link href={`/clients/${client.id}/edit`}>
+                            <Pencil className="h-5 w-5" />
+                            <span className="sr-only">Editar Cliente</span>
+                          </Link>
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso irá deletar permanentemente o cliente{' '}
-                              <span className="font-bold">{client.name}</span> e todos os seus locais e equipamentos.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <DeleteButton action={() => deleteClientAction(client.id)} onSuccess={() => handleDeleteSuccess(client.id)} />
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              ))
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-5 w-5" />
+                              <span className="sr-only">Deletar Cliente</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita. Isso irá deletar permanentemente o cliente{' '}
+                                  <span className="font-bold">{client.name}</span> e todos os seus locais e equipamentos.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <DeleteButton action={() => deleteClientAction(client.id)} onSuccess={() => handleDeleteSuccess(client.id)} />
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  );
+              })
             ) : (
               <p className="text-center text-muted-foreground py-4">
                 {searchTerm ? `Nenhum cliente encontrado para "${searchTerm}".` : "Nenhum cliente foi cadastrado ainda."}
