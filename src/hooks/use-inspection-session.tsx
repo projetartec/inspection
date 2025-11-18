@@ -3,7 +3,7 @@
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
-import { addInspectionBatchAction, updateExtinguisherAction, updateHoseAction } from '@/lib/actions';
+import { finalizeInspectionAction } from '@/lib/actions';
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
 
 export interface InspectedItem {
@@ -113,31 +113,14 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
         
         setIsLoading(true);
         try {
-            // 1. Update equipment data if changed
-            const itemsToUpdate = session.inspectedItems.filter(item => !!item.updatedData && Object.keys(item.updatedData).length > 0);
-
-            const updatePromises = itemsToUpdate.map(item => {
-                if (!item.updatedData) return Promise.resolve();
-                
-                if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-                    return updateExtinguisherAction(session.clientId, session.buildingId, item.uid, item.updatedData as Partial<ExtinguisherFormValues>);
-                } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-                    return updateHoseAction(session.clientId, session.buildingId, item.uid, item.updatedData as Partial<HydrantFormValues>);
-                }
-                return Promise.resolve();
-            });
+            // Call the new single, optimized server action
+            await finalizeInspectionAction(session);
             
-            await Promise.all(updatePromises);
-            
-            // 2. Add all inspections in a batch
-            await addInspectionBatchAction(session.clientId, session.buildingId, session.inspectedItems);
-            
-            
-            // 3. Clear the session
+            // Clear the session on success
             updateSession(null);
         } catch(e) {
             console.error("Failed to save inspection batch", e);
-            throw e;
+            throw e; // Re-throw to be caught by the UI component
         } finally {
             setIsLoading(false);
         }

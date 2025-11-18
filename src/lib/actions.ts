@@ -4,7 +4,7 @@
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema, ExtinguisherUpdateSchema } from './schemas';
-import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 import {
     addClient as addClientData,
     updateClient as updateClientData,
@@ -19,7 +19,7 @@ import {
     addHose as addHoseData,
     updateHose as updateHoseData,
     deleteHose as deleteHoseData,
-    addInspectionBatch,
+    finalizeInspection as finalizeInspectionData,
     updateEquipmentOrder,
     getExtinguisherByUid,
     getHoseByUid,
@@ -167,19 +167,19 @@ export async function deleteHoseAction(clientId: string, buildingId: string, uid
 }
 
 // --- Inspection Action ---
-export async function addInspectionBatchAction(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    await addInspectionBatch(clientId, buildingId, inspectedItems);
+export async function finalizeInspectionAction(session: InspectionSession) {
+    await finalizeInspectionData(session);
 
+    // Revalidate all relevant paths after the transaction is complete
+    const { clientId, buildingId, inspectedItems } = session;
     const revalidatedPaths: Set<string> = new Set();
+
     inspectedItems.forEach(item => {
         if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-            const extId = item.id; // user-facing ID
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${extId}`);
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${item.id}`);
         } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-            const hoseId = item.id; // user-facing ID
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${hoseId}`);
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${item.id}`);
         }
-        // Manual entries don't have a specific page to revalidate, but they affect the dashboard.
     });
 
     revalidatedPaths.forEach(p => revalidatePath(p));

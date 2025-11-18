@@ -4,8 +4,8 @@
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
-import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues } from './schemas';
-import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
+import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 
 const CLIENTS_COLLECTION = 'clients';
 
@@ -25,7 +25,7 @@ function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
           ...h,
           uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
       }));
-      return { ...b, extinguishers, hoses, inspectionStatus: b.inspectionStatus || 'idle' };
+      return { ...b, extinguishers, hoses, lastInspected: b.lastInspected || null };
   });
 
   return {
@@ -132,7 +132,6 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
             name: newBuildingData.name,
             extinguishers: [],
             hoses: [],
-            inspectionStatus: 'idle'
         };
         client.buildings.push(newBuilding);
         transaction.update(clientRef, { buildings: client.buildings });
@@ -170,25 +169,6 @@ export async function updateBuildingOrder(clientId: string, orderedBuildings: Bu
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
     const buildingsToSave = orderedBuildings.map(({ ...rest }) => rest);
     await clientRef.update({ buildings: buildingsToSave });
-}
-
-export async function updateBuildingInspectionStatus(clientId: string, buildingId: string, status: 'idle' | 'in_progress') {
-    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    return adminDb.runTransaction(async (transaction) => {
-        const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) {
-            throw new Error("Cliente não encontrado.");
-        }
-        const client = docToClient(clientDoc);
-        const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
-
-        if (buildingIndex !== -1) {
-            client.buildings[buildingIndex].inspectionStatus = status;
-            transaction.set(clientRef, { buildings: client.buildings }, { merge: true });
-        } else {
-            console.warn(`Local ${buildingId} não encontrado para o cliente ${clientId} ao atualizar status.`);
-        }
-    });
 }
 
 
@@ -380,8 +360,8 @@ export async function deleteHose(clientId: string, buildingId: string, uid: stri
 
 
 // --- Inspection Action ---
-export async function addInspectionBatch(clientId: string, buildingId: string, inspectedItems: InspectedItem[]) {
-    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+export async function finalizeInspection(session: InspectionSession) {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(session.clientId);
 
     await adminDb.runTransaction(async (transaction) => {
         const clientDoc = await transaction.get(clientRef);
@@ -390,16 +370,18 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
         }
 
         const client = docToClient(clientDoc);
-        const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
+        const buildingIndex = client.buildings.findIndex(b => b.id === session.buildingId);
         if (buildingIndex === -1) {
             throw new Error('Local não encontrado');
         }
         
         const building = client.buildings[buildingIndex];
         
+        // Mark building as inspected for the month
         building.lastInspected = new Date().toISOString();
 
-        inspectedItems.forEach(item => {
+        // Process all inspected items
+        session.inspectedItems.forEach(item => {
             const newInspection: Inspection = {
                 id: `insp-${Date.now()}-${Math.random()}`,
                 date: item.date,
@@ -411,36 +393,44 @@ export async function addInspectionBatch(clientId: string, buildingId: string, i
             let targetEquipment: Extinguisher | Hydrant | undefined;
 
             if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-                targetEquipment = building.extinguishers.find(e => e.qrCodeValue === item.qrCodeValue);
-                 if (targetEquipment) {
-                    targetEquipment.lastInspected = item.date;
+                const extIndex = building.extinguishers.findIndex(e => e.uid === item.uid);
+                if (extIndex !== -1) {
+                    // Update data if changed
+                    if (item.updatedData) {
+                         const validatedData = ExtinguisherFormSchema.partial().parse(item.updatedData);
+                         building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...validatedData };
+                    }
+                    // Add inspection
+                    building.extinguishers[extIndex].inspections.push(newInspection);
+                    building.extinguishers[extIndex].lastInspected = item.date;
                 }
             } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-                targetEquipment = building.hoses.find(h => h.qrCodeValue === item.qrCodeValue);
-                 if (targetEquipment) {
-                    targetEquipment.lastInspected = item.date;
-                }
+                 const hoseIndex = building.hoses.findIndex(h => h.uid === item.uid);
+                 if (hoseIndex !== -1) {
+                    // Update data if changed
+                    if (item.updatedData) {
+                        const existingHose = building.hoses[hoseIndex];
+                        const mergedData = { ...existingHose, ...item.updatedData };
+                        const validatedData = HydrantFormSchema.parse(mergedData);
+                        building.hoses[hoseIndex] = { ...existingHose, ...validatedData };
+                    }
+                    // Add inspection
+                    building.hoses[hoseIndex].inspections.push(newInspection);
+                    building.hoses[hoseIndex].lastInspected = item.date;
+                 }
             } else if (item.qrCodeValue.startsWith('manual:')) {
                 if (!building.manualInspections) {
                     building.manualInspections = [];
                 }
                 const manualId = item.qrCodeValue.replace('manual:', '');
                 building.manualInspections.push({ ...newInspection, manualId: manualId });
-                return; // continue to next item
-            }
-            
-            if (targetEquipment) {
-                if (!targetEquipment.inspections) {
-                    targetEquipment.inspections = [];
-                }
-                targetEquipment.inspections.push(newInspection);
             }
         });
 
         // Update the building in the client's buildings array
         client.buildings[buildingIndex] = building;
         
-        // Write the entire updated client object back
+        // Write the entire updated client object back to Firestore
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
@@ -479,5 +469,3 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
-
-    
