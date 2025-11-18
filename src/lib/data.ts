@@ -25,7 +25,7 @@ function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
           ...h,
           uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
       }));
-      return { ...b, extinguishers, hoses };
+      return { ...b, extinguishers, hoses, inspectionStatus: b.inspectionStatus || 'idle' };
   });
 
   return {
@@ -132,6 +132,7 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
             name: newBuildingData.name,
             extinguishers: [],
             hoses: [],
+            inspectionStatus: 'idle'
         };
         client.buildings.push(newBuilding);
         transaction.update(clientRef, { buildings: client.buildings });
@@ -171,6 +172,25 @@ export async function updateBuildingOrder(clientId: string, orderedBuildings: Bu
     await clientRef.update({ buildings: buildingsToSave });
 }
 
+export async function updateBuildingInspectionStatus(clientId: string, buildingId: string, status: 'idle' | 'in_progress') {
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    return adminDb.runTransaction(async (transaction) => {
+        const clientDoc = await transaction.get(clientRef);
+        if (!clientDoc.exists) {
+            throw new Error("Cliente não encontrado.");
+        }
+        const client = docToClient(clientDoc);
+        const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
+
+        if (buildingIndex !== -1) {
+            client.buildings[buildingIndex].inspectionStatus = status;
+            transaction.set(clientRef, { buildings: client.buildings }, { merge: true });
+        } else {
+            console.warn(`Local ${buildingId} não encontrado para o cliente ${clientId} ao atualizar status.`);
+        }
+    });
+}
+
 
 
 // --- Equipment Functions ---
@@ -183,6 +203,29 @@ export async function getHosesByBuilding(clientId: string, buildingId: string): 
     const building = await getBuildingById(clientId, buildingId);
     return building?.hoses || [];
 }
+
+export async function getEquipmentForBuildings(clientId: string, buildingIds: string[]): Promise<{extinguishers: (Extinguisher & {buildingId: string, buildingName: string})[], hoses: (Hydrant & {buildingId: string, buildingName: string})[]}> {
+  const client = await getClientById(clientId);
+  if (!client) {
+    return { extinguishers: [], hoses: [] };
+  }
+
+  const result = {
+    extinguishers: [] as (Extinguisher & {buildingId: string, buildingName: string})[],
+    hoses: [] as (Hydrant & {buildingId: string, buildingName: string})[]
+  };
+
+  for (const buildingId of buildingIds) {
+    const building = client.buildings.find(b => b.id === buildingId);
+    if (building) {
+      building.extinguishers.forEach(ext => result.extinguishers.push({ ...ext, buildingId: building.id, buildingName: building.name }));
+      building.hoses.forEach(hose => result.hoses.push({ ...hose, buildingId: building.id, buildingName: building.name }));
+    }
+  }
+
+  return result;
+}
+
 
 export async function getExtinguisherById(clientId: string, buildingId: string, id: string): Promise<Extinguisher | null> {
     const building = await getBuildingById(clientId, buildingId);
@@ -436,3 +479,5 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: client.buildings });
     });
 }
+
+    

@@ -1,13 +1,13 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext, useCallback } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getClientById, getBuildingsByClient, getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
+import { getClientById, getBuildingsByClient, getEquipmentForBuildings } from '@/lib/data';
 import type { Building, Client, Extinguisher, Hydrant, Inspection } from '@/lib/types';
 import { format, parseISO, isSameMonth, isSameYear, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
-import { KeyRound, SprayCan, Hash, Loader2 } from 'lucide-react';
+import { KeyRound, SprayCan, Hash, Loader2, Info } from 'lucide-react';
 import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -53,7 +53,10 @@ function getObservationNotes(inspection: Inspection | undefined): string {
     return notes || 'OK';
 }
 
-function ExtinguisherTable({ items }: { items: (Extinguisher & { buildingName: string })[] }) {
+function ExtinguisherTable({ items, isLoading }: { items: (Extinguisher & { buildingName: string })[], isLoading: boolean }) {
+    if (isLoading) {
+        return <TableSkeleton cols={7 + EXTINGUISHER_INSPECTION_ITEMS.length} />;
+    }
     if (items.length === 0) {
         return <p className="text-center py-8 text-muted-foreground">Nenhum extintor encontrado para esta seleção.</p>;
     }
@@ -95,7 +98,10 @@ function ExtinguisherTable({ items }: { items: (Extinguisher & { buildingName: s
     );
 }
 
-function HoseTable({ items }: { items: (Hydrant & { buildingName: string })[] }) {
+function HoseTable({ items, isLoading }: { items: (Hydrant & { buildingName: string })[], isLoading: boolean }) {
+     if (isLoading) {
+        return <TableSkeleton cols={9} />;
+    }
     if (items.length === 0) {
         return <p className="text-center py-8 text-muted-foreground">Nenhum hidrante encontrado para esta seleção.</p>;
     }
@@ -135,6 +141,26 @@ function HoseTable({ items }: { items: (Hydrant & { buildingName: string })[] })
         </Table>
     );
 }
+
+function TableSkeleton({ cols }: { cols: number }) {
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    {Array(cols).fill(0).map((_, i) => <TableHead key={i}><Skeleton className="h-5 w-20" /></TableHead>)}
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {Array(3).fill(0).map((_, i) => (
+                    <TableRow key={i}>
+                        {Array(cols).fill(0).map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+}
+
 
 function ConsultationSummary({ totals }: { totals: any }) {
     const { setSummary } = useContext(ConsultationSummaryContext);
@@ -200,17 +226,21 @@ export default function ConsultationPage() {
 
     const [client, setClient] = useState<Client | null>(null);
     const [buildings, setBuildings] = useState<Building[]>([]);
-    const [allEquipment, setAllEquipment] = useState<{extinguishers: (Extinguisher & {buildingId: string, buildingName: string})[], hoses: (Hydrant & {buildingId: string, buildingName: string})[]}>({extinguishers: [], hoses: []});
-    const [isLoading, setIsLoading] = useState(true);
+    const [equipment, setEquipment] = useState<{extinguishers: (Extinguisher & {buildingId: string, buildingName: string})[], hoses: (Hydrant & {buildingId: string, buildingName: string})[]}>({extinguishers: [], hoses: []});
+    
+    const [isLoadingClient, setIsLoadingClient] = useState(true);
+    const [isLoadingEquipment, setIsLoadingEquipment] = useState(false);
+
     const [showOnlyNC, setShowOnlyNC] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
     const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
     const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>({ type: 'none' });
 
+    // Initial fetch for client and buildings list
     useEffect(() => {
-        async function fetchData() {
+        async function fetchInitialData() {
             if (!clientId) return;
-            setIsLoading(true);
+            setIsLoadingClient(true);
             try {
                 const clientData = await getClientById(clientId);
                 if (!clientData) {
@@ -221,38 +251,40 @@ export default function ConsultationPage() {
 
                 const buildingsData = await getBuildingsByClient(clientId);
                 setBuildings(buildingsData);
-
-                const equipmentPromises = buildingsData.map(async b => {
-                    const [exts, hoses] = await Promise.all([
-                        getExtinguishersByBuilding(clientId, b.id),
-                        getHosesByBuilding(clientId, b.id)
-                    ]);
-                    return {
-                        extinguishers: exts.map(e => ({...e, buildingId: b.id, buildingName: b.name})),
-                        hoses: hoses.map(h => ({...h, buildingId: b.id, buildingName: b.name}))
-                    };
-                });
-
-                const allEquipmentResults = await Promise.all(equipmentPromises);
-                const combinedEquipment = allEquipmentResults.reduce((acc, current) => {
-                    acc.extinguishers.push(...current.extinguishers);
-                    acc.hoses.push(...current.hoses);
-                    return acc;
-                }, {extinguishers: [], hoses: []} as {extinguishers: (Extinguisher & {buildingId: string, buildingName: string})[], hoses: (Hydrant & {buildingId: string, buildingName: string})[]});
-                
-                setAllEquipment(combinedEquipment);
             } catch (err) {
-                console.error("Falha ao buscar dados para consulta:", err);
+                console.error("Falha ao buscar dados iniciais para consulta:", err);
             } finally {
-                setIsLoading(false);
+                setIsLoadingClient(false);
             }
         }
-        fetchData();
+        fetchInitialData();
     }, [clientId]);
 
+    // Fetch equipment when selected buildings change
+    useEffect(() => {
+        const fetchEquipmentData = async () => {
+            if (!clientId || selectedBuildingIds.length === 0) {
+                setEquipment({ extinguishers: [], hoses: [] });
+                return;
+            }
+            
+            setIsLoadingEquipment(true);
+            try {
+                const equipmentData = await getEquipmentForBuildings(clientId, selectedBuildingIds);
+                setEquipment(equipmentData);
+            } catch (err) {
+                 console.error("Falha ao buscar equipamentos para consulta:", err);
+            } finally {
+                setIsLoadingEquipment(false);
+            }
+        };
+
+        fetchEquipmentData();
+    }, [clientId, selectedBuildingIds]);
+
     const filteredItems = useMemo(() => {
-        let finalExtinguishers = allEquipment.extinguishers;
-        let finalHoses = allEquipment.hoses;
+        let finalExtinguishers = equipment.extinguishers;
+        let finalHoses = equipment.hoses;
 
         // N/C Filter
         if (showOnlyNC) {
@@ -267,15 +299,9 @@ export default function ConsultationPage() {
                 return lastInsp.status === 'N/C';
             });
         }
-        
-        // Building Filter
-        if (selectedBuildingIds.length > 0) {
-            finalExtinguishers = finalExtinguishers.filter(e => selectedBuildingIds.includes(e.buildingId));
-            finalHoses = finalHoses.filter(h => selectedBuildingIds.includes(h.buildingId));
-        }
 
-        // Expiry Filter
-        if (expiryFilter.type !== 'none') {
+        // Expiry Filter (only applied if buildings are selected)
+        if (selectedBuildingIds.length > 0 && expiryFilter.type !== 'none') {
             const now = new Date();
             finalExtinguishers = finalExtinguishers.filter(e => {
                 if (!e.expiryDate) return false;
@@ -303,7 +329,7 @@ export default function ConsultationPage() {
 
 
         return { extinguishers: finalExtinguishers, hoses: finalHoses };
-    }, [allEquipment, showOnlyNC, selectedBuildingIds, expiryFilter]);
+    }, [equipment, showOnlyNC, selectedBuildingIds, expiryFilter]);
 
     const totals = useMemo(() => {
         const totalExtinguishers = filteredItems.extinguishers.length;
@@ -335,7 +361,7 @@ export default function ConsultationPage() {
     }, [filteredItems]);
 
 
-    if (isLoading) {
+    if (isLoadingClient) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -349,6 +375,7 @@ export default function ConsultationPage() {
 
     const showExtinguishers = activeTab === 'all' || activeTab === 'extinguishers';
     const showHoses = activeTab === 'all' || activeTab === 'hoses';
+    const noBuildingsSelected = selectedBuildingIds.length === 0;
 
     return (
         <>
@@ -403,23 +430,23 @@ export default function ConsultationPage() {
                         </div>
 
                         <div className="space-y-8 mt-6">
-                            {isLoading ? (
-                                <div className="space-y-4">
-                                    <Skeleton className="h-8 w-1/4" />
-                                    <Skeleton className="h-24 w-full" />
+                            {noBuildingsSelected ? (
+                                <div className="text-center py-16 text-muted-foreground flex flex-col items-center gap-4">
+                                    <Info className="h-8 w-8" />
+                                    <p className="max-w-md">Selecione um ou mais prédios no filtro para visualizar os equipamentos e gerar o resumo.</p>
                                 </div>
                             ) : (
                                 <>
                                     {showExtinguishers && (
                                         <div>
                                             <h3 className="text-lg font-semibold mb-2">Extintores</h3>
-                                            <ExtinguisherTable items={filteredItems.extinguishers} />
+                                            <ExtinguisherTable items={filteredItems.extinguishers} isLoading={isLoadingEquipment} />
                                         </div>
                                     )}
                                     {showHoses && (
                                         <div>
                                             <h3 className="text-lg font-semibold mb-2">Hidrantes</h3>
-                                            <HoseTable items={filteredItems.hoses} />
+                                            <HoseTable items={filteredItems.hoses} isLoading={isLoadingEquipment} />
                                         </div>
                                     )}
                                 </>
@@ -431,3 +458,5 @@ export default function ConsultationPage() {
         </>
     );
 }
+
+    
