@@ -44,6 +44,15 @@ export function ConsultationFilters({
         onSelectedBuildingIdsChange(newSelectedIds);
     };
 
+    const handleSelectAllBuildings = () => {
+        if (selectedBuildingIds.length === buildings.length) {
+            onSelectedBuildingIdsChange([]); // Deselect all if all are selected
+        } else {
+            onSelectedBuildingIdsChange(buildings.map(b => b.id)); // Select all
+        }
+    };
+
+
     const handleFutureDateSelect = (date: Date | undefined) => {
         if (date) {
             onExpiryFilterChange({ type: 'future', date });
@@ -119,6 +128,18 @@ export function ConsultationFilters({
                         <CommandInput placeholder="Buscar prédio..." />
                         <CommandList>
                             <CommandEmpty>Nenhum prédio encontrado.</CommandEmpty>
+                             <CommandGroup>
+                                <CommandItem onSelect={handleSelectAllBuildings} className="font-semibold">
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedBuildingIds.length === buildings.length ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    Todos
+                                </CommandItem>
+                            </CommandGroup>
+                            <CommandSeparator />
                             <CommandGroup>
                                 {buildings.map((building) => (
                                     <CommandItem
