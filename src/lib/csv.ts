@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
@@ -168,6 +169,23 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         applyAutoFilter(wsHose, hoseHeader.length);
         XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes');
         
+        // --- Summary Sheet ---
+        if (allExtinguishers.length > 0) {
+            const summary = allExtinguishers.reduce((acc, ext) => {
+                const key = `${ext.type} ${ext.weight}kg`;
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const sortedSummary = Object.entries(summary).sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+
+            const summaryHeader = ['Tipo de Extintor', 'Quantidade'];
+            const summaryBody = sortedSummary;
+            
+            const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryBody]);
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumo Extintores');
+        }
+
         const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
         resolve();
@@ -407,4 +425,5 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 

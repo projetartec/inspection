@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import jsPDF from 'jspdf';
@@ -399,6 +400,31 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             doc.text("Nenhum hidrante registrado para este cliente.", 14, finalY);
             finalY += 10;
         }
+
+        // --- Summary Page ---
+        if (allExtinguishers.length > 0) {
+            doc.addPage();
+            finalY = await addHeaderAndLogo(doc, client, generationDate);
+            
+            doc.setFontSize(16);
+            doc.text('Resumo de Extintores', 14, finalY);
+            finalY += 10;
+
+            const summary = allExtinguishers.reduce((acc, ext) => {
+                const key = `${ext.type} ${ext.weight}kg`;
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const sortedSummary = Object.entries(summary).sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+
+            doc.autoTable({
+                ...tableStyles,
+                startY: finalY,
+                head: [['Tipo de Extintor', 'Quantidade']],
+                body: sortedSummary,
+            });
+        }
         
         const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -772,7 +798,7 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
         resolve();
     });
 }
-
+    
 // --- NON-CONFORMITY REPORT ---
 export async function generateNonConformityPdfReport(
     client: Client, 
@@ -879,6 +905,7 @@ export async function generateNonConformityPdfReport(
     
 
     
+
 
 
 
