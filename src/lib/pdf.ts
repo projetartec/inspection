@@ -120,13 +120,6 @@ async function addSummaryPage(doc: jsPDFWithAutoTable, extinguishers: Extinguish
     doc.text('Resumo de Extintores', 14, finalY);
     finalY += 10;
     
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total de Extintores: ${extinguishers.length}`, 14, finalY);
-    finalY += 10;
-    doc.setFont('helvetica', 'normal');
-
-
     const summary = extinguishers.reduce((acc, ext) => {
         const key = `${ext.type} ${ext.weight}kg`;
         acc[key] = (acc[key] || 0) + 1;
@@ -143,6 +136,13 @@ async function addSummaryPage(doc: jsPDFWithAutoTable, extinguishers: Extinguish
         headStyles: { fillColor: HEADER_BG_COLOR },
         styles: { halign: 'center' },
     });
+    
+    finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total de Extintores: ${extinguishers.length}`, 14, finalY);
+    doc.setFont('helvetica', 'normal');
 }
 
 
