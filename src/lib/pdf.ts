@@ -109,16 +109,23 @@ async function addHeaderAndLogo(doc: jsPDF, client: Client, generationDate: Date
     return finalY;
 }
 
-function addSummaryPage(doc: jsPDF, extinguishers: Extinguisher[], client: Client, generationDate: Date) {
+async function addSummaryPage(doc: jsPDFWithAutoTable, extinguishers: Extinguisher[], client: Client, generationDate: Date) {
     if (extinguishers.length === 0) return;
 
     doc.addPage();
     let finalY = 0;
-    addHeaderAndLogo(doc, client, generationDate).then(y => finalY = y);
+    finalY = await addHeaderAndLogo(doc, client, generationDate);
     
     doc.setFontSize(16);
     doc.text('Resumo de Extintores', 14, finalY);
     finalY += 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total de Extintores: ${extinguishers.length}`, 14, finalY);
+    finalY += 10;
+    doc.setFont('helvetica', 'normal');
+
 
     const summary = extinguishers.reduce((acc, ext) => {
         const key = `${ext.type} ${ext.weight}kg`;
@@ -282,7 +289,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
             })
         }
         
-        addSummaryPage(doc, extinguishers, client, generationDate);
+        await addSummaryPage(doc, extinguishers, client, generationDate);
         
         const fileName = `Relatorio_Inspecao_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -431,7 +438,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY += 10;
         }
 
-        addSummaryPage(doc, allExtinguishers, client, generationDate);
+        await addSummaryPage(doc, allExtinguishers, client, generationDate);
         
         const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -522,7 +529,7 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             finalY += 10;
         }
 
-        addSummaryPage(doc, expiringExtinguishers, client, generationDate);
+        await addSummaryPage(doc, expiringExtinguishers, client, generationDate);
         
         const fileName = `Relatorio_Vencimentos_${String(month + 1).padStart(2, '0')}-${year}_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -679,7 +686,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
             finalY += 10;
         }
         
-        addSummaryPage(doc, allExtinguishers, client, generationDate);
+        await addSummaryPage(doc, allExtinguishers, client, generationDate);
 
         const fileName = `Relatorio_Extintores_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -760,7 +767,7 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             });
         }
         
-        addSummaryPage(doc, allExtinguishers, client, generationDate);
+        await addSummaryPage(doc, allExtinguishers, client, generationDate);
 
         const fileName = `Relatorio_Descritivo_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
