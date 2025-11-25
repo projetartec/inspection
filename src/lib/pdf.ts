@@ -28,14 +28,20 @@ const HOSE_INSPECTION_ITEMS = [
 ];
 
 async function getLogoBase64(url: string): Promise<string> {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok.');
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error('Failed to fetch logo:', error);
+        return ''; // Return an empty string or a default placeholder if the logo fails to load
+    }
 }
 
 function formatDate(dateInput: string | null | undefined): string {
@@ -69,10 +75,10 @@ async function addHeaderAndLogo(doc: jsPDF, client: Client, generationDate: Date
     const logoBase64 = await getLogoBase64(LOGO_URL);
     const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
     
-    // Add logo to the top right corner
-    doc.addImage(logoBase64, 'PNG', pageWidth - 54, 10, 40, 20);
+    if (logoBase64) {
+        doc.addImage(logoBase64, 'PNG', pageWidth - 54, 10, 40, 20);
+    }
 
-    // Add client details to the top left
     let finalY = 15;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
@@ -103,9 +109,37 @@ async function addHeaderAndLogo(doc: jsPDF, client: Client, generationDate: Date
     return finalY;
 }
 
+function addSummaryPage(doc: jsPDF, extinguishers: Extinguisher[], client: Client, generationDate: Date) {
+    if (extinguishers.length === 0) return;
+
+    doc.addPage();
+    let finalY = 0;
+    addHeaderAndLogo(doc, client, generationDate).then(y => finalY = y);
+    
+    doc.setFontSize(16);
+    doc.text('Resumo de Extintores', 14, finalY);
+    finalY += 10;
+
+    const summary = extinguishers.reduce((acc, ext) => {
+        const key = `${ext.type} ${ext.weight}kg`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const sortedSummary = Object.entries(summary).sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+
+    doc.autoTable({
+        startY: finalY,
+        head: [['Tipo de Extintor', 'Quantidade']],
+        body: sortedSummary,
+        theme: 'striped',
+        headStyles: { fillColor: HEADER_BG_COLOR },
+        styles: { halign: 'center' },
+    });
+}
+
 
 export async function generatePdfReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
-    // Wrap in promise to make it async and unblock UI thread
     return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
             orientation: 'landscape',
@@ -132,7 +166,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
             headStyles: { fillColor: [255, 99, 71] }, // Tomato Red
         }
 
-        // --- Extinguishers Table ---
         if (extinguishers.length > 0) {
             const extHeader = ['ID', 'Local', 'Tipo', 'Carga', 'Recarga', 'Test. Hidro.', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'];
             doc.autoTable({
@@ -164,7 +197,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
                          data.row.styles.fillColor = EXPIRING_BG_COLOR;
                     }
                     
-                    // Highlight N/C cells
                     const itemStatusStartIndex = 6;
                     if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                         if (data.cell.text && data.cell.text[0] === 'N/C') {
@@ -187,7 +219,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
             finalY = 20; 
         }
         
-        // --- Hoses Table ---
         if (hoses.length > 0) {
             const hoseHeader = ['ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
             doc.autoTable({
@@ -231,7 +262,6 @@ export async function generatePdfReport(client: Client, building: Building, exti
             finalY = 20;
         }
 
-        // --- Manual/Failed Inspections Table ---
         if (building.manualInspections && building.manualInspections.length > 0) {
             doc.setFontSize(14);
             doc.text("Registros Manuais e Falhas de Leitura", 14, finalY);
@@ -251,6 +281,8 @@ export async function generatePdfReport(client: Client, building: Building, exti
                 })
             })
         }
+        
+        addSummaryPage(doc, extinguishers, client, generationDate);
         
         const fileName = `Relatorio_Inspecao_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -280,7 +312,6 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
 
-        // --- Extinguishers Table ---
         const allExtinguishers = buildings.flatMap(building => 
             (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
         );
@@ -351,7 +382,6 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY = 20;
         }
 
-        // --- Hoses Table ---
         const allHoses = buildings.flatMap(building => 
             (building.hoses || []).map(hose => ({...hose, buildingName: building.name}))
         );
@@ -401,30 +431,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY += 10;
         }
 
-        // --- Summary Page ---
-        if (allExtinguishers.length > 0) {
-            doc.addPage();
-            finalY = await addHeaderAndLogo(doc, client, generationDate);
-            
-            doc.setFontSize(16);
-            doc.text('Resumo de Extintores', 14, finalY);
-            finalY += 10;
-
-            const summary = allExtinguishers.reduce((acc, ext) => {
-                const key = `${ext.type} ${ext.weight}kg`;
-                acc[key] = (acc[key] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-            const sortedSummary = Object.entries(summary).sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-
-            doc.autoTable({
-                ...tableStyles,
-                startY: finalY,
-                head: [['Tipo de Extintor', 'Quantidade']],
-                body: sortedSummary,
-            });
-        }
+        addSummaryPage(doc, allExtinguishers, client, generationDate);
         
         const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -432,8 +439,6 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
     });
 }
 
-
-// --- EXPIRY REPORT GENERATORS ---
 
 export async function generateExpiryPdfReport(client: Client, buildings: Building[], month: number, year: number) {
     return new Promise<void>(async (resolve) => {
@@ -466,7 +471,6 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             } catch { return false; }
         };
 
-        // --- Expiring Extinguishers ---
         const expiringExtinguishers = buildings
             .flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })))
             .filter(e => filterByMonthYear(e.expiryDate));
@@ -488,7 +492,6 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             finalY = (doc as any).lastAutoTable.finalY + 10;
         }
 
-        // --- Expiring Hoses ---
         const expiringHoses = buildings
             .flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })))
             .filter(h => filterByMonthYear(h.hydrostaticTestDate));
@@ -519,33 +522,7 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             finalY += 10;
         }
 
-        // --- Summary Page ---
-        if (expiringExtinguishers.length > 0) {
-            doc.addPage();
-            finalY = await addHeaderAndLogo(doc, client, generationDate);
-
-            doc.setFontSize(16);
-            doc.text(`Resumo de Vencimentos - ${targetMonthName.charAt(0).toUpperCase() + targetMonthName.slice(1)}/${year}`, 14, finalY);
-            finalY += 10;
-
-            const summary = expiringExtinguishers.reduce((acc, ext) => {
-                acc[ext.type] = (acc[ext.type] || 0) + 1;
-                return acc;
-            }, {} as Record<ExtinguisherType, number>);
-
-            const summaryBody = Object.entries(summary).map(([type, quantity]) => [type, quantity]);
-            const total = Object.values(summary).reduce((sum, count) => sum + count, 0);
-
-            doc.autoTable({
-                ...tableStyles,
-                startY: finalY,
-                head: [['Tipo de Extintor', 'Quantidade a Vencer']],
-                body: summaryBody,
-                foot: [['Total Geral', total]],
-                footStyles: { fillColor: HEADER_BG_COLOR, textColor: [255, 255, 255], fontStyle: 'bold' },
-            });
-        }
-
+        addSummaryPage(doc, expiringExtinguishers, client, generationDate);
         
         const fileName = `Relatorio_Vencimentos_${String(month + 1).padStart(2, '0')}-${year}_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
@@ -553,7 +530,6 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
     });
 }
 
-// --- HOSES ONLY REPORT ---
 export async function generateHosesPdfReport(client: Client, buildingsWithHoses: (Building & { hoses: Hydrant[] })[]) {
     return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
@@ -564,7 +540,6 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
         let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
-        // --- Header ---
         doc.setFontSize(16);
         doc.text("Relatório de Mangueiras", 14, finalY);
         finalY += 10;
@@ -576,7 +551,6 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
             styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
         };
         
-        // --- Hoses Table ---
         const allHoses = buildingsWithHoses.flatMap(building => 
             (building.hoses || []).map(hose => ({...hose, buildingName: building.name}))
         );
@@ -628,7 +602,6 @@ export async function generateHosesPdfReport(client: Client, buildingsWithHoses:
     });
 }
 
-// --- EXTINGUISHERS ONLY REPORT ---
 export async function generateExtinguishersPdfReport(client: Client, buildingsWithExtinguishers: (Building & { extinguishers: Extinguisher[] })[]) {
     return new Promise<void>(async (resolve) => {
         const doc = new jsPDF({
@@ -638,7 +611,6 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
         const generationDate = new Date();
         let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
-        // --- Header ---
         doc.setFontSize(16);
         doc.text("Relatório de Extintores", 14, finalY);
         finalY += 10;
@@ -650,7 +622,6 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
             styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
         
-        // --- Extinguishers Table ---
         const allExtinguishers = buildingsWithExtinguishers.flatMap(building => 
             (building.extinguishers || []).map(ext => ({...ext, buildingName: building.name}))
         );
@@ -688,7 +659,6 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         if (!data.row.styles) {
                             data.row.styles = {};
                         }
-                        // Highlight expiring items
                         if (item.expiryDate && isSameMonth(parseISO(item.expiryDate), generationDate) && isSameYear(parseISO(item.expiryDate), generationDate)) {
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
@@ -709,13 +679,13 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
             finalY += 10;
         }
         
+        addSummaryPage(doc, allExtinguishers, client, generationDate);
+
         const fileName = `Relatorio_Extintores_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
         resolve();
     });
 }
-
-// --- DESCRIPTIVE REPORT ---
 
 export async function generateDescriptivePdfReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
     return new Promise<void>(async (resolve) => {
@@ -727,7 +697,6 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
         let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
-        // --- Header ---
         doc.setFontSize(16);
         doc.text("Relatório Descritivo de Equipamentos", 14, finalY);
         finalY += 10;
@@ -739,7 +708,6 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
         };
 
-        // --- Extinguishers Table ---
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         if (allExtinguishers.length > 0) {
             doc.setFontSize(14);
@@ -767,7 +735,6 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             finalY = await addHeaderAndLogo(doc, client, generationDate);
         }
 
-        // --- Hoses Table ---
         const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         if (allHoses.length > 0) {
             doc.setFontSize(14);
@@ -793,13 +760,14 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             });
         }
         
+        addSummaryPage(doc, allExtinguishers, client, generationDate);
+
         const fileName = `Relatorio_Descritivo_${client.name.replace(/ /g, '_')}.pdf`;
         doc.save(fileName);
         resolve();
     });
 }
     
-// --- NON-CONFORMITY REPORT ---
 export async function generateNonConformityPdfReport(
     client: Client, 
     buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[],
@@ -814,7 +782,6 @@ export async function generateNonConformityPdfReport(
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
         let finalY = await addHeaderAndLogo(doc, client, generationDate);
 
-        // --- Header ---
         doc.setFontSize(16);
         doc.text("Relatório de Inconformidades (N/C)", 14, finalY);
         finalY += 10;
@@ -829,7 +796,6 @@ export async function generateNonConformityPdfReport(
         const showExtinguishers = type === 'consolidated' || type === 'extinguishers';
         const showHoses = type === 'consolidated' || type === 'hoses';
 
-        // --- Extinguishers Table ---
         const ncExtinguishers = buildings.flatMap(b => (b.extinguishers || [])
             .filter(e => e.inspections.some(i => i.status === 'N/C'))
             .map(e => ({ ...e, buildingName: b.name }))
@@ -862,7 +828,6 @@ export async function generateNonConformityPdfReport(
             finalY = await addHeaderAndLogo(doc, client, generationDate);
         }
 
-        // --- Hoses Table ---
         const ncHoses = buildings.flatMap(b => (b.hoses || [])
             .filter(h => h.inspections.some(i => i.status === 'N/C'))
             .map(h => ({ ...h, buildingName: b.name }))
@@ -905,7 +870,3 @@ export async function generateNonConformityPdfReport(
     
 
     
-
-
-
-

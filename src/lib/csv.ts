@@ -16,9 +16,6 @@ const HOSE_INSPECTION_ITEMS = [
     "Acrílico", "Sinalização"
 ];
 
-
-// --- HELPERS & STYLES ---
-
 function formatDate(dateInput: string | null | undefined): string {
     if (!dateInput) return 'N/A';
     try {
@@ -51,14 +48,29 @@ function getObservationNotes(inspection: Inspection | undefined): string {
     return notes;
 }
 
-// --- MAIN REPORT GENERATORS ---
+function addSummarySheet(wb: XLSX.WorkBook, extinguishers: Extinguisher[]) {
+    if (extinguishers.length === 0) return;
+
+    const summary = extinguishers.reduce((acc, ext) => {
+        const key = `${ext.type} ${ext.weight}kg`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const sortedSummary = Object.entries(summary).sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+
+    const summaryHeader = ['Tipo de Extintor', 'Quantidade'];
+    const summaryBody = sortedSummary;
+    
+    const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryBody]);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumo Extintores');
+}
 
 export async function generateXlsxReport(client: Client, building: Building, extinguishers: Extinguisher[], hoses: Hydrant[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
         const generationDate = new Date();
 
-        // --- Extinguishers Sheet ---
         const extHeader = ['Alerta', 'ID', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'];
         const extBody = (extinguishers || []).map(e => {
             const lastInsp = e.inspections?.[e.inspections.length - 1];
@@ -81,7 +93,6 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         applyAutoFilter(wsExt, extHeader.length);
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
 
-        // --- Hoses Sheet ---
         const hoseHeader = ['Alerta', 'ID', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
         const hoseBody = (hoses || []).map(h => {
             const insp = h.inspections?.[h.inspections.length - 1];
@@ -98,7 +109,6 @@ export async function generateXlsxReport(client: Client, building: Building, ext
         applyAutoFilter(wsHose, hoseHeader.length);
         XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes');
         
-        // --- Manual Inspections Sheet ---
         if(building.manualInspections && building.manualInspections.length > 0) {
             const manualHeader = ['ID Manual', 'Data', 'Status', 'Observações'];
             const manualBody = building.manualInspections.map(insp => {
@@ -109,6 +119,8 @@ export async function generateXlsxReport(client: Client, building: Building, ext
             applyAutoFilter(wsManual, manualHeader.length);
             XLSX.utils.book_append_sheet(wb, wsManual, 'Falhas de Leitura');
         }
+
+        addSummarySheet(wb, extinguishers);
 
         const fileName = `Relatorio_Inspecao_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
@@ -121,7 +133,6 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         const wb = XLSX.utils.book_new();
         const generationDate = new Date();
        
-        // --- Extinguishers Section ---
         const extHeader = [
             'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
             ...EXTINGUISHER_INSPECTION_ITEMS,
@@ -151,7 +162,6 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         applyAutoFilter(wsExt, extHeader.length);
         XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
 
-        // --- Hoses Section ---
         const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status', 'Observações'];
         const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
@@ -169,22 +179,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         applyAutoFilter(wsHose, hoseHeader.length);
         XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes');
         
-        // --- Summary Sheet ---
-        if (allExtinguishers.length > 0) {
-            const summary = allExtinguishers.reduce((acc, ext) => {
-                const key = `${ext.type} ${ext.weight}kg`;
-                acc[key] = (acc[key] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-            const sortedSummary = Object.entries(summary).sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-
-            const summaryHeader = ['Tipo de Extintor', 'Quantidade'];
-            const summaryBody = sortedSummary;
-            
-            const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryBody]);
-            XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumo Extintores');
-        }
+        addSummarySheet(wb, allExtinguishers);
 
         const fileName = `Relatorio_Consolidado_${client.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
@@ -192,8 +187,6 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
     });
 }
 
-
-// --- EXPIRY REPORT GENERATORS ---
 
 export async function generateExpiryXlsxReport(client: Client, buildings: Building[], month: number, year: number) {
     return new Promise<void>((resolve) => {
@@ -207,26 +200,24 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
             } catch { return false; }
         };
 
-        // --- Expiring Extinguishers ---
-        const extHeader = ['ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático'];
         const expiringExtinguishers = buildings
             .flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })))
             .filter(e => filterByMonthYear(e.expiryDate));
         
         if (expiringExtinguishers.length > 0) {
+            const extHeader = ['ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático'];
             const extBody = expiringExtinguishers.map(e => [e.id, e.buildingName, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear]);
             const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
             applyAutoFilter(wsExt, extHeader.length);
             XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores a Vencer');
         }
 
-        // --- Expiring Hoses ---
-        const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Próx. Teste Hidr.'];
         const expiringHoses = buildings
             .flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })))
             .filter(h => filterByMonthYear(h.hydrostaticTestDate));
             
         if (expiringHoses.length > 0) {
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Próx. Teste Hidr.'];
             const hoseBody = expiringHoses.map(h => [h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, formatDate(h.hydrostaticTestDate)]);
             const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
             applyAutoFilter(wsHose, hoseHeader.length);
@@ -238,20 +229,19 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
              XLSX.utils.book_append_sheet(wb, wsEmpty, 'Vencimentos');
         }
 
+        addSummarySheet(wb, expiringExtinguishers);
+
         const fileName = `Relatorio_Vencimentos_${String(month + 1).padStart(2, '0')}-${year}_${client.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
         resolve();
     });
 }
 
-// --- HOSES ONLY REPORT ---
-
 export async function generateHosesXlsxReport(client: Client, buildingsWithHoses: (Building & { hoses: Hydrant[] })[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
         const generationDate = new Date();
        
-        // --- Hoses Section ---
         const hoseHeader = ['Alerta', 'ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Qtd Chaves', 'Qtd Esguichos', 'Próx. Teste Hidr.', 'Status', 'Observações'];
         const allHoses = buildingsWithHoses.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         const hoseBody = allHoses.map(h => {
@@ -275,8 +265,6 @@ export async function generateHosesXlsxReport(client: Client, buildingsWithHoses
         resolve();
     });
 }
-
-// --- EXTINGUISHERS ONLY REPORT ---
 
 export async function generateExtinguishersXlsxReport(client: Client, buildingsWithExtinguishers: (Building & { extinguishers: Extinguisher[] })[]) {
     return new Promise<void>((resolve) => {
@@ -311,19 +299,18 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         applyAutoFilter(wsExt, extHeader.length);
         XLSX.utils.book_append_sheet(wb, wsExt, 'Relatório de Extintores');
         
+        addSummarySheet(wb, allExtinguishers);
+
         const fileName = `Relatorio_Extintores_${client.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
         resolve();
     });
 }
 
-// --- DESCRIPTIVE REPORT ---
-
 export async function generateDescriptiveXlsxReport(client: Client, buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[]) {
     return new Promise<void>((resolve) => {
         const wb = XLSX.utils.book_new();
 
-        // --- Extinguishers Sheet ---
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         if (allExtinguishers.length > 0) {
             const extHeader = ['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga'];
@@ -340,7 +327,6 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
             XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores');
         }
 
-        // --- Hoses Sheet ---
         const allHoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name })));
         if (allHoses.length > 0) {
             const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Test'];
@@ -361,13 +347,14 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
             XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes');
         }
         
+        addSummarySheet(wb, allExtinguishers);
+
         const fileName = `Relatorio_Descritivo_${client.name.replace(/ /g, '_')}.xlsx`;
         XLSX.writeFile(wb, fileName);
         resolve();
     });
 }
     
-// --- NON-CONFORMITY REPORT ---
 export async function generateNonConformityXlsxReport(
     client: Client, 
     buildings: (Building & { extinguishers: Extinguisher[], hoses: Hydrant[] })[],
@@ -378,7 +365,6 @@ export async function generateNonConformityXlsxReport(
         const showExtinguishers = type === 'consolidated' || type === 'extinguishers';
         const showHoses = type === 'consolidated' || type === 'hoses';
 
-        // --- Extinguishers Sheet ---
         const ncExtinguishers = buildings.flatMap(b => (b.extinguishers || [])
             .filter(e => e.inspections.some(i => i.status === 'N/C'))
             .map(e => ({ ...e, buildingName: b.name }))
@@ -395,7 +381,6 @@ export async function generateNonConformityXlsxReport(
             XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores NC');
         }
 
-        // --- Hoses Sheet ---
         const ncHoses = buildings.flatMap(b => (b.hoses || [])
             .filter(h => h.inspections.some(i => i.status === 'N/C'))
             .map(h => ({ ...h, buildingName: b.name }))
@@ -425,5 +410,6 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 
 
