@@ -329,7 +329,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
             finalY += 8;
 
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
+                'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
                 ...EXTINGUISHER_INSPECTION_ITEMS,
                 'Observações'
             ];
@@ -346,6 +346,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                     
                     return [
                         e.id, 
+                        e.observations || '',
                         e.buildingName, 
                         formatDate(e.expiryDate), 
                         e.type, 
@@ -367,7 +368,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        const itemStatusStartIndex = 5; 
+                        const itemStatusStartIndex = 6; 
                         if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
@@ -386,7 +387,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
         finalY += 10;
         if (finalY > pageHeight - 40) {
             doc.addPage();
-            finalY = 20;
+            finalY = await addHeaderAndLogo(doc, client, generationDate);
         }
 
         const allHoses = buildings.flatMap(building => 
@@ -490,9 +491,9 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Data de Recarga', 'Ano Test. Hidro.']],
+                head: [['ID', 'Local', 'Prédio', 'Tipo', 'Carga (kg)', 'Data de Recarga', 'Ano Test. Hidro.']],
                 body: expiringExtinguishers.map(e => [
-                    e.id, e.buildingName, e.observations || '', e.type, e.weight,
+                    e.id, e.observations || '', e.buildingName, e.type, e.weight,
                     formatDate(e.expiryDate), e.hydrostaticTestYear,
                 ]),
             });
@@ -635,7 +636,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
 
         if (allExtinguishers.length > 0) {
             const extHeader = [
-                'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'
+                'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga', ...EXTINGUISHER_INSPECTION_ITEMS, 'Observações'
             ];
             
             doc.autoTable({
@@ -650,6 +651,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                     
                     return [
                         e.id, 
+                        e.observations || '',
                         e.buildingName, 
                         formatDate(e.expiryDate), 
                         e.type, 
@@ -670,7 +672,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                             data.row.styles.fillColor = EXPIRING_BG_COLOR;
                         }
                         
-                        const itemStatusStartIndex = 5;
+                        const itemStatusStartIndex = 6;
                         if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                              if (data.cell.text && data.cell.text[0] === 'N/C') {
                                 data.cell.styles.fillColor = NC_BG_COLOR;
@@ -724,11 +726,11 @@ export async function generateDescriptivePdfReport(client: Client, buildings: (B
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga']],
+                head: [['ID', 'Local', 'Prédio', 'Tipo', 'Carga', 'Recarga']],
                 body: allExtinguishers.map(e => [
                     e.id,
-                    e.buildingName,
                     e.observations || '',
+                    e.buildingName,
                     e.type,
                     e.weight + ' kg',
                     formatDate(e.expiryDate),
@@ -816,13 +818,13 @@ export async function generateNonConformityPdfReport(
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Observações da Inspeção']],
+                head: [['ID', 'Local', 'Prédio', 'Observações da Inspeção']],
                 body: ncExtinguishers.map(e => {
                     const ncInspection = e.inspections.find(i => i.status === 'N/C');
                     return [
                         e.id,
-                        e.buildingName,
                         e.observations || '',
+                        e.buildingName,
                         getObservationNotes(ncInspection)
                     ];
                 }),
@@ -877,3 +879,4 @@ export async function generateNonConformityPdfReport(
     
 
     
+

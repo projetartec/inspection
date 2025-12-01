@@ -63,6 +63,7 @@ function addSummarySheet(wb: XLSX.WorkBook, extinguishers: Extinguisher[]) {
     const summaryBody = sortedSummary;
     
     const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryBody]);
+    wsSummary['!cols'] = [{ wch: 25 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumo Extintores');
 }
 
@@ -134,7 +135,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
         const generationDate = new Date();
        
         const extHeader = [
-            'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+            'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga',
             ...EXTINGUISHER_INSPECTION_ITEMS,
             'Observações'
         ];
@@ -149,6 +150,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
             
             return [
                 e.id, 
+                e.observations || '',
                 e.buildingName, 
                 formatDate(e.expiryDate), 
                 e.type, 
@@ -205,8 +207,8 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
             .filter(e => filterByMonthYear(e.expiryDate));
         
         if (expiringExtinguishers.length > 0) {
-            const extHeader = ['ID', 'Prédio', 'Local', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático'];
-            const extBody = expiringExtinguishers.map(e => [e.id, e.buildingName, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear]);
+            const extHeader = ['ID', 'Local', 'Prédio', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático'];
+            const extBody = expiringExtinguishers.map(e => [e.id, e.observations, e.buildingName, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear]);
             const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
             applyAutoFilter(wsExt, extHeader.length);
             XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores a Vencer');
@@ -271,7 +273,7 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
         const wb = XLSX.utils.book_new();
        
         const extHeader = [
-            'ID', 'Prédio', 'Recarga', 'Tipo', 'Carga',
+            'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga',
             ...EXTINGUISHER_INSPECTION_ITEMS,
             'Observações'
         ];
@@ -286,6 +288,7 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
             
             return [
                 e.id, 
+                e.observations || '',
                 e.buildingName, 
                 formatDate(e.expiryDate), 
                 e.type, 
@@ -313,11 +316,11 @@ export async function generateDescriptiveXlsxReport(client: Client, buildings: (
 
         const allExtinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name })));
         if (allExtinguishers.length > 0) {
-            const extHeader = ['ID', 'Prédio', 'Local', 'Tipo', 'Carga', 'Recarga'];
+            const extHeader = ['ID', 'Local', 'Prédio', 'Tipo', 'Carga', 'Recarga'];
             const extBody = allExtinguishers.map(e => [
                 e.id,
-                e.buildingName,
                 e.observations || '',
+                e.buildingName,
                 e.type,
                 e.weight + ' kg',
                 formatDate(e.expiryDate)
@@ -371,10 +374,10 @@ export async function generateNonConformityXlsxReport(
         );
 
         if (showExtinguishers && ncExtinguishers.length > 0) {
-            const extHeader = ['ID', 'Prédio', 'Local', 'Observações da Inspeção'];
+            const extHeader = ['ID', 'Local', 'Prédio', 'Observações da Inspeção'];
             const extBody = ncExtinguishers.map(e => {
                 const ncInspection = e.inspections.find(i => i.status === 'N/C');
-                return [e.id, e.buildingName, e.observations || '', getObservationNotes(ncInspection)];
+                return [e.id, e.observations || '', e.buildingName, getObservationNotes(ncInspection)];
             });
             const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
             applyAutoFilter(wsExt, extHeader.length);
@@ -410,6 +413,7 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 
 
 
