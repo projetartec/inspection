@@ -1,3 +1,4 @@
+
 "use client"
 
 // Inspired by react-hot-toast library
@@ -58,7 +59,7 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, duration?: number) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -69,7 +70,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, duration ?? TOAST_REMOVE_DELAY)
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -92,14 +93,15 @@ export const reducer = (state: State, action: Action): State => {
 
     case "DISMISS_TOAST": {
       const { toastId } = action
+      const toast = state.toasts.find((t) => t.id === toastId);
 
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
       if (toastId) {
-        addToRemoveQueue(toastId)
+        addToRemoveQueue(toastId, toast?.duration)
       } else {
         state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
+          addToRemoveQueue(toast.id, toast.duration)
         })
       }
 
@@ -152,17 +154,29 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
+  // Define default duration for success toasts
+  const isSuccess = props.variant !== 'destructive';
+  const duration = props.duration ?? (isSuccess ? 1000 : TOAST_REMOVE_DELAY);
+
   dispatch({
     type: "ADD_TOAST",
     toast: {
       ...props,
       id,
       open: true,
+      duration: duration,
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
     },
   })
+
+  // Automatically dismiss success toasts
+  if (isSuccess) {
+    setTimeout(() => {
+        dismiss();
+    }, duration);
+  }
 
   return {
     id: id,
