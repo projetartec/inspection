@@ -24,7 +24,7 @@ import {
     getExtinguisherByUid,
     getHoseByUid,
 } from './data';
-import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding, getBuildingsByClient } from './data';
+import { getClientById, getBuildingById, getExtinguishersByBuilding, getHosesByBuilding, getBuildingsByClient, getEquipmentForBuildings } from './data';
 
 
 // --- Client Actions ---
@@ -309,8 +309,17 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
             getHosesByBuilding(clientId, b.id)
         ]);
 
-        const ncExtinguishers = extinguishers.filter(e => e.inspections.some(i => i.status === 'N/C'));
-        const ncHoses = hoses.filter(h => h.inspections.some(i => i.status === 'N/C'));
+        const ncExtinguishers = extinguishers.filter(e => {
+            if (!e.inspections || e.inspections.length === 0) return false;
+            const lastInspection = e.inspections[e.inspections.length - 1];
+            return lastInspection.status === 'N/C';
+        });
+
+        const ncHoses = hoses.filter(h => {
+             if (!h.inspections || h.inspections.length === 0) return false;
+            const lastInspection = h.inspections[h.inspections.length - 1];
+            return lastInspection.status === 'N/C';
+        });
 
         return { ...b, extinguishers: ncExtinguishers, hoses: ncHoses };
     }));
