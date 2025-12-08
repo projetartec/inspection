@@ -77,7 +77,7 @@ async function addHeaderAndLogo(doc: jsPDF, client: Client, generationDate: Date
     const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
     
     if (logoBase64) {
-        doc.addImage(logoBase64, 'PNG', pageWidth - 54, 10, 40, 20);
+        doc.addImage(logoBase64, 'PNG', pageWidth - 54, 10, 40, 20, undefined, 'FAST');
     }
 
     let finalY = 15;
@@ -918,3 +918,4 @@ export async function generateNonConformityPdfReport(
     
 
     
+
