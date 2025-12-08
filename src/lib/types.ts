@@ -1,5 +1,6 @@
 
 
+
 export type Inspection = {
   id: string;
   date: string;

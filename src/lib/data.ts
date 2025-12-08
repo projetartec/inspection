@@ -1,11 +1,12 @@
 
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
-import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
+import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session';
 
 const CLIENTS_COLLECTION = 'clients';
 

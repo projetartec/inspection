@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
 import type { Extinguisher, Hydrant } from '@/lib/types';
 import { InspectionList } from '@/components/inspection-list';
-import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
+import { useInspectionSession } from '@/hooks/use-inspection-session';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"

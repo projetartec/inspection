@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +12,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { Extinguisher, Hydrant as Hose } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
+import { useInspectionSession } from '@/hooks/use-inspection-session';
 import Image from 'next/image';
 
 interface Stat {

@@ -1,5 +1,6 @@
 
-'use client';
+
+'use server';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format, parseISO, isSameMonth, isSameYear } from 'date-fns';
