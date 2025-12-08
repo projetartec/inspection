@@ -374,10 +374,24 @@ export async function generateNonConformityXlsxReport(
         );
 
         if (showExtinguishers && ncExtinguishers.length > 0) {
-            const extHeader = ['ID', 'Local', 'Prédio', 'Observações da Inspeção'];
+            const extHeader = [
+                'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
+            ];
             const extBody = ncExtinguishers.map(e => {
                 const ncInspection = e.inspections.find(i => i.status === 'N/C');
-                return [e.id, e.observations || '', e.buildingName, getObservationNotes(ncInspection)];
+                const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => ncInspection?.itemStatuses?.[item] || 'OK');
+                return [
+                    e.id,
+                    e.observations || '',
+                    e.buildingName,
+                    formatDate(e.expiryDate),
+                    e.type,
+                    e.weight + ' kg',
+                    ...inspectionStatus,
+                    getObservationNotes(ncInspection)
+                ];
             });
             const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
             applyAutoFilter(wsExt, extHeader.length);
@@ -390,10 +404,23 @@ export async function generateNonConformityXlsxReport(
         );
 
         if (showHoses && ncHoses.length > 0) {
-            const hoseHeader = ['ID', 'Prédio', 'Local', 'Observações da Inspeção'];
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
             const hoseBody = ncHoses.map(h => {
                 const ncInspection = h.inspections.find(i => i.status === 'N/C');
-                return [h.id, h.buildingName, h.location, getObservationNotes(ncInspection)];
+                return [
+                    h.id,
+                    h.buildingName,
+                    h.location,
+                    h.quantity,
+                    'Tipo ' + h.hoseType,
+                    h.diameter + '"',
+                    h.hoseLength + 'm',
+                    h.keyQuantity,
+                    h.nozzleQuantity,
+                    formatDate(h.hydrostaticTestDate),
+                    ncInspection?.status || 'N/A',
+                    getObservationNotes(ncInspection)
+                ];
             });
             const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
             applyAutoFilter(wsHose, hoseHeader.length);
@@ -413,6 +440,7 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 
 
 

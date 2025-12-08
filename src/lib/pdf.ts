@@ -799,7 +799,7 @@ export async function generateNonConformityPdfReport(
             theme: 'striped',
             headStyles: { fillColor: NC_BG_COLOR, textColor: [0,0,0] },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+            styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
 
         const showExtinguishers = type === 'consolidated' || type === 'extinguishers';
@@ -815,19 +815,39 @@ export async function generateNonConformityPdfReport(
             doc.text("Extintores Não Conformes", 14, finalY);
             finalY += 8;
 
+            const extHeader = [
+                'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
+            ];
+
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Local', 'Prédio', 'Observações da Inspeção']],
+                head: [extHeader],
                 body: ncExtinguishers.map(e => {
                     const ncInspection = e.inspections.find(i => i.status === 'N/C');
+                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => ncInspection?.itemStatuses?.[item] || 'OK');
                     return [
                         e.id,
                         e.observations || '',
                         e.buildingName,
+                        formatDate(e.expiryDate),
+                        e.type,
+                        e.weight + ' kg',
+                        ...inspectionStatus,
                         getObservationNotes(ncInspection)
                     ];
                 }),
+                didParseCell: (data) => {
+                    const itemStatusStartIndex = 6; 
+                    if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                         if (data.cell.text && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                }
             });
             finalY = (doc as any).lastAutoTable.finalY + 10;
         }
@@ -846,17 +866,27 @@ export async function generateNonConformityPdfReport(
             doc.setFontSize(14);
             doc.text("Hidrantes Não Conformes", 14, finalY);
             finalY += 8;
+            
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
 
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Observações da Inspeção']],
+                head: [hoseHeader],
                 body: ncHoses.map(h => {
                     const ncInspection = h.inspections.find(i => i.status === 'N/C');
                     return [
                         h.id,
                         h.buildingName,
                         h.location,
+                        h.quantity,
+                        'Tipo ' + h.hoseType,
+                        h.diameter + '"',
+                        h.hoseLength + 'm',
+                        h.keyQuantity,
+                        h.nozzleQuantity,
+                        formatDate(h.hydrostaticTestDate),
+                        ncInspection?.status || 'N/A',
                         getObservationNotes(ncInspection)
                     ];
                 }),
@@ -879,4 +909,3 @@ export async function generateNonConformityPdfReport(
     
 
     
-
