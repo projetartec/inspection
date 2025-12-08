@@ -63,12 +63,12 @@ function getObservationNotes(inspection: Inspection | undefined): string {
 
     let notes = '';
     if (ncItems.length > 0) {
-        notes += `Itens N/C: ${ncItems.join(', ')}`;
+        notes += ncItems.join(', ');
     }
     if (inspection.notes) {
         notes += (notes ? ' - ' : '') + inspection.notes;
     }
-    return notes;
+    return notes || 'OK';
 }
 
 
@@ -194,7 +194,7 @@ export async function generatePdfReport(client: Client, building: Building, exti
                         formatDate(e.expiryDate), 
                         e.hydrostaticTestYear,
                         ...inspectionStatus,
-                        lastInsp?.notes || '', 
+                        getObservationNotes(lastInsp), 
                     ];
                 }),
                 didParseCell: (data) => {
@@ -353,7 +353,7 @@ export async function generateClientPdfReport(client: Client, buildings: (Buildi
                         e.type, 
                         e.weight + ' kg',
                         ...inspectionStatus,
-                        lastInsp?.notes || '',
+                        getObservationNotes(lastInsp),
                     ];
                 }),
                 didParseCell: (data) => {
@@ -658,7 +658,7 @@ export async function generateExtinguishersPdfReport(client: Client, buildingsWi
                         e.type, 
                         e.weight + ' kg',
                         ...inspectionStatus,
-                        lastInsp?.notes || '',
+                        getObservationNotes(lastInsp),
                     ];
                 }),
                 didParseCell: (data) => {

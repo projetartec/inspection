@@ -40,7 +40,7 @@ function getObservationNotes(inspection: Inspection | undefined): string {
 
     let notes = '';
     if (ncItems.length > 0) {
-        notes += `Itens N/C: ${ncItems.join(', ')}`;
+        notes += ncItems.join(', ');
     }
     if (inspection.notes) {
         notes += (notes ? ' - ' : '') + inspection.notes;
@@ -89,7 +89,7 @@ export async function generateXlsxReport(client: Client, building: Building, ext
                  alert = alert ? `${alert} / VENCE ESTE MÊS` : 'VENCE ESTE MÊS';
             }
 
-            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, ...inspectionStatus, lastInsp?.notes || ''];
+            return [alert, e.id, e.observations, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear, ...inspectionStatus, getObservationNotes(lastInsp)];
         });
         const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
         applyAutoFilter(wsExt, extHeader.length);
@@ -157,7 +157,7 @@ export async function generateClientXlsxReport(client: Client, buildings: (Build
                 e.type, 
                 e.weight,
                 ...inspectionStatus,
-                lastInsp?.notes || ''
+                getObservationNotes(lastInsp)
             ];
         });
 
@@ -295,7 +295,7 @@ export async function generateExtinguishersXlsxReport(client: Client, buildingsW
                 e.type, 
                 e.weight,
                 ...inspectionStatus,
-                lastInsp?.notes || ''
+                getObservationNotes(lastInsp)
             ];
         });
 
@@ -441,6 +441,7 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 
 
 
