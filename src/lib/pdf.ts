@@ -63,13 +63,14 @@ function getObservationNotes(inspection: Inspection | undefined): string {
 
     let notes = '';
     if (ncItems.length > 0) {
-        notes += ncItems.join(', ');
+        notes += `Itens N/C: ${ncItems.join(', ')}`;
     }
     if (inspection.notes) {
         notes += (notes ? ' - ' : '') + inspection.notes;
     }
     return notes;
 }
+
 
 async function addHeaderAndLogo(doc: jsPDF, client: Client, generationDate: Date, buildingName?: string) {
     const logoBase64 = await getLogoBase64(LOGO_URL);
@@ -797,7 +798,7 @@ export async function generateNonConformityPdfReport(
 
         const tableStyles = {
             theme: 'striped',
-            headStyles: { fillColor: NC_BG_COLOR, textColor: [0,0,0] },
+            headStyles: { fillColor: HEADER_BG_COLOR, textColor: [255, 255, 255] },
             bodyStyles: { halign: 'center' },
             styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
@@ -806,8 +807,8 @@ export async function generateNonConformityPdfReport(
         const showHoses = type === 'consolidated' || type === 'hoses';
 
         const ncExtinguishers = buildings.flatMap(b => (b.extinguishers || [])
-            .filter(e => e.inspections.some(i => i.status === 'N/C'))
-            .map(e => ({ ...e, buildingName: b.name }))
+            .map(e => ({ ...e, buildingName: b.name, lastNcInspection: e.inspections?.slice().reverse().find(i => i.status === 'N/C') }))
+            .filter(e => e.lastNcInspection)
         );
 
         if (showExtinguishers && ncExtinguishers.length > 0) {
@@ -826,7 +827,7 @@ export async function generateNonConformityPdfReport(
                 startY: finalY,
                 head: [extHeader],
                 body: ncExtinguishers.map(e => {
-                    const ncInspection = e.inspections.find(i => i.status === 'N/C');
+                    const ncInspection = e.lastNcInspection;
                     const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => ncInspection?.itemStatuses?.[item] || 'OK');
                     return [
                         e.id,
@@ -840,6 +841,7 @@ export async function generateNonConformityPdfReport(
                     ];
                 }),
                 didParseCell: (data) => {
+                    if (data.row.section !== 'body') return;
                     const itemStatusStartIndex = 6; 
                     if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
                          if (data.cell.text && data.cell.text[0] === 'N/C') {
@@ -858,8 +860,8 @@ export async function generateNonConformityPdfReport(
         }
 
         const ncHoses = buildings.flatMap(b => (b.hoses || [])
-            .filter(h => h.inspections.some(i => i.status === 'N/C'))
-            .map(h => ({ ...h, buildingName: b.name }))
+            .map(h => ({ ...h, buildingName: b.name, lastNcInspection: h.inspections?.slice().reverse().find(i => i.status === 'N/C') }))
+            .filter(h => h.lastNcInspection)
         );
 
         if (showHoses && ncHoses.length > 0) {
@@ -874,7 +876,7 @@ export async function generateNonConformityPdfReport(
                 startY: finalY,
                 head: [hoseHeader],
                 body: ncHoses.map(h => {
-                    const ncInspection = h.inspections.find(i => i.status === 'N/C');
+                    const ncInspection = h.lastNcInspection;
                     return [
                         h.id,
                         h.buildingName,
@@ -890,6 +892,13 @@ export async function generateNonConformityPdfReport(
                         getObservationNotes(ncInspection)
                     ];
                 }),
+                didParseCell: (data) => {
+                    if (data.row.section !== 'body') return;
+                    if (data.column.index === 10) { // Status column
+                        data.cell.styles.fillColor = NC_BG_COLOR;
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
             });
         }
         

@@ -40,13 +40,14 @@ function getObservationNotes(inspection: Inspection | undefined): string {
 
     let notes = '';
     if (ncItems.length > 0) {
-        notes += ncItems.join(', ');
+        notes += `Itens N/C: ${ncItems.join(', ')}`;
     }
     if (inspection.notes) {
         notes += (notes ? ' - ' : '') + inspection.notes;
     }
     return notes;
 }
+
 
 function addSummarySheet(wb: XLSX.WorkBook, extinguishers: Extinguisher[]) {
     if (extinguishers.length === 0) return;
@@ -369,8 +370,8 @@ export async function generateNonConformityXlsxReport(
         const showHoses = type === 'consolidated' || type === 'hoses';
 
         const ncExtinguishers = buildings.flatMap(b => (b.extinguishers || [])
-            .filter(e => e.inspections.some(i => i.status === 'N/C'))
-            .map(e => ({ ...e, buildingName: b.name }))
+            .map(e => ({ ...e, buildingName: b.name, lastNcInspection: e.inspections?.slice().reverse().find(i => i.status === 'N/C') }))
+            .filter(e => e.lastNcInspection)
         );
 
         if (showExtinguishers && ncExtinguishers.length > 0) {
@@ -380,7 +381,7 @@ export async function generateNonConformityXlsxReport(
                 'Observações'
             ];
             const extBody = ncExtinguishers.map(e => {
-                const ncInspection = e.inspections.find(i => i.status === 'N/C');
+                const ncInspection = e.lastNcInspection;
                 const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => ncInspection?.itemStatuses?.[item] || 'OK');
                 return [
                     e.id,
@@ -399,14 +400,14 @@ export async function generateNonConformityXlsxReport(
         }
 
         const ncHoses = buildings.flatMap(b => (b.hoses || [])
-            .filter(h => h.inspections.some(i => i.status === 'N/C'))
-            .map(h => ({ ...h, buildingName: b.name }))
+            .map(h => ({ ...h, buildingName: b.name, lastNcInspection: h.inspections?.slice().reverse().find(i => i.status === 'N/C') }))
+            .filter(h => h.lastNcInspection)
         );
 
         if (showHoses && ncHoses.length > 0) {
             const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
             const hoseBody = ncHoses.map(h => {
-                const ncInspection = h.inspections.find(i => i.status === 'N/C');
+                const ncInspection = h.lastNcInspection;
                 return [
                     h.id,
                     h.buildingName,
@@ -440,6 +441,7 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 
 
 
