@@ -38,6 +38,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "dotenv": "^16.5.0",
+    "firebase-admin": "^12.2.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
