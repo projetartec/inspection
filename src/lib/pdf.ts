@@ -68,7 +68,7 @@ function getObservationNotes(inspection: Inspection | undefined): string {
     if (inspection.notes) {
         notes += (notes ? ' - ' : '') + inspection.notes;
     }
-    return notes || 'OK';
+    return notes;
 }
 
 
@@ -469,7 +469,7 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             theme: 'striped',
             headStyles: { fillColor: HEADER_BG_COLOR },
             bodyStyles: { halign: 'center' },
-            styles: { halign: 'center', fontSize: 8, cellPadding: 1.5 },
+            styles: { halign: 'center', fontSize: 7, cellPadding: 1.5 },
         };
         
         const filterByMonthYear = (dateStr: string) => {
@@ -489,14 +489,43 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             doc.text("Extintores a Vencer", 14, finalY);
             finalY += 8;
 
+            const extHeader = [
+                'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
+            ];
+
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Local', 'Prédio', 'Tipo', 'Carga (kg)', 'Data de Recarga', 'Ano Test. Hidro.']],
-                body: expiringExtinguishers.map(e => [
-                    e.id, e.observations || '', e.buildingName, e.type, e.weight,
-                    formatDate(e.expiryDate), e.hydrostaticTestYear,
-                ]),
+                head: [extHeader],
+                body: expiringExtinguishers.map(e => {
+                    const lastInsp = e.inspections?.[e.inspections.length - 1];
+                    const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => lastInsp?.itemStatuses?.[item] || 'OK');
+                    return [
+                        e.id, 
+                        e.observations || '', 
+                        e.buildingName,
+                        formatDate(e.expiryDate), 
+                        e.type, 
+                        e.weight + ' kg',
+                        ...inspectionStatus,
+                        getObservationNotes(lastInsp), 
+                    ];
+                }),
+                didParseCell: (data) => {
+                    if (data.row.section !== 'body') return;
+                    const item = expiringExtinguishers[data.row.index];
+                    if (!item) return;
+
+                    const itemStatusStartIndex = 6; 
+                    if (data.column.index >= itemStatusStartIndex && data.column.index < itemStatusStartIndex + EXTINGUISHER_INSPECTION_ITEMS.length) {
+                         if (data.cell.text && data.cell.text[0] === 'N/C') {
+                            data.cell.styles.fillColor = NC_BG_COLOR;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                }
             });
             finalY = (doc as any).lastAutoTable.finalY + 10;
         }
@@ -513,15 +542,32 @@ export async function generateExpiryPdfReport(client: Client, buildings: Buildin
             doc.setFontSize(14);
             doc.text("Hidrantes a Vencer", 14, finalY);
             finalY += 8;
+            
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd', 'Tipo', 'Diâmetro', 'Medida', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
 
             doc.autoTable({
                 ...tableStyles,
                 startY: finalY,
-                head: [['ID', 'Prédio', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Próx. Teste Hidr.']],
-                body: expiringHoses.map(h => [
-                    h.id, h.buildingName, h.location, h.quantity, h.hoseType,
-                    h.diameter, h.hoseLength, formatDate(h.hydrostaticTestDate),
-                ]),
+                head: [hoseHeader],
+                body: expiringHoses.map(h => {
+                    const lastInsp = h.inspections?.[h.inspections.length - 1];
+                    const status = lastInsp?.status || 'N/A';
+                    const observationNotes = getObservationNotes(lastInsp);
+                    return [
+                        h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"',
+                        h.hoseLength + 'm', h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes
+                    ];
+                }),
+                didParseCell: (data) => {
+                    if (data.row.section !== 'body') return;
+                    const item = expiringHoses[data.row.index];
+                    if (!item) return;
+
+                    if (data.column.index === 10 && data.cell.text && data.cell.text[0] === 'N/C') {
+                        data.cell.styles.fillColor = NC_BG_COLOR;
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
             });
             finalY = (doc as any).lastAutoTable.finalY + 10;
         }

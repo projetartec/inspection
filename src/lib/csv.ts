@@ -208,8 +208,25 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
             .filter(e => filterByMonthYear(e.expiryDate));
         
         if (expiringExtinguishers.length > 0) {
-            const extHeader = ['ID', 'Local', 'Prédio', 'Tipo', 'Carga (kg)', 'Recarga', 'Test. Hidrostático'];
-            const extBody = expiringExtinguishers.map(e => [e.id, e.observations, e.buildingName, e.type, e.weight, formatDate(e.expiryDate), e.hydrostaticTestYear]);
+            const extHeader = [
+                'ID', 'Local', 'Prédio', 'Recarga', 'Tipo', 'Carga', 
+                ...EXTINGUISHER_INSPECTION_ITEMS,
+                'Observações'
+            ];
+            const extBody = expiringExtinguishers.map(e => {
+                 const lastInsp = e.inspections?.[e.inspections.length - 1];
+                 const inspectionStatus = EXTINGUISHER_INSPECTION_ITEMS.map(item => lastInsp?.itemStatuses?.[item] || 'OK');
+                 return [
+                    e.id, 
+                    e.observations || '', 
+                    e.buildingName, 
+                    formatDate(e.expiryDate), 
+                    e.type, 
+                    e.weight,
+                    ...inspectionStatus,
+                    getObservationNotes(lastInsp)
+                ];
+            });
             const wsExt = XLSX.utils.aoa_to_sheet([extHeader, ...extBody]);
             applyAutoFilter(wsExt, extHeader.length);
             XLSX.utils.book_append_sheet(wb, wsExt, 'Extintores a Vencer');
@@ -220,8 +237,16 @@ export async function generateExpiryXlsxReport(client: Client, buildings: Buildi
             .filter(h => filterByMonthYear(h.hydrostaticTestDate));
             
         if (expiringHoses.length > 0) {
-            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd Mangueiras', 'Tipo', 'Diâmetro', 'Medida (m)', 'Próx. Teste Hidr.'];
-            const hoseBody = expiringHoses.map(h => [h.id, h.buildingName, h.location, h.quantity, h.hoseType, h.diameter, h.hoseLength, formatDate(h.hydrostaticTestDate)]);
+            const hoseHeader = ['ID', 'Prédio', 'Local', 'Qtd Mang.', 'Tipo', 'Diâmetro', 'Medida (m)', 'Chave', 'Esguicho', 'Próx. Teste', 'Status', 'Observações'];
+            const hoseBody = expiringHoses.map(h => {
+                const lastInsp = h.inspections?.[h.inspections.length - 1];
+                const status = lastInsp?.status || 'N/A';
+                const observationNotes = getObservationNotes(lastInsp);
+                return [
+                    h.id, h.buildingName, h.location, h.quantity, 'Tipo ' + h.hoseType, h.diameter + '"', h.hoseLength, 
+                    h.keyQuantity, h.nozzleQuantity, formatDate(h.hydrostaticTestDate), status, observationNotes
+                ];
+            });
             const wsHose = XLSX.utils.aoa_to_sheet([hoseHeader, ...hoseBody]);
             applyAutoFilter(wsHose, hoseHeader.length);
             XLSX.utils.book_append_sheet(wb, wsHose, 'Hidrantes a Vencer');
@@ -441,6 +466,7 @@ export async function generateNonConformityXlsxReport(
     
 
     
+
 
 
 
