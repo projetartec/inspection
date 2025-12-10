@@ -6,13 +6,24 @@ export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const portraitMql = window.matchMedia("(orientation: portrait)");
+    const widthMql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      // Consider it mobile only if width is small AND orientation is portrait
+      setIsMobile(widthMql.matches && portraitMql.matches);
+    };
+
+    portraitMql.addEventListener("change", onChange);
+    widthMql.addEventListener("change", onChange);
+    
+    // Initial check
+    onChange();
+
+    return () => {
+        portraitMql.removeEventListener("change", onChange);
+        widthMql.removeEventListener("change", onChange);
     }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
   }, [])
 
   return !!isMobile
