@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -12,6 +13,7 @@ import { Label } from "./ui/label";
 import { ExtinguisherFormSchema } from "@/lib/schemas";
 import { useState } from "react";
 import { DatePickerInput } from "./date-picker-input";
+import { Button } from "./ui/button";
 
 
 interface ExtinguisherFormProps {
@@ -162,9 +164,20 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
              </p>
         </div>
         
-        <SubmitButton isSubmitting={isSubmitting}>
-          {isEditMode ? 'Salvar Alterações' : 'Criar Extintor'}
-        </SubmitButton>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            className="mt-2 sm:mt-0"
+          >
+            Cancelar
+          </Button>
+          <SubmitButton isSubmitting={isSubmitting}>
+            {isEditMode ? 'Salvar Alterações' : 'Criar Extintor'}
+          </SubmitButton>
+        </div>
       </form>
   );
 }
+

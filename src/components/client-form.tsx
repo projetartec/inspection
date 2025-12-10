@@ -12,7 +12,7 @@ import { Label } from "./ui/label";
 import { createClientAction, updateClientAction } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/types";
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils";
 import { ClientFormSchema } from "@/lib/schemas";
 import { useRouter } from "next/navigation";
@@ -146,9 +146,19 @@ export function ClientForm({ client, onSuccess }: ClientFormProps) {
             <CardContent>
                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                     {formContent}
-                    <SubmitButton isSubmitting={isSubmitting} className="w-full">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => router.back()}
+                        className="mt-2 sm:mt-0"
+                      >
+                        Cancelar
+                      </Button>
+                      <SubmitButton isSubmitting={isSubmitting}>
                         Salvar Alterações
-                    </SubmitButton>
+                      </SubmitButton>
+                    </div>
                 </form>
             </CardContent>
         </Card>

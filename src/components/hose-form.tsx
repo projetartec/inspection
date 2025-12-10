@@ -20,6 +20,7 @@ import { SubmitButton } from "./submit-button";
 import { Label } from "./ui/label";
 import { HydrantFormSchema } from "@/lib/schemas";
 import { DatePickerInput } from "./date-picker-input";
+import { Button } from "./ui/button";
 
 
 interface HoseFormProps {
@@ -161,9 +162,20 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
             </div>
         </div>
         
-        <SubmitButton isSubmitting={isSubmitting}>
-          {isEditMode ? 'Salvar Alterações' : 'Criar Hidrante'}
-        </SubmitButton>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            className="mt-2 sm:mt-0"
+          >
+            Cancelar
+          </Button>
+          <SubmitButton isSubmitting={isSubmitting}>
+            {isEditMode ? 'Salvar Alterações' : 'Criar Hidrante'}
+          </SubmitButton>
+        </div>
       </form>
   );
 }
+

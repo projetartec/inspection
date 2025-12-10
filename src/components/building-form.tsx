@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useRef, useState } from "react";
@@ -11,7 +12,7 @@ import { SubmitButton } from "./submit-button";
 import { createBuildingAction, updateBuildingAction } from "@/lib/actions";
 import type { Building } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils";
 
 interface BuildingFormProps {
@@ -81,9 +82,19 @@ export function BuildingForm({ clientId, building, onSuccess }: BuildingFormProp
                             Cole aqui o link de compartilhamento do Google Maps.
                         </p>
                     </div>
-                    <SubmitButton isSubmitting={isSubmitting} className="w-full">
-                        Salvar Alterações
-                    </SubmitButton>
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => router.back()}
+                          className="mt-2 sm:mt-0"
+                        >
+                          Cancelar
+                        </Button>
+                        <SubmitButton isSubmitting={isSubmitting}>
+                          Salvar Alterações
+                        </SubmitButton>
+                    </div>
                 </form>
             </CardContent>
         </Card>
