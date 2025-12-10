@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useContext, useCallback } from 'react';
@@ -17,9 +18,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
 import { ConsultationFilters, type ExpiryFilter } from '@/components/consultation-filters';
-import { KeyRound, SprayCan, Hash, Loader2, Info } from 'lucide-react';
+import { KeyRound, SprayCan, Hash, Loader2, Info, Pencil } from 'lucide-react';
 import { ConsultationSummaryContext } from '@/app/clients/[clientId]/layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 
 const EXTINGUISHER_INSPECTION_ITEMS = [
@@ -53,7 +56,7 @@ function getObservationNotes(inspection: Inspection | undefined): string {
     return notes || 'OK';
 }
 
-function ExtinguisherTable({ items, isLoading }: { items: (Extinguisher & { buildingName: string })[], isLoading: boolean }) {
+function ExtinguisherTable({ items, isLoading, clientId }: { items: (Extinguisher & { buildingId: string, buildingName: string })[], isLoading: boolean, clientId: string }) {
     if (isLoading) {
         return <TableSkeleton cols={7 + EXTINGUISHER_INSPECTION_ITEMS.length} />;
     }
@@ -71,6 +74,7 @@ function ExtinguisherTable({ items, isLoading }: { items: (Extinguisher & { buil
                     <TableHead>Carga</TableHead>
                     {EXTINGUISHER_INSPECTION_ITEMS.map(item => <TableHead key={item} className="min-w-[100px]">{item}</TableHead>)}
                     <TableHead>Observações</TableHead>
+                    <TableHead><span className="sr-only">Ações</span></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,6 +94,14 @@ function ExtinguisherTable({ items, isLoading }: { items: (Extinguisher & { buil
                                 </TableCell>
                             ))}
                             <TableCell>{getObservationNotes(lastInsp)}</TableCell>
+                            <TableCell className="text-right">
+                                <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                                    <Link href={`/clients/${clientId}/${ext.buildingId}/extinguishers/${ext.id}/edit`}>
+                                        <Pencil className="h-4 w-4" />
+                                        <span className="sr-only">Editar</span>
+                                    </Link>
+                                </Button>
+                            </TableCell>
                         </TableRow>
                     );
                 })}
@@ -98,7 +110,7 @@ function ExtinguisherTable({ items, isLoading }: { items: (Extinguisher & { buil
     );
 }
 
-function HoseTable({ items, isLoading }: { items: (Hydrant & { buildingName: string })[], isLoading: boolean }) {
+function HoseTable({ items, isLoading, clientId }: { items: (Hydrant & { buildingId: string, buildingName: string })[], isLoading: boolean, clientId: string }) {
      if (isLoading) {
         return <TableSkeleton cols={9} />;
     }
@@ -118,6 +130,7 @@ function HoseTable({ items, isLoading }: { items: (Hydrant & { buildingName: str
                     <TableHead>Próx. Teste</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Observações</TableHead>
+                    <TableHead><span className="sr-only">Ações</span></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -134,6 +147,14 @@ function HoseTable({ items, isLoading }: { items: (Hydrant & { buildingName: str
                             <TableCell>{formatDate(hose.hydrostaticTestDate)}</TableCell>
                             <TableCell>{lastInsp ? <Badge variant={lastInsp.status === 'N/C' ? 'destructive' : 'secondary'}>{lastInsp.status}</Badge> : 'N/A'}</TableCell>
                             <TableCell>{getObservationNotes(lastInsp)}</TableCell>
+                             <TableCell className="text-right">
+                                <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                                    <Link href={`/clients/${clientId}/${hose.buildingId}/hoses/${hose.id}/edit`}>
+                                        <Pencil className="h-4 w-4" />
+                                        <span className="sr-only">Editar</span>
+                                    </Link>
+                                </Button>
+                            </TableCell>
                         </TableRow>
                     );
                 })}
@@ -440,13 +461,13 @@ export default function ConsultationPage() {
                                     {showExtinguishers && (
                                         <div>
                                             <h3 className="text-lg font-semibold mb-2">Extintores</h3>
-                                            <ExtinguisherTable items={filteredItems.extinguishers} isLoading={isLoadingEquipment} />
+                                            <ExtinguisherTable items={filteredItems.extinguishers} isLoading={isLoadingEquipment} clientId={clientId} />
                                         </div>
                                     )}
                                     {showHoses && (
                                         <div>
                                             <h3 className="text-lg font-semibold mb-2">Hidrantes</h3>
-                                            <HoseTable items={filteredItems.hoses} isLoading={isLoadingEquipment} />
+                                            <HoseTable items={filteredItems.hoses} isLoading={isLoadingEquipment} clientId={clientId} />
                                         </div>
                                     )}
                                 </>
@@ -458,5 +479,7 @@ export default function ConsultationPage() {
         </>
     );
 }
+
+    
 
     
