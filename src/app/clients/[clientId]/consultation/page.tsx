@@ -58,7 +58,7 @@ function getObservationNotes(inspection: Inspection | undefined): string {
 
 function ExtinguisherTable({ items, isLoading, clientId }: { items: (Extinguisher & { buildingId: string, buildingName: string })[], isLoading: boolean, clientId: string }) {
     if (isLoading) {
-        return <TableSkeleton cols={7 + EXTINGUISHER_INSPECTION_ITEMS.length} />;
+        return <TableSkeleton cols={8 + EXTINGUISHER_INSPECTION_ITEMS.length} />;
     }
     if (items.length === 0) {
         return <p className="text-center py-8 text-muted-foreground">Nenhum extintor encontrado para esta seleção.</p>;
@@ -69,6 +69,7 @@ function ExtinguisherTable({ items, isLoading, clientId }: { items: (Extinguishe
                 <TableRow>
                     <TableHead className="min-w-[80px]">ID</TableHead>
                     <TableHead>Prédio</TableHead>
+                    <TableHead>Local</TableHead>
                     <TableHead>Recarga</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Carga</TableHead>
@@ -85,6 +86,7 @@ function ExtinguisherTable({ items, isLoading, clientId }: { items: (Extinguishe
                         <TableRow key={`${ext.buildingName}-${ext.id}`}>
                             <TableCell className="font-medium">{ext.id}</TableCell>
                             <TableCell>{ext.buildingName}</TableCell>
+                            <TableCell>{ext.observations}</TableCell>
                             <TableCell>{formatDate(ext.expiryDate)}</TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell>{ext.weight}kg</TableCell>
