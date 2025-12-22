@@ -3,12 +3,13 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2, FileSearch } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2, FileSearch, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { logout } from "@/app/login/actions";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -44,15 +45,27 @@ export function MobileNav() {
   
   const isInspectionActive = !!session && session.buildingId === buildingId;
 
+  // No nav on login page for mobile
+  if (pathname === '/login') {
+    return null;
+  }
+
+
   if (!clientId) {
     // Root page (client list)
     return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-            <nav className="flex items-center justify-around h-full">
+            <nav className="grid grid-cols-2 items-center justify-around h-full">
                 <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
                     <Users className="h-6 w-6" />
                     <span className="text-xs">Clientes</span>
                 </Link>
+                 <form action={logout} className="flex flex-col items-center justify-center w-full h-full">
+                    <button type="submit" className="flex flex-col items-center justify-center w-full h-full text-sm font-medium text-muted-foreground">
+                        <LogOut className="h-6 w-6" />
+                        <span className="text-xs">Sair</span>
+                    </button>
+                </form>
             </nav>
         </div>
     )
@@ -62,7 +75,7 @@ export function MobileNav() {
     // Building list page for a client
      return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-            <nav className="grid grid-cols-3 items-center justify-around h-full">
+            <nav className="grid grid-cols-4 items-center justify-around h-full">
                  <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
                     <ChevronLeft className="h-6 w-6" />
                     <span className="text-xs">Clientes</span>
@@ -75,6 +88,12 @@ export function MobileNav() {
                     <FileSearch className="h-6 w-6" />
                      <span className="text-xs">Consulta</span>
                 </Link>
+                 <form action={logout} className="flex flex-col items-center justify-center w-full h-full">
+                    <button type="submit" className="flex flex-col items-center justify-center w-full h-full text-sm font-medium text-muted-foreground">
+                        <LogOut className="h-6 w-6" />
+                        <span className="text-xs">Sair</span>
+                    </button>
+                </form>
             </nav>
         </div>
     )

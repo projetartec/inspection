@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2, FileSearch } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2, FileSearch, LogOut } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import {
   SidebarHeader,
@@ -22,6 +22,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ClientReportGenerator } from "./client-report-generator";
 import Image from 'next/image';
+import { logout } from "@/app/login/actions";
 
 
 export function MainNav({ consultationSummary }: { consultationSummary?: React.ReactNode }) {
@@ -78,6 +79,14 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarContent>
+            <SidebarFooter>
+                 <form action={logout}>
+                    <Button variant="outline" className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0">
+                        <LogOut />
+                        <span className="group-data-[collapsible=icon]:hidden ml-2">Sair</span>
+                    </Button>
+                </form>
+            </SidebarFooter>
         </>
     );
   }
@@ -133,8 +142,14 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                     </>
                   )}
               </SidebarContent>
-               <SidebarFooter>
+               <SidebarFooter className="gap-2">
                  <ClientReportGenerator clientId={clientId} />
+                 <form action={logout}>
+                    <Button variant="outline" className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0">
+                        <LogOut />
+                        <span className="group-data-[collapsible=icon]:hidden ml-2">Sair</span>
+                    </Button>
+                </form>
               </SidebarFooter>
           </>
       )
@@ -211,6 +226,12 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
             </Button>
         )}
         {buildingId && <ReportGenerator clientId={clientId} buildingId={buildingId} />}
+         <form action={logout}>
+            <Button variant="outline" className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0">
+                <LogOut />
+                <span className="group-data-[collapsible=icon]:hidden ml-2">Sair</span>
+            </Button>
+        </form>
       </SidebarFooter>
     </>
   );
