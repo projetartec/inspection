@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
+import { getExtinguishersByBuilding, getHosesByBuilding } from '@/lib/data';
 import type { Extinguisher, Hydrant } from '@/lib/types';
 import { InspectionList } from '@/components/inspection-list';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
@@ -12,10 +13,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useToast } from '@/hooks/use-toast';
-import { notFound } from 'next/navigation';
 
 function ListSkeleton() {
     return (
@@ -34,7 +31,6 @@ export default function VisualInspectionPage() {
     const params = useParams() as { clientId: string, buildingId: string };
     const { clientId, buildingId } = params;
     const router = useRouter();
-    const { toast } = useToast();
 
     const [extinguishers, setExtinguishers] = useState<Extinguisher[]>([]);
     const [hoses, setHoses] = useState<Hydrant[]>([]);
@@ -52,31 +48,23 @@ export default function VisualInspectionPage() {
     }, [startInspection, clientId, buildingId]);
 
     useEffect(() => {
-        if (!clientId || !buildingId) return;
-
-        const docRef = doc(db, "clients", clientId);
-        const unsubscribe = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const clientData = docSnap.data();
-                const building = clientData.buildings?.find((b: any) => b.id === buildingId);
-                if (building) {
-                    setExtinguishers(building.extinguishers || []);
-                    setHoses(building.hoses || []);
-                } else {
-                    notFound();
-                }
-            } else {
-                notFound();
+        async function fetchData() {
+            setIsLoading(true);
+            try {
+                const [extinguishersData, hosesData] = await Promise.all([
+                    getExtinguishersByBuilding(clientId, buildingId),
+                    getHosesByBuilding(clientId, buildingId),
+                ]);
+                setExtinguishers(extinguishersData);
+                setHoses(hosesData);
+            } catch (error) {
+                console.error("Failed to fetch equipment:", error);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Failed to fetch equipment:", error);
-            toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os equipamentos.' });
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [clientId, buildingId, toast]);
+        }
+        fetchData();
+    }, [clientId, buildingId]);
     
     useEffect(() => {
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -96,7 +84,11 @@ export default function VisualInspectionPage() {
     }, [searchTerm, extinguishers, hoses]);
 
     const handleUpdateItem = (itemType: 'extinguisher' | 'hose', updatedItem: Extinguisher | Hydrant) => {
-        // UI will update via snapshot listener
+        if (itemType === 'extinguisher') {
+            setExtinguishers(prev => prev.map(item => item.uid === updatedItem.uid ? updatedItem as Extinguisher : item));
+        } else {
+            setHoses(prev => prev.map(item => item.uid === updatedItem.uid ? updatedItem as Hydrant : item));
+        }
     };
 
     return (

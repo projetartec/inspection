@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode, GripVertical, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getBuildingById } from "@/lib/data";
+import { getExtinguishersByBuilding, getBuildingById } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -30,8 +30,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { notFound, useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 function TableSkeleton() {
   return (
@@ -64,35 +62,35 @@ export default function ExtinguishersPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!clientId || !buildingId) return;
+    async function fetchData() {
+        if (!clientId || !buildingId) return;
 
-    const docRef = doc(db, "clients", clientId);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const clientData = docSnap.data();
-            const building = clientData.buildings?.find((b: any) => b.id === buildingId);
-            if (building) {
-                setBuildingName(building.name);
-                setExtinguishers(building.extinguishers || []);
-            } else {
+        try {
+            setIsLoading(true);
+            const [building, data] = await Promise.all([
+                getBuildingById(clientId, buildingId),
+                getExtinguishersByBuilding(clientId, buildingId)
+            ]);
+
+            if (!building) {
                 notFound();
+                return;
             }
-        } else {
-            notFound();
+            setBuildingName(building.name);
+            setExtinguishers(data);
+        } catch (error) {
+            console.error("Failed to fetch extinguishers:", error);
+            toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os extintores.' });
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Falha ao buscar extintores:", error);
-        toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os extintores.' });
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
+    fetchData();
   }, [clientId, buildingId, toast]);
 
 
   const handleDeleteSuccess = (deletedUid: string) => {
-    // UI atualiza via onSnapshot
+    setExtinguishers(prev => prev.filter(ext => ext.uid !== deletedUid));
     toast({
         title: "Sucesso!",
         description: "Extintor deletado com sucesso."

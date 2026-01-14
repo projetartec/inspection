@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -25,8 +24,6 @@ import {
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { Input } from '@/components/ui/input';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -36,40 +33,23 @@ export default function Home() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const q = query(collection(db, "clients"), orderBy("name"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const clientsData: Client[] = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            clientsData.push({
-                id: doc.id,
-                name: data.name,
-                fantasyName: data.fantasyName,
-                address: data.address,
-                city: data.city,
-                zipCode: data.zipCode,
-                phone1: data.phone1,
-                phone2: data.phone2,
-                cnpj: data.cnpj,
-                email: data.email,
-                adminContact: data.adminContact,
-                caretakerContact: data.caretakerContact,
-                buildings: data.buildings || [],
-            });
-        });
+    async function fetchClients() {
+      setIsLoading(true);
+      try {
+        const clientsData = await getClients();
         setClients(clientsData);
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Falha ao buscar clientes em tempo real:", error);
+      } catch (error) {
+        console.error("Falha ao buscar clientes:", error);
         toast({
           variant: 'destructive',
           title: 'Erro de Conexão',
           description: 'Não foi possível buscar os dados dos clientes.'
         });
+      } finally {
         setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+      }
+    }
+    fetchClients();
   }, [toast]);
 
   useEffect(() => {
@@ -81,7 +61,7 @@ export default function Home() {
   }, [searchTerm, clients]);
 
   const handleDeleteSuccess = (deletedClientId: string) => {
-    // A UI vai atualizar automaticamente com o onSnapshot
+    setClients(prev => prev.filter(c => c.id !== deletedClientId));
     toast({
       title: "Sucesso!",
       description: "Cliente deletado com sucesso."
@@ -89,11 +69,12 @@ export default function Home() {
   };
 
   const handleCreateSuccess = async () => {
-     // A UI vai atualizar automaticamente com o onSnapshot
-     toast({
-        title: "Sucesso!",
-        description: "Cliente criado com sucesso."
-     });
+     try {
+        const clientsData = await getClients();
+        setClients(clientsData);
+      } catch (error) {
+        console.error("Falha ao buscar clientes após criação:", error);
+      }
   }
 
   return (

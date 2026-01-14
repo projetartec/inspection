@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,6 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
+import { getBuildingsByClient, getClientById } from '@/lib/data';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, GripVertical, X, Loader2 } from 'lucide-react';
@@ -32,8 +32,6 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -50,35 +48,25 @@ export default function ClientPage() {
   const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
   useEffect(() => {
-    if (!clientId) return;
-    
-    const docRef = doc(db, "clients", clientId);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const clientData = docSnap.data();
-            const buildingsData = clientData.buildings || [];
-            
-            setClient({
-                id: docSnap.id,
-                ...clientData
-            } as Client);
-            setBuildings(buildingsData);
-        } else {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
-            notFound();
+    async function fetchData() {
+        if (!clientId) return;
+        setIsLoading(true);
+        try {
+            const clientData = await getClientById(clientId);
+            if (!clientData) {
+                notFound();
+                return;
+            }
+            setClient(clientData);
+            setBuildings(clientData.buildings);
+        } catch (err) {
+            console.error(err);
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível buscar os dados do cliente.' });
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Falha ao buscar dados do cliente em tempo real:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Erro de Conexão',
-          description: 'Não foi possível buscar os dados do cliente.'
-        });
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
+    fetchData();
   }, [clientId, toast]);
   
   useEffect(() => {
@@ -103,7 +91,7 @@ export default function ClientPage() {
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
-    // A UI vai atualizar sozinha com o onSnapshot
+    setBuildings(prev => prev.filter(b => b.id !== deletedBuildingId));
     toast({
       title: 'Sucesso!',
       description: 'Local deletado com sucesso.',
@@ -111,15 +99,20 @@ export default function ClientPage() {
   };
 
   const handleCreateSuccess = async () => {
-    // A UI vai atualizar sozinha com o onSnapshot
-    toast({
-        title: "Sucesso!",
-        description: "Local criado com sucesso."
-    });
+    try {
+        const data = await getBuildingsByClient(clientId);
+        setBuildings(data);
+    } catch (error) {
+        console.error("Falha ao buscar locais após criação:", error);
+    }
   };
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
-    // A UI vai atualizar sozinha com o onSnapshot
+      setBuildings(prevBuildings => 
+          prevBuildings.map(b => 
+              b.id === buildingId ? { ...b, gpsLink: newLink } : b
+          )
+      );
   }
 
   const onDragEnd = async (result: any) => {
@@ -149,6 +142,8 @@ export default function ClientPage() {
     
     try {
       await updateBuildingOrderAction(clientId, newMasterOrder);
+      // Update main buildings state to reflect new order
+      setBuildings(newMasterOrder);
     } catch (error) {
       console.error("Failed to update building order:", error);
       // Revert optimistic update on error
