@@ -61,8 +61,18 @@ export default function ClientPage() {
             setClient({
                 id: docSnap.id,
                 name: clientData.name,
-                ...clientData
-            } as Client);
+                fantasyName: clientData.fantasyName,
+                address: clientData.address,
+                city: clientData.city,
+                zipCode: clientData.zipCode,
+                phone1: clientData.phone1,
+                phone2: clientData.phone2,
+                cnpj: clientData.cnpj,
+                email: clientData.email,
+                adminContact: clientData.adminContact,
+                caretakerContact: clientData.caretakerContact,
+                buildings: buildingsData,
+            });
             setBuildings(buildingsData);
         } else {
             toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
