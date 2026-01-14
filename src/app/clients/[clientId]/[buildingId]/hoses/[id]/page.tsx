@@ -2,7 +2,7 @@
 
 import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
-import { getHosesByBuilding } from '@/lib/data';
+import { getHoseByUid } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,8 +17,7 @@ import { LocalDateTime } from '@/components/local-date-time';
 
 export default async function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hoses = await getHosesByBuilding(clientId, buildingId);
-  const hose = hoses.find(h => h.id === id);
+  const hose = await getHoseByUid(clientId, buildingId, id);
 
   if (!hose) {
     notFound();
@@ -45,7 +44,7 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
     <div className="space-y-8">
       <PageHeader title={`Hidrante: ${hose.id}`}>
         <Button asChild variant="outline">
-          <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}/edit`}>
+          <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.uid}/edit`}>
             <Pencil className="mr-2" />
             Editar
           </Link>

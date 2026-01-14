@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteHoseAction } from "@/lib/actions";
 import { QrCodeDialog } from "@/components/qr-code-dialog";
-import type { Hose } from '@/lib/types';
+import type { Hydrant } from '@/lib/types';
 import { DeleteButton } from "@/components/delete-button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -56,7 +56,7 @@ function TableSkeleton() {
 
 export default function HosesPage({ params }: { params: { clientId: string, buildingId: string }}) {
   const { clientId, buildingId } = params;
-  const [hoses, setHoses] = useState<Hose[]>([]);
+  const [hoses, setHoses] = useState<Hydrant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -119,14 +119,14 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                 {isLoading ? (
                                     <TableSkeleton />
                                 ) : hoses.length > 0 ? hoses.map((hose) => {
-                                    const dateValue = hose.expiryDate ? parseISO(hose.expiryDate) : null;
+                                    const dateValue = hose.hydrostaticTestDate ? parseISO(hose.hydrostaticTestDate) : null;
                                     const isValidDate = dateValue && !isNaN(dateValue.getTime());
                                     const isExpired = isValidDate ? dateValue < new Date() : false;
                                     
                                     return (
                                     <TableRow key={hose.id}>
                                         <TableCell className="font-medium">
-                                        <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
+                                        <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.uid}`} className="hover:underline">{hose.id}</Link>
                                         </TableCell>
                                         <TableCell>{hose.hoseType}"</TableCell>
                                         <TableCell className="hidden md:table-cell">{hose.quantity}</TableCell>
@@ -139,7 +139,7 @@ export default function HosesPage({ params }: { params: { clientId: string, buil
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end space-x-1 md:space-x-2">
                                                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
-                                                    <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}/edit`}>
+                                                    <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.uid}/edit`}>
                                                         <Pencil className="h-5 w-5 md:h-4 md:w-4" />
                                                         <span className="sr-only">Editar</span>
                                                     </Link>

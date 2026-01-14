@@ -1,6 +1,6 @@
 
 import { notFound } from 'next/navigation';
-import { getHosesByBuilding } from '@/lib/data';
+import { getHoseByUid } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { HoseForm } from '@/components/hose-form';
@@ -8,8 +8,7 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default async function EditHosePage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hoses = await getHosesByBuilding(clientId, buildingId);
-  const hose = hoses.find(h => h.id === id);
+  const hose = await getHoseByUid(clientId, buildingId, id);
 
 
   if (!hose) {

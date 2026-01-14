@@ -1,7 +1,7 @@
 
 import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
-import { getExtinguishersByBuilding } from '@/lib/data';
+import { getExtinguisherByUid } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,8 +16,7 @@ import { LocalDateTime } from '@/components/local-date-time';
 
 export default async function ExtinguisherDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-  const extinguisher = extinguishers.find(e => e.id === id);
+  const extinguisher = await getExtinguisherByUid(clientId, buildingId, id);
 
 
   if (!extinguisher) {
@@ -47,7 +46,7 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
     <div className="space-y-8">
       <PageHeader title={`Extintor: ${extinguisher.id}`}>
         <Button asChild variant="outline">
-          <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.id}/edit`}>
+          <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${extinguisher.uid}/edit`}>
             <Pencil className="mr-2" />
             Editar
           </Link>

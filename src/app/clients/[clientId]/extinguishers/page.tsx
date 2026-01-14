@@ -119,7 +119,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                         return (
                         <TableRow key={ext.id}>
                             <TableCell className="font-medium">
-                              <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}`} className="hover:underline">{ext.id}</Link>
+                              <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.uid}`} className="hover:underline">{ext.id}</Link>
                             </TableCell>
                             <TableCell>{ext.type}</TableCell>
                             <TableCell className="hidden md:table-cell">{ext.weight}</TableCell>
@@ -129,7 +129,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end space-x-1 md:space-x-2">
                                     <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
-                                        <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.id}/edit`}>
+                                        <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.uid}/edit`}>
                                             <Pencil className="h-5 w-5 md:h-4 md:w-4" />
                                             <span className="sr-only">Editar</span>
                                         </Link>
