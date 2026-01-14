@@ -1,14 +1,18 @@
 
 
-
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
-import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session';
+import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 
 const CLIENTS_COLLECTION = 'clients';
+
+type ActionResponse = {
+    success: boolean;
+    message?: string;
+}
 
 function docToClient(doc: FirebaseFirestore.DocumentSnapshot): Client {
   const data = doc.data();
@@ -229,54 +233,67 @@ export async function getHoseByUid(clientId: string, buildingId: string, uid: st
     return building?.hoses.find(h => h.uid === uid) || null;
 }
 
-export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: ExtinguisherFormValues) {
+export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: ExtinguisherFormValues): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    await adminDb.runTransaction(async (transaction) => {
-        const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
-        
-        const client = docToClient(clientDoc);
-        const building = client.buildings.find(b => b.id === buildingId);
-        if (!building) throw new Error('Local não encontrado.');
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const clientDoc = await transaction.get(clientRef);
+            if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+            
+            const client = docToClient(clientDoc);
+            const building = client.buildings.find(b => b.id === buildingId);
+            if (!building) throw new Error('Local não encontrado.');
 
-        const idExists = building.extinguishers.some(e => e.id === newExtinguisherData.id);
-        if (idExists) throw new Error('Já existe um extintor com este ID neste local.');
+            const idExists = building.extinguishers.some(e => e.id === newExtinguisherData.id);
+            if (idExists) {
+                throw new Error('O ID já está em uso, altere!');
+            }
 
-        const uid = `fireguard-ext-${Date.now()}`;
-        const newExtinguisher: Extinguisher = {
-            ...newExtinguisherData,
-            uid: uid,
-            qrCodeValue: uid,
-            inspections: [],
-        };
-        
-        building.extinguishers.push(newExtinguisher);
-        transaction.update(clientRef, { buildings: client.buildings });
-    });
+            const uid = `fireguard-ext-${Date.now()}`;
+            const newExtinguisher: Extinguisher = {
+                ...newExtinguisherData,
+                uid: uid,
+                qrCodeValue: uid,
+                inspections: [],
+            };
+            
+            building.extinguishers.push(newExtinguisher);
+            transaction.update(clientRef, { buildings: client.buildings });
+        });
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
-export async function updateExtinguisher(clientId: string, buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>) {
+export async function updateExtinguisher(clientId: string, buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    await adminDb.runTransaction(async (transaction) => {
-        const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
-        
-        const client = docToClient(clientDoc);
-        const building = client.buildings.find(b => b.id === buildingId);
-        if (!building) throw new Error('Local não encontrado.');
-        
-        const extIndex = building.extinguishers.findIndex(e => e.uid === uid);
-        if (extIndex === -1) throw new Error('Extintor não encontrado.');
-        
-        // If user-facing ID is being changed, check for duplicates
-        if (updatedData.id && updatedData.id !== building.extinguishers[extIndex].id) {
-             const idExists = building.extinguishers.some(e => e.id === updatedData.id && e.uid !== uid);
-             if (idExists) throw new Error('Já existe um extintor com este ID neste local.');
-        }
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const clientDoc = await transaction.get(clientRef);
+            if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+            
+            const client = docToClient(clientDoc);
+            const building = client.buildings.find(b => b.id === buildingId);
+            if (!building) throw new Error('Local não encontrado.');
+            
+            const extIndex = building.extinguishers.findIndex(e => e.uid === uid);
+            if (extIndex === -1) throw new Error('Extintor não encontrado.');
+            
+            if (updatedData.id && updatedData.id !== building.extinguishers[extIndex].id) {
+                 const idExists = building.extinguishers.some(e => e.id === updatedData.id && e.uid !== uid);
+                 if (idExists) {
+                     throw new Error('O ID já está em uso, altere!');
+                 }
+            }
 
-        building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...updatedData };
-        transaction.update(clientRef, { buildings: client.buildings });
-    });
+            building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...updatedData };
+            transaction.update(clientRef, { buildings: client.buildings });
+        });
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, uid: string) {
@@ -294,54 +311,67 @@ export async function deleteExtinguisher(clientId: string, buildingId: string, u
     });
 }
 
-export async function addHose(clientId: string, buildingId: string, newHoseData: HydrantFormValues) {
+export async function addHose(clientId: string, buildingId: string, newHoseData: HydrantFormValues): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    await adminDb.runTransaction(async (transaction) => {
-        const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
-        
-        const client = docToClient(clientDoc);
-        const building = client.buildings.find(b => b.id === buildingId);
-        if (!building) throw new Error('Local não encontrado.');
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const clientDoc = await transaction.get(clientRef);
+            if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+            
+            const client = docToClient(clientDoc);
+            const building = client.buildings.find(b => b.id === buildingId);
+            if (!building) throw new Error('Local não encontrado.');
 
-        const idExists = building.hoses.some(h => h.id === newHoseData.id);
-        if (idExists) throw new Error('Já existe um hidrante com este ID neste local.');
-        
-        const uid = `fireguard-hose-${Date.now()}`;
-        const newHose: Hydrant = {
-            ...newHoseData,
-            uid: uid,
-            qrCodeValue: uid,
-            inspections: [],
-        };
-        
-        building.hoses.push(newHose);
-        transaction.update(clientRef, { buildings: client.buildings });
-    });
+            const idExists = building.hoses.some(h => h.id === newHoseData.id);
+            if (idExists) {
+                throw new Error('O ID já está em uso, altere!');
+            }
+            
+            const uid = `fireguard-hose-${Date.now()}`;
+            const newHose: Hydrant = {
+                ...newHoseData,
+                uid: uid,
+                qrCodeValue: uid,
+                inspections: [],
+            };
+            
+            building.hoses.push(newHose);
+            transaction.update(clientRef, { buildings: client.buildings });
+        });
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
-export async function updateHose(clientId: string, buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>) {
+export async function updateHose(clientId: string, buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    await adminDb.runTransaction(async (transaction) => {
-        const clientDoc = await transaction.get(clientRef);
-        if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
-        
-        const client = docToClient(clientDoc);
-        const building = client.buildings.find(b => b.id === buildingId);
-        if (!building) throw new Error('Local não encontrado.');
-        
-        const hoseIndex = building.hoses.findIndex(h => h.uid === uid);
-        if (hoseIndex === -1) throw new Error('Hidrante não encontrado.');
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const clientDoc = await transaction.get(clientRef);
+            if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+            
+            const client = docToClient(clientDoc);
+            const building = client.buildings.find(b => b.id === buildingId);
+            if (!building) throw new Error('Local não encontrado.');
+            
+            const hoseIndex = building.hoses.findIndex(h => h.uid === uid);
+            if (hoseIndex === -1) throw new Error('Hidrante não encontrado.');
 
-        // If user-facing ID is being changed, check for duplicates
-        if (updatedData.id && updatedData.id !== building.hoses[hoseIndex].id) {
-             const idExists = building.hoses.some(h => h.id === updatedData.id && h.uid !== uid);
-             if (idExists) throw new Error('Já existe um hidrante com este ID neste local.');
-        }
+            if (updatedData.id && updatedData.id !== building.hoses[hoseIndex].id) {
+                 const idExists = building.hoses.some(h => h.id === updatedData.id && h.uid !== uid);
+                 if (idExists) {
+                    throw new Error('O ID já está em uso, altere!');
+                 }
+            }
 
-        building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
-        transaction.update(clientRef, { buildings: client.buildings });
-    });
+            building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
+            transaction.update(clientRef, { buildings: client.buildings });
+        });
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
 }
 
 export async function deleteHose(clientId: string, buildingId: string, uid: string) {

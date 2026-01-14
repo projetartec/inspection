@@ -104,23 +104,26 @@ export async function updateBuildingOrderAction(clientId: string, orderedBuildin
 
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
-    await addExtinguisherData(clientId, buildingId, data);
+    const result = await addExtinguisherData(clientId, buildingId, data);
+    if (!result.success) {
+        throw new Error(result.message);
+    }
     
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, partialData: Partial<ExtinguisherFormValues>) {
-    const existingExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
-    if (!existingExtinguisher) {
-        throw new Error('Extintor não encontrado para atualização.');
+    const result = await updateExtinguisherData(clientId, buildingId, uid, partialData);
+    if (!result.success) {
+        throw new Error(result.message);
     }
+    const existingExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
     
-    // Server-side validation before attempting the update
-    await updateExtinguisherData(clientId, buildingId, uid, partialData);
-
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${existingExtinguisher.id}`);
+    if (existingExtinguisher) {
+        revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${existingExtinguisher.id}`);
+    }
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
@@ -133,22 +136,27 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 
 // --- Hose Actions ---
 export async function createHoseAction(clientId: string, buildingId: string, data: HydrantFormValues) {
-    await addHoseData(clientId, buildingId, data);
-    
+    const result = await addHoseData(clientId, buildingId, data);
+     if (!result.success) {
+        throw new Error(result.message);
+    }
+
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
 export async function updateHoseAction(clientId: string, buildingId: string, uid: string, partialData: Partial<HydrantFormValues>) {
-    const existingHose = await getHoseByUid(clientId, buildingId, uid);
-    if (!existingHose) {
-        throw new Error('Hidrante não encontrado para atualização.');
+    const result = await updateHoseData(clientId, buildingId, uid, partialData);
+    if (!result.success) {
+        throw new Error(result.message);
     }
     
-    await updateHoseData(clientId, buildingId, uid, partialData);
+    const existingHose = await getHoseByUid(clientId, buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${existingHose.id}`);
+    if (existingHose) {
+        revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${existingHose.id}`);
+    }
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 

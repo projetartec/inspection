@@ -72,6 +72,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
             variant: "destructive",
             title: "Erro",
             description: error.message || `Ocorreu um erro ao ${isEditMode ? 'atualizar' : 'criar'} o hidrante.`,
+            duration: 5000,
         });
     } finally {
         setIsSubmitting(false);
@@ -178,4 +179,3 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
       </form>
   );
 }
-
