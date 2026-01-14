@@ -116,7 +116,7 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
 export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, partialData: Partial<ExtinguisherFormValues>) {
     const result = await updateExtinguisherData(clientId, buildingId, uid, partialData);
     if (!result.success) {
-        throw new Error(result.message);
+        return { error: result.message };
     }
     const existingExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
     
@@ -125,6 +125,8 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
         revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${existingExtinguisher.id}`);
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+
+    return { success: true };
 }
 
 export async function deleteExtinguisherAction(clientId: string, buildingId: string, uid: string) {
@@ -148,7 +150,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
 export async function updateHoseAction(clientId: string, buildingId: string, uid: string, partialData: Partial<HydrantFormValues>) {
     const result = await updateHoseData(clientId, buildingId, uid, partialData);
     if (!result.success) {
-        throw new Error(result.message);
+        return { error: result.message };
     }
     
     const existingHose = await getHoseByUid(clientId, buildingId, uid);
@@ -158,6 +160,8 @@ export async function updateHoseAction(clientId: string, buildingId: string, uid
         revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${existingHose.id}`);
     }
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+
+    return { success: true };
 }
 
 export async function deleteHoseAction(clientId: string, buildingId: string, uid: string) {

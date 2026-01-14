@@ -56,11 +56,18 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
     }
 
     try {
+        let result;
         if (isEditMode) {
-            await updateHoseAction(clientId, buildingId, hydrant.uid, validatedFields.data);
+            result = await updateHoseAction(clientId, buildingId, hydrant.uid, validatedFields.data);
         } else {
             await createHoseAction(clientId, buildingId, validatedFields.data);
+            result = { success: true };
         }
+
+        if (result?.error) {
+            throw new Error(result.error);
+        }
+
         toast({
             title: "Sucesso!",
             description: `Hidrante ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,

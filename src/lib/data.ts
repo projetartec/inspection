@@ -268,21 +268,32 @@ export async function addExtinguisher(clientId: string, buildingId: string, newE
 
 export async function updateExtinguisher(clientId: string, buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    let success = true;
+    let message = '';
+    
     try {
         await adminDb.runTransaction(async (transaction) => {
             const clientDoc = await transaction.get(clientRef);
-            if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+            if (!clientDoc.exists) {
+                throw new Error('Cliente não encontrado.');
+            }
             
             const client = docToClient(clientDoc);
             const building = client.buildings.find(b => b.id === buildingId);
-            if (!building) throw new Error('Local não encontrado.');
+            if (!building) {
+                throw new Error('Local não encontrado.');
+            }
             
             const extIndex = building.extinguishers.findIndex(e => e.uid === uid);
-            if (extIndex === -1) throw new Error('Extintor não encontrado.');
+            if (extIndex === -1) {
+                throw new Error('Extintor não encontrado.');
+            }
             
             if (updatedData.id && updatedData.id !== building.extinguishers[extIndex].id) {
                  const idExists = building.extinguishers.some(e => e.id === updatedData.id && e.uid !== uid);
                  if (idExists) {
+                     // This is a "business logic" failure, not a server crash.
+                     // We'll return this specific message to the client.
                      throw new Error('O ID já está em uso, altere!');
                  }
             }
@@ -290,10 +301,12 @@ export async function updateExtinguisher(clientId: string, buildingId: string, u
             building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...updatedData };
             transaction.update(clientRef, { buildings: client.buildings });
         });
-        return { success: true };
     } catch (error: any) {
-        return { success: false, message: error.message };
+        success = false;
+        message = error.message;
     }
+    
+    return { success, message };
 }
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, uid: string) {
@@ -346,17 +359,26 @@ export async function addHose(clientId: string, buildingId: string, newHoseData:
 
 export async function updateHose(clientId: string, buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    let success = true;
+    let message = '';
+    
     try {
         await adminDb.runTransaction(async (transaction) => {
             const clientDoc = await transaction.get(clientRef);
-            if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
+            if (!clientDoc.exists) {
+                throw new Error('Cliente não encontrado.');
+            }
             
             const client = docToClient(clientDoc);
             const building = client.buildings.find(b => b.id === buildingId);
-            if (!building) throw new Error('Local não encontrado.');
+            if (!building) {
+                throw new Error('Local não encontrado.');
+            }
             
             const hoseIndex = building.hoses.findIndex(h => h.uid === uid);
-            if (hoseIndex === -1) throw new Error('Hidrante não encontrado.');
+            if (hoseIndex === -1) {
+                throw new Error('Hidrante não encontrado.');
+            }
 
             if (updatedData.id && updatedData.id !== building.hoses[hoseIndex].id) {
                  const idExists = building.hoses.some(h => h.id === updatedData.id && h.uid !== uid);
@@ -368,10 +390,12 @@ export async function updateHose(clientId: string, buildingId: string, uid: stri
             building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
             transaction.update(clientRef, { buildings: client.buildings });
         });
-        return { success: true };
     } catch (error: any) {
-        return { success: false, message: error.message };
+        success = false;
+        message = error.message;
     }
+
+    return { success, message };
 }
 
 export async function deleteHose(clientId: string, buildingId: string, uid: string) {

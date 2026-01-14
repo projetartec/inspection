@@ -48,17 +48,25 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
     }
 
     try {
+      let result;
       if (isEditMode) {
-        await updateExtinguisherAction(clientId, buildingId, extinguisher.uid, validatedFields.data);
+        result = await updateExtinguisherAction(clientId, buildingId, extinguisher.uid, validatedFields.data);
       } else {
         await createExtinguisherAction(clientId, buildingId, validatedFields.data);
+        result = { success: true };
       }
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
       toast({
         title: "Sucesso!",
         description: `Extintor ${isEditMode ? 'atualizado' : 'criado'} com sucesso.`,
       });
       router.push(`/clients/${clientId}/${buildingId}/extinguishers`);
       router.refresh();
+
     } catch (error: any) {
        toast({
         variant: "destructive",
