@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Trash2, QrCode, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { getHosesByBuilding, getBuildingById } from "@/lib/data";
+import { getBuildingById } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, parseISO } from 'date-fns';
@@ -29,6 +29,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { notFound, useParams } from 'next/navigation';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function TableSkeleton() {
   return (
@@ -60,34 +62,34 @@ export default function HosesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchData() {
-        if (!clientId || !buildingId) return;
-        setIsLoading(true);
+    if (!clientId || !buildingId) return;
 
-        try {
-            const [buildingData, hosesData] = await Promise.all([
-                getBuildingById(clientId, buildingId),
-                getHosesByBuilding(clientId, buildingId)
-            ]);
-
-            if (buildingData) {
-                setBuildingName(buildingData.name);
+    const docRef = doc(db, "clients", clientId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const clientData = docSnap.data();
+            const building = clientData.buildings?.find((b: any) => b.id === buildingId);
+            if (building) {
+                setBuildingName(building.name);
+                setHoses(building.hoses || []);
             } else {
                 notFound();
             }
-            setHoses(hosesData);
-        } catch (error) {
-            console.error("Failed to fetch hoses:", error);
-            toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os hidrantes.' });
-        } finally {
-            setIsLoading(false);
+        } else {
+            notFound();
         }
-    }
-    fetchData();
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch hoses:", error);
+        toast({ variant: 'destructive', title: 'Erro de Conexão', description: 'Não foi possível buscar os hidrantes.' });
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [clientId, buildingId, toast]);
 
   const handleDeleteSuccess = (deletedUid: string) => {
-    setHoses(prev => prev.filter(hose => hose.uid !== deletedUid));
+    // UI atualiza via onSnapshot
     toast({
         title: "Sucesso!",
         description: "Hidrante deletado com sucesso."
@@ -103,14 +105,15 @@ export default function HosesPage() {
     const [removed] = reorderedHoses.splice(source.index, 1);
     reorderedHoses.splice(destination.index, 0, removed);
     
-    const originalOrder = [...hoses];
+    // Optimistic UI update
     setHoses(reorderedHoses);
 
     try {
         await updateEquipmentOrderAction(clientId, buildingId, 'hoses', reorderedHoses);
     } catch (error) {
         console.error("Failed to update order:", error);
-        setHoses(originalOrder);
+        // Revert on error
+        setHoses(hoses);
         toast({
             variant: "destructive",
             title: "Erro",

@@ -93,7 +93,10 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
     }, [session]); // dependency on session
 
     const addItemToInspection = useCallback((item: InspectedItem) => {
-        if (!session) return;
+        if (!session) {
+             console.error("No active inspection session to add item to.");
+             return;
+        };
         
         // Ensure uid is included in updatedData if it exists, for server action identification.
         if (item.updatedData && Object.keys(item.updatedData).length > 0) {

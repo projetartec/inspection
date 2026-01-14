@@ -9,7 +9,6 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BuildingForm } from '@/components/building-form';
-import { getClientById, getBuildingsByClient } from '@/lib/data';
 import type { Building, Client } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, GripVertical, X, Loader2 } from 'lucide-react';
@@ -33,6 +32,8 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -49,31 +50,36 @@ export default function ClientPage() {
   const [showNotInspectedOnly, setShowNotInspectedOnly] = useState(false);
 
   useEffect(() => {
-    async function fetchClient() {
-      if (!clientId) return;
-
-      setIsLoading(true);
-      try {
-        const clientData = await getClientById(clientId);
-        if (clientData) {
-          setClient(clientData);
-          setBuildings(clientData.buildings || []);
+    if (!clientId) return;
+    
+    const docRef = doc(db, "clients", clientId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const clientData = docSnap.data();
+            const buildingsData = clientData.buildings || [];
+            
+            setClient({
+                id: docSnap.id,
+                name: clientData.name,
+                ...clientData
+            } as Client);
+            setBuildings(buildingsData);
         } else {
-          toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
-          notFound();
+            toast({ variant: 'destructive', title: 'Erro', description: 'Cliente não encontrado.' });
+            notFound();
         }
-      } catch (error) {
-        console.error("Falha ao buscar dados do cliente:", error);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Falha ao buscar dados do cliente em tempo real:", error);
         toast({
           variant: 'destructive',
           title: 'Erro de Conexão',
           description: 'Não foi possível buscar os dados do cliente.'
         });
-      } finally {
         setIsLoading(false);
-      }
-    }
-    fetchClient();
+    });
+
+    return () => unsubscribe();
   }, [clientId, toast]);
   
   useEffect(() => {
@@ -98,7 +104,7 @@ export default function ClientPage() {
 
 
   const handleDeleteSuccess = (deletedBuildingId: string) => {
-    setBuildings(prev => prev.filter(b => b.id !== deletedBuildingId));
+    // A UI vai atualizar sozinha com o onSnapshot
     toast({
       title: 'Sucesso!',
       description: 'Local deletado com sucesso.',
@@ -106,15 +112,15 @@ export default function ClientPage() {
   };
 
   const handleCreateSuccess = async () => {
-    // Re-fetch buildings for the client
-    const clientData = await getClientById(clientId);
-    if (clientData) {
-      setBuildings(clientData.buildings || []);
-    }
+    // A UI vai atualizar sozinha com o onSnapshot
+    toast({
+        title: "Sucesso!",
+        description: "Local criado com sucesso."
+    });
   };
 
   const handleGpsLinkUpdate = (buildingId: string, newLink: string | undefined) => {
-    setBuildings(prev => prev.map(b => b.id === buildingId ? {...b, gpsLink: newLink} : b));
+    // A UI vai atualizar sozinha com o onSnapshot
   }
 
   const onDragEnd = async (result: any) => {
@@ -127,14 +133,16 @@ export default function ClientPage() {
     const [removed] = reorderedBuildings.splice(source.index, 1);
     reorderedBuildings.splice(destination.index, 0, removed);
     
-    const originalFilteredOrder = [...filteredBuildings];
+    // Optimistic UI update
     setFilteredBuildings(reorderedBuildings);
 
     const buildingIdOrder = reorderedBuildings.map(b => b.id);
-    const originalUnfiltered = [...buildings];
-    const newMasterOrder = originalUnfiltered.sort((a,b) => {
+    
+    // Create the new master order based on the filtered drag and drop
+    const newMasterOrder = [...buildings].sort((a,b) => {
         let indexA = buildingIdOrder.indexOf(a.id);
         let indexB = buildingIdOrder.indexOf(b.id);
+        // Put non-filtered items at the end
         if (indexA === -1) indexA = Infinity;
         if (indexB === -1) indexB = Infinity;
         return indexA - indexB;
@@ -144,7 +152,8 @@ export default function ClientPage() {
       await updateBuildingOrderAction(clientId, newMasterOrder);
     } catch (error) {
       console.error("Failed to update building order:", error);
-      setFilteredBuildings(originalFilteredOrder); // Revert on error
+      // Revert optimistic update on error
+      setFilteredBuildings(filteredBuildings); 
       toast({
           variant: "destructive",
           title: "Erro",
