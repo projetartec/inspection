@@ -11,7 +11,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000 // Changed default duration to 5 seconds
 
 type ToasterToast = ToastProps & {
   id: string
@@ -155,7 +155,7 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
-  // Define default duration for success toasts
+  // Define default duration. Destructive toasts will use the default TOAST_REMOVE_DELAY (5s)
   const isSuccess = props.variant !== 'destructive';
   const duration = props.duration ?? (isSuccess ? 1000 : TOAST_REMOVE_DELAY);
 
@@ -172,7 +172,7 @@ function toast({ ...props }: Toast) {
     },
   })
 
-  // Automatically dismiss success toasts
+  // Automatically dismiss non-destructive toasts
   if (isSuccess) {
     setTimeout(() => {
         dismiss();

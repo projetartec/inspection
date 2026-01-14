@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
@@ -114,14 +115,9 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
     if (!existingExtinguisher) {
         throw new Error('Extintor não encontrado para atualização.');
     }
-
-    // Determine which schema to use
-    const isFullFormUpdate = partialData.id && partialData.type && partialData.weight;
-    const schemaToUse = isFullFormUpdate ? ExtinguisherFormSchema : ExtinguisherUpdateSchema;
-
-    const validatedData = schemaToUse.parse(partialData);
     
-    await updateExtinguisherData(clientId, buildingId, uid, validatedData);
+    // Server-side validation before attempting the update
+    await updateExtinguisherData(clientId, buildingId, uid, partialData);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${existingExtinguisher.id}`);
@@ -148,11 +144,8 @@ export async function updateHoseAction(clientId: string, buildingId: string, uid
     if (!existingHose) {
         throw new Error('Hidrante não encontrado para atualização.');
     }
-
-    const mergedData = { ...existingHose, ...partialData };
-    const validatedData = HydrantFormSchema.parse(mergedData);
     
-    await updateHoseData(clientId, buildingId, uid, validatedData);
+    await updateHoseData(clientId, buildingId, uid, partialData);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${existingHose.id}`);
