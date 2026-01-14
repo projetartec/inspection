@@ -173,7 +173,7 @@ export default function HosesPage() {
                                           <GripVertical />
                                         </TableCell>
                                         <TableCell className="font-medium">
-                                          <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}`} className="hover:underline">{hose.id}</Link>
+                                          <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.uid}`} className="hover:underline">{hose.id}</Link>
                                         </TableCell>
                                         <TableCell>{hose.location}</TableCell>
                                         <TableCell className="hidden md:table-cell">Tipo {hose.hoseType}</TableCell>
@@ -183,7 +183,7 @@ export default function HosesPage() {
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end space-x-1 md:space-x-2">
                                                 <Button asChild variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
-                                                    <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.id}/edit`}>
+                                                    <Link href={`/clients/${clientId}/${buildingId}/hoses/${hose.uid}/edit`}>
                                                         <Pencil className="h-5 w-5 md:h-4 md:w-4" />
                                                         <span className="sr-only">Editar</span>
                                                     </Link>

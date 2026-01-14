@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -73,8 +74,8 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
     fetchData();
   }, [clientId, buildingId]);
 
-  const handleDeleteSuccess = (deletedId: string) => {
-    setExtinguishers(prev => prev.filter(ext => ext.id !== deletedId));
+  const handleDeleteSuccess = (deletedUid: string) => {
+    setExtinguishers(prev => prev.filter(ext => ext.uid !== deletedUid));
     toast({
         title: "Sucesso!",
         description: "Extintor deletado com sucesso."
@@ -117,7 +118,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                         const isValidDate = dateValue && !isNaN(dateValue.getTime());
                         
                         return (
-                        <TableRow key={ext.id}>
+                        <TableRow key={ext.uid}>
                             <TableCell className="font-medium">
                               <Link href={`/clients/${clientId}/${buildingId}/extinguishers/${ext.uid}`} className="hover:underline">{ext.id}</Link>
                             </TableCell>
@@ -152,7 +153,7 @@ export default function ExtinguishersPage({ params }: { params: { clientId: stri
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.id)} onSuccess={() => handleDeleteSuccess(ext.id)} />
+                                            <DeleteButton action={() => deleteExtinguisherAction(clientId, buildingId, ext.uid)} onSuccess={() => handleDeleteSuccess(ext.uid)} />
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>

@@ -1,5 +1,4 @@
 
-
 import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { getHoseByUid } from '@/lib/data';

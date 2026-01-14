@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useContext, useCallback } from 'react';
@@ -98,7 +97,7 @@ function ExtinguisherTable({ items, isLoading, clientId }: { items: (Extinguishe
                             <TableCell>{getObservationNotes(lastInsp)}</TableCell>
                             <TableCell className="text-right">
                                 <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                                    <Link href={`/clients/${clientId}/${ext.buildingId}/extinguishers/${ext.id}/edit`}>
+                                    <Link href={`/clients/${clientId}/${ext.buildingId}/extinguishers/${ext.uid}/edit`}>
                                         <Pencil className="h-4 w-4" />
                                         <span className="sr-only">Editar</span>
                                     </Link>
@@ -151,7 +150,7 @@ function HoseTable({ items, isLoading, clientId }: { items: (Hydrant & { buildin
                             <TableCell>{getObservationNotes(lastInsp)}</TableCell>
                              <TableCell className="text-right">
                                 <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                                    <Link href={`/clients/${clientId}/${hose.buildingId}/hoses/${hose.id}/edit`}>
+                                    <Link href={`/clients/${clientId}/${hose.buildingId}/hoses/${hose.uid}/edit`}>
                                         <Pencil className="h-4 w-4" />
                                         <span className="sr-only">Editar</span>
                                     </Link>
@@ -481,7 +480,3 @@ export default function ConsultationPage() {
         </>
     );
 }
-
-    
-
-    
