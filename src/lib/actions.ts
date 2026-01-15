@@ -15,10 +15,10 @@ import {
     deleteBuilding as deleteBuildingData,
     updateBuildingOrder as updateBuildingOrderData,
     addExtinguisher as addExtinguisherData,
-    updateExtinguisher as updateExtinguisherData,
+    updateExtinguisherData,
     deleteExtinguisher as deleteExtinguisherData,
     addHose as addHoseData,
-    updateHose as updateHoseData,
+    updateHoseData,
     deleteHose as deleteHoseData,
     finalizeInspection as finalizeInspectionData,
     updateEquipmentOrder,
@@ -121,9 +121,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
     const existingExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
     
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
-    if (existingExtinguisher) {
-        revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${existingExtinguisher.id}`);
-    }
+    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${uid}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 
     return { success: true };
@@ -153,12 +151,8 @@ export async function updateHoseAction(clientId: string, buildingId: string, uid
         return { error: result.message };
     }
     
-    const existingHose = await getHoseByUid(clientId, buildingId, uid);
-
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-    if (existingHose) {
-        revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${existingHose.id}`);
-    }
+    revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${uid}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 
     return { success: true };
@@ -181,9 +175,9 @@ export async function finalizeInspectionAction(session: InspectionSession) {
 
     inspectedItems.forEach(item => {
         if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${item.id}`);
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${item.uid}`);
         } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${item.id}`);
+            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${item.uid}`);
         }
     });
 

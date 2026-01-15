@@ -266,10 +266,8 @@ export async function addExtinguisher(clientId: string, buildingId: string, newE
     }
 }
 
-export async function updateExtinguisher(clientId: string, buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>): Promise<ActionResponse> {
+export async function updateExtinguisherData(clientId: string, buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    let success = true;
-    let message = '';
     
     try {
         await adminDb.runTransaction(async (transaction) => {
@@ -292,8 +290,6 @@ export async function updateExtinguisher(clientId: string, buildingId: string, u
             if (updatedData.id && updatedData.id !== building.extinguishers[extIndex].id) {
                  const idExists = building.extinguishers.some(e => e.id === updatedData.id && e.uid !== uid);
                  if (idExists) {
-                     // This is a "business logic" failure, not a server crash.
-                     // We'll return this specific message to the client.
                      throw new Error('O ID já está em uso, altere!');
                  }
             }
@@ -301,12 +297,10 @@ export async function updateExtinguisher(clientId: string, buildingId: string, u
             building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...updatedData };
             transaction.update(clientRef, { buildings: client.buildings });
         });
+        return { success: true };
     } catch (error: any) {
-        success = false;
-        message = error.message;
+        return { success: false, message: error.message };
     }
-    
-    return { success, message };
 }
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, uid: string) {
@@ -357,10 +351,8 @@ export async function addHose(clientId: string, buildingId: string, newHoseData:
     }
 }
 
-export async function updateHose(clientId: string, buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>): Promise<ActionResponse> {
+export async function updateHoseData(clientId: string, buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    let success = true;
-    let message = '';
     
     try {
         await adminDb.runTransaction(async (transaction) => {
@@ -390,12 +382,10 @@ export async function updateHose(clientId: string, buildingId: string, uid: stri
             building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
             transaction.update(clientRef, { buildings: client.buildings });
         });
+        return { success: true };
     } catch (error: any) {
-        success = false;
-        message = error.message;
+        return { success: false, message: error.message };
     }
-
-    return { success, message };
 }
 
 export async function deleteHose(clientId: string, buildingId: string, uid: string) {
