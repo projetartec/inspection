@@ -277,10 +277,11 @@ export async function updateExtinguisherData(clientId: string, buildingId: strin
             }
             
             const client = docToClient(clientDoc);
-            const building = client.buildings.find(b => b.id === buildingId);
-            if (!building) {
+            const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
+            if (buildingIndex === -1) {
                 throw new Error('Local não encontrado.');
             }
+            const building = client.buildings[buildingIndex];
             
             const extIndex = building.extinguishers.findIndex(e => e.uid === uid);
             if (extIndex === -1) {
@@ -295,6 +296,9 @@ export async function updateExtinguisherData(clientId: string, buildingId: strin
             }
 
             building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...updatedData };
+            client.buildings[buildingIndex] = building;
+
+            // This is the optimized part: only update the 'buildings' array
             transaction.update(clientRef, { buildings: client.buildings });
         });
         return { success: true };
@@ -362,11 +366,12 @@ export async function updateHoseData(clientId: string, buildingId: string, uid: 
             }
             
             const client = docToClient(clientDoc);
-            const building = client.buildings.find(b => b.id === buildingId);
-            if (!building) {
+            const buildingIndex = client.buildings.findIndex(b => b.id === buildingId);
+            if (buildingIndex === -1) {
                 throw new Error('Local não encontrado.');
             }
-            
+            const building = client.buildings[buildingIndex];
+
             const hoseIndex = building.hoses.findIndex(h => h.uid === uid);
             if (hoseIndex === -1) {
                 throw new Error('Hidrante não encontrado.');
@@ -380,6 +385,9 @@ export async function updateHoseData(clientId: string, buildingId: string, uid: 
             }
 
             building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...updatedData };
+            client.buildings[buildingIndex] = building;
+
+            // This is the optimized part: only update the 'buildings' array
             transaction.update(clientRef, { buildings: client.buildings });
         });
         return { success: true };
