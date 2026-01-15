@@ -12,7 +12,7 @@ import { Loader2, CameraOff, Edit, Check, ChevronDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
-import { extinguisherTypes, extinguisherWeights, getExtinguisherById, getHoseById, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/data';
+import { extinguisherTypes, extinguisherWeights, getExtinguisherByUid, getHoseByUid, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -102,27 +102,10 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
       setIsFetchingItem(true);
       try {
         let item: Extinguisher | Hydrant | null = null;
-        if (decodedText.startsWith('fireguard-ext-')) {
-          const extId = decodedText.replace('fireguard-ext-', '');
-          item = await getExtinguisherById(clientId, buildingId, extId);
-          if (item) {
-            setEditableType(item.type);
-            setEditableWeight(item.weight);
-            setEditableExpiry(item.expiryDate);
-          }
-        } else if (decodedText.startsWith('fireguard-hose-')) {
-          const hoseId = decodedText.replace('fireguard-hose-', '');
-          item = await getHoseById(clientId, buildingId, hoseId);
-           if (item) {
-                setEditableHoseLocation(item.location);
-                setEditableHoseQuantity(item.quantity);
-                setEditableHoseType(item.hoseType);
-                setEditableHoseDiameter(item.diameter);
-                setEditableHoseLength(item.hoseLength);
-                setEditableHoseKeyQuantity(item.keyQuantity);
-                setEditableHoseNozzleQuantity(item.nozzleQuantity);
-                setEditableHoseTestDate(item.hydrostaticTestDate);
-           }
+        let uid = decodedText.startsWith('fireguard-ext-') ? decodedText : decodedText.startsWith('fireguard-hose-') ? decodedText : null;
+        
+        if (uid) {
+            item = await getExtinguisherByUid(buildingId, uid) || await getHoseByUid(buildingId, uid);
         }
 
         if (item) {
@@ -130,6 +113,21 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
           const lastInspection = item.inspections?.[item.inspections.length - 1];
           setNotes(lastInspection?.notes || '');
           setItemStatuses(lastInspection?.itemStatuses || {});
+          
+          if ('type' in item) { // It's an extinguisher
+            setEditableType(item.type);
+            setEditableWeight(item.weight);
+            setEditableExpiry(item.expiryDate);
+          } else { // It's a hose
+            setEditableHoseLocation(item.location);
+            setEditableHoseQuantity(item.quantity);
+            setEditableHoseType(item.hoseType);
+            setEditableHoseDiameter(item.diameter);
+            setEditableHoseLength(item.hoseLength);
+            setEditableHoseKeyQuantity(item.keyQuantity);
+            setEditableHoseNozzleQuantity(item.nozzleQuantity);
+            setEditableHoseTestDate(item.hydrostaticTestDate);
+          }
         } else {
           toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado.' });
         }
@@ -232,6 +230,8 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     }
     
     const itemData: InspectedItem = {
+        uid: scannedItem?.uid || 'manual',
+        id: scannedItem?.id || manualId,
         qrCodeValue: itemIdentifier!,
         date: new Date().toISOString(),
         notes: finalNotes,
@@ -286,7 +286,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         <CardHeader>
           <CardTitle>Registrar Item Escaneado</CardTitle>
           <CardDescription>
-            ID: <span className="font-mono bg-muted px-2 py-1 rounded">{scanResult?.replace('fireguard-ext-', '').replace('fireguard-hose-', '')}</span>
+            ID: <span className="font-mono bg-muted px-2 py-1 rounded">{scannedItem?.id}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 max-h-[60vh] overflow-y-auto pr-3">

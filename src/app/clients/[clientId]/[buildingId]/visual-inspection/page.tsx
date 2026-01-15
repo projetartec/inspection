@@ -52,8 +52,8 @@ export default function VisualInspectionPage() {
             setIsLoading(true);
             try {
                 const [extinguishersData, hosesData] = await Promise.all([
-                    getExtinguishersByBuilding(clientId, buildingId),
-                    getHosesByBuilding(clientId, buildingId),
+                    getExtinguishersByBuilding(buildingId),
+                    getHosesByBuilding(buildingId),
                 ]);
                 setExtinguishers(extinguishersData);
                 setHoses(hosesData);

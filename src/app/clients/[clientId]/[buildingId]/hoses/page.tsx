@@ -66,8 +66,8 @@ export default function HosesPage() {
         try {
             setIsLoading(true);
             const [building, data] = await Promise.all([
-                getBuildingById(clientId, buildingId),
-                getHosesByBuilding(clientId, buildingId)
+                getBuildingById(buildingId),
+                getHosesByBuilding(buildingId)
             ]);
 
             if (!building) {

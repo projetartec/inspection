@@ -53,9 +53,9 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
         if (format === 'xlsx') {
-          await generateXlsxReportClient(client, building, extinguishers, hoses);
+          await generateXlsxReportClient(client, building);
         } else {
-          await generatePdfReportClient(client, building, extinguishers, hoses);
+          await generatePdfReportClient(client, building);
         }
         toast({
             title: 'Sucesso!',

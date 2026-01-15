@@ -285,14 +285,14 @@ export default function ConsultationPage() {
     // Fetch equipment when selected buildings change
     useEffect(() => {
         const fetchEquipmentData = async () => {
-            if (!clientId || selectedBuildingIds.length === 0) {
+            if (selectedBuildingIds.length === 0) {
                 setEquipment({ extinguishers: [], hoses: [] });
                 return;
             }
             
             setIsLoadingEquipment(true);
             try {
-                const equipmentData = await getEquipmentForBuildings(clientId, selectedBuildingIds);
+                const equipmentData = await getEquipmentForBuildings(selectedBuildingIds);
                 setEquipment(equipmentData);
             } catch (err) {
                  console.error("Falha ao buscar equipamentos para consulta:", err);
@@ -302,7 +302,7 @@ export default function ConsultationPage() {
         };
 
         fetchEquipmentData();
-    }, [clientId, selectedBuildingIds]);
+    }, [selectedBuildingIds]);
 
     const filteredItems = useMemo(() => {
         let finalExtinguishers = equipment.extinguishers;

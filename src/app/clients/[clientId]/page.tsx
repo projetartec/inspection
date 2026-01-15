@@ -58,7 +58,8 @@ export default function ClientPage() {
                 return;
             }
             setClient(clientData);
-            setBuildings(clientData.buildings);
+            const buildingsData = await getBuildingsByClient(clientId);
+            setBuildings(buildingsData);
         } catch (err) {
             console.error(err);
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível buscar os dados do cliente.' });
@@ -125,28 +126,22 @@ export default function ClientPage() {
     const [removed] = reorderedBuildings.splice(source.index, 1);
     reorderedBuildings.splice(destination.index, 0, removed);
     
-    // Optimistic UI update
     setFilteredBuildings(reorderedBuildings);
 
-    const buildingIdOrder = reorderedBuildings.map(b => b.id);
+    const fullBuildingOrder = buildings.map(b => b.id);
+    const filteredBuildingIds = reorderedBuildings.map(b => b.id);
+    const otherBuildingIds = fullBuildingOrder.filter(id => !filteredBuildingIds.includes(id));
     
-    // Create the new master order based on the filtered drag and drop
-    const newMasterOrder = [...buildings].sort((a,b) => {
-        let indexA = buildingIdOrder.indexOf(a.id);
-        let indexB = buildingIdOrder.indexOf(b.id);
-        // Put non-filtered items at the end
-        if (indexA === -1) indexA = Infinity;
-        if (indexB === -1) indexB = Infinity;
-        return indexA - indexB;
-    })
+    const newMasterOrder = [...filteredBuildingIds, ...otherBuildingIds];
     
     try {
       await updateBuildingOrderAction(clientId, newMasterOrder);
-      // Update main buildings state to reflect new order
-      setBuildings(newMasterOrder);
+      
+      const newMasterBuildingList = newMasterOrder.map(id => buildings.find(b => b.id === id)).filter(Boolean) as Building[];
+      setBuildings(newMasterBuildingList);
+
     } catch (error) {
       console.error("Failed to update building order:", error);
-      // Revert optimistic update on error
       setFilteredBuildings(filteredBuildings); 
       toast({
           variant: "destructive",

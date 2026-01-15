@@ -42,7 +42,6 @@ export async function updateClientAction(id: string, formData: FormData) {
 
   revalidatePath('/');
   revalidatePath(`/clients/${id}/edit`);
-  // Redirect is now handled on the client-side to avoid the next_redirect "error"
 }
 
 export async function deleteClientAction(id: string) {
@@ -70,20 +69,19 @@ export async function updateBuildingAction(clientId: string, buildingId: string,
 
     if (name && name.trim().length >= 2) {
         updatedData.name = name;
-    } else if (name !== null) { // if name is on formData but invalid
+    } else if (name !== null) { 
         throw new Error('O nome do local deve ter pelo menos 2 caracteres.');
     }
 
-    if (gpsLink !== null) { // gpsLink can be an empty string to clear it
+    if (gpsLink !== null) { 
         updatedData.gpsLink = gpsLink;
     }
     
     if (Object.keys(updatedData).length === 0) {
-        // Nothing to update
         return;
     }
 
-    await updateBuildingData(clientId, buildingId, updatedData);
+    await updateBuildingData(buildingId, updatedData);
 
     revalidatePath(`/clients/${clientId}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/edit`);
@@ -94,8 +92,8 @@ export async function deleteBuildingAction(clientId: string, buildingId: string)
     revalidatePath(`/clients/${clientId}`);
 }
 
-export async function updateBuildingOrderAction(clientId: string, orderedBuildings: Building[]) {
-    await updateBuildingOrderData(clientId, orderedBuildings);
+export async function updateBuildingOrderAction(clientId: string, orderedBuildingIds: string[]) {
+    await updateBuildingOrderData(clientId, orderedBuildingIds);
     revalidatePath(`/clients/${clientId}`);
 }
 
@@ -104,7 +102,7 @@ export async function updateBuildingOrderAction(clientId: string, orderedBuildin
 
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
-    const result = await addExtinguisherData(clientId, buildingId, data);
+    const result = await addExtinguisherData(buildingId, data);
     if (!result.success) {
         throw new Error(result.message);
     }
@@ -114,11 +112,10 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
 }
 
 export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, partialData: Partial<ExtinguisherFormValues>) {
-    const result = await updateExtinguisherData(clientId, buildingId, uid, partialData);
+    const result = await updateExtinguisherData(buildingId, uid, partialData);
     if (!result.success) {
         return { error: result.message };
     }
-    const existingExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
     
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${uid}`);
@@ -128,7 +125,7 @@ export async function updateExtinguisherAction(clientId: string, buildingId: str
 }
 
 export async function deleteExtinguisherAction(clientId: string, buildingId: string, uid: string) {
-    await deleteExtinguisherData(clientId, buildingId, uid);
+    await deleteExtinguisherData(buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -136,7 +133,7 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 
 // --- Hose Actions ---
 export async function createHoseAction(clientId: string, buildingId: string, data: HydrantFormValues) {
-    const result = await addHoseData(clientId, buildingId, data);
+    const result = await addHoseData(buildingId, data);
      if (!result.success) {
         throw new Error(result.message);
     }
@@ -146,7 +143,7 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
 }
 
 export async function updateHoseAction(clientId: string, buildingId: string, uid: string, partialData: Partial<HydrantFormValues>) {
-    const result = await updateHoseData(clientId, buildingId, uid, partialData);
+    const result = await updateHoseData(buildingId, uid, partialData);
     if (!result.success) {
         return { error: result.message };
     }
@@ -159,7 +156,7 @@ export async function updateHoseAction(clientId: string, buildingId: string, uid
 }
 
 export async function deleteHoseAction(clientId: string, buildingId: string, uid: string) {
-    await deleteHoseData(clientId, buildingId, uid);
+    await deleteHoseData(buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -169,19 +166,7 @@ export async function deleteHoseAction(clientId: string, buildingId: string, uid
 export async function finalizeInspectionAction(session: InspectionSession) {
     await finalizeInspectionData(session);
 
-    // Revalidate all relevant paths after the transaction is complete
-    const { clientId, buildingId, inspectedItems } = session;
-    const revalidatedPaths: Set<string> = new Set();
-
-    inspectedItems.forEach(item => {
-        if (item.qrCodeValue.startsWith('fireguard-ext-')) {
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/extinguishers/${item.uid}`);
-        } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
-            revalidatedPaths.add(`/clients/${clientId}/${buildingId}/hoses/${item.uid}`);
-        }
-    });
-
-    revalidatedPaths.forEach(p => revalidatePath(p));
+    const { clientId, buildingId } = session;
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
@@ -190,33 +175,24 @@ export async function finalizeInspectionAction(session: InspectionSession) {
 
 // --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
-    const [client, building, extinguishers, hoses] = await Promise.all([
+    const [client, building] = await Promise.all([
         getClientById(clientId),
-        getBuildingById(clientId, buildingId),
-        getExtinguishersByBuilding(clientId, buildingId),
-        getHosesByBuilding(clientId, buildingId)
+        getBuildingById(buildingId),
     ]);
+
+    const extinguishers = building?.extinguishers || [];
+    const hoses = building?.hoses || [];
 
     return { client, building, extinguishers, hoses };
 }
 
 export async function getClientReportDataAction(clientId: string) {
-    const [client, buildings] = await Promise.all([
-        getClientById(clientId),
-        getBuildingsByClient(clientId)
-    ]);
+    const client = await getClientById(clientId);
+    if (!client) return { client: null, buildings: [] };
 
-    // This is heavy, but necessary to get all equipment data for all buildings
-    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
-        const [extinguishers, hoses] = await Promise.all([
-            getExtinguishersByBuilding(clientId, b.id),
-            getHosesByBuilding(clientId, b.id)
-        ]);
-        return { ...b, extinguishers, hoses };
-    }));
+    const buildings = await getBuildingsByClient(clientId);
 
-
-    return { client, buildings: buildingsWithEquipment };
+    return { client, buildings };
 }
 
 export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
@@ -224,48 +200,30 @@ export async function getExpiryReportDataAction(clientId: string, buildingId: st
     let buildings: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingById(clientId, buildingId);
+        const building = await getBuildingById(buildingId);
         if (building) buildings.push(building);
     } else {
         buildings = await getBuildingsByClient(clientId);
     }
-    
-    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
-        const [extinguishers, hoses] = await Promise.all([
-            getExtinguishersByBuilding(clientId, b.id),
-            getHosesByBuilding(clientId, b.id)
-        ]);
-        return { ...b, extinguishers, hoses };
-    }));
 
-    return { client, buildings: buildingsWithEquipment };
+    return { client, buildings };
 }
 
 export async function getHosesReportDataAction(clientId: string) {
-    const [client, buildings] = await Promise.all([
-        getClientById(clientId),
-        getBuildingsByClient(clientId)
-    ]);
+    const client = await getClientById(clientId);
+    if (!client) return { client: null, buildingsWithHoses: [] };
 
-    const buildingsWithHoses = await Promise.all(buildings.map(async (b) => {
-        const hoses = await getHosesByBuilding(clientId, b.id);
-        return { ...b, hoses };
-    }));
+    const buildingsWithHoses = await getBuildingsByClient(clientId);
 
     return { client, buildingsWithHoses };
 }
 
 export async function getExtinguishersReportDataAction(clientId: string) {
-    const [client, buildings] = await Promise.all([
-        getClientById(clientId),
-        getBuildingsByClient(clientId)
-    ]);
+    const client = await getClientById(clientId);
+    if (!client) return { client: null, buildingsWithExtinguishers: [] };
 
-    const buildingsWithExtinguishers = await Promise.all(buildings.map(async (b) => {
-        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
-        return { ...b, extinguishers };
-    }));
-
+    const buildingsWithExtinguishers = await getBuildingsByClient(clientId);
+    
     return { client, buildingsWithExtinguishers };
 }
 
@@ -274,56 +232,41 @@ export async function getDescriptiveReportDataAction(clientId: string, buildingI
     let buildings: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingById(clientId, buildingId);
+        const building = await getBuildingById(buildingId);
         if(building) buildings.push(building);
     } else {
         buildings = await getBuildingsByClient(clientId);
     }
-
-    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
-        const [extinguishers, hoses] = await Promise.all([
-            getExtinguishersByBuilding(clientId, b.id),
-            getHosesByBuilding(clientId, b.id)
-        ]);
-        return { ...b, extinguishers, hoses };
-    }));
     
-    return { client, buildings: buildingsWithEquipment };
+    return { client, buildings };
 }
 
 export async function getNonConformityReportDataAction(clientId: string, buildingId?: string) {
     const client = await getClientById(clientId);
-    let buildings: Building[] = [];
+    let buildingsData: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingById(clientId, buildingId);
-        if(building) buildings.push(building);
+        const building = await getBuildingById(buildingId);
+        if(building) buildingsData.push(building);
     } else {
-        buildings = await getBuildingsByClient(clientId);
+        buildingsData = await getBuildingsByClient(clientId);
     }
 
-    const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
-        const [extinguishers, hoses] = await Promise.all([
-            getExtinguishersByBuilding(clientId, b.id),
-            getHosesByBuilding(clientId, b.id)
-        ]);
-
-        const ncExtinguishers = extinguishers.filter(e => {
+    const buildingsWithNC = buildingsData.map(b => {
+        const ncExtinguishers = (b.extinguishers || []).filter(e => {
             if (!e.inspections || e.inspections.length === 0) return false;
             const lastInspection = e.inspections[e.inspections.length - 1];
             return lastInspection.status === 'N/C';
         });
 
-        const ncHoses = hoses.filter(h => {
+        const ncHoses = (b.hoses || []).filter(h => {
              if (!h.inspections || h.inspections.length === 0) return false;
             const lastInspection = h.inspections[h.inspections.length - 1];
             return lastInspection.status === 'N/C';
         });
-
+        
         return { ...b, extinguishers: ncExtinguishers, hoses: ncHoses };
-    }));
-    
-    const buildingsWithNC = buildingsWithEquipment.filter(b => b.extinguishers.length > 0 || b.hoses.length > 0);
+    }).filter(b => b.extinguishers.length > 0 || b.hoses.length > 0);
 
     return { client, buildings: buildingsWithNC };
 }
@@ -331,6 +274,6 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
 
 // --- Reorder Action ---
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
-    await updateEquipmentOrder(clientId, buildingId, equipmentType, orderedItems);
+    await updateEquipmentOrder(buildingId, equipmentType, orderedItems);
     revalidatePath(`/clients/${clientId}/${buildingId}/${equipmentType}`);
 }

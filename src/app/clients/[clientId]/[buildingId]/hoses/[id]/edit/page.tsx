@@ -8,7 +8,7 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default async function EditHosePage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hose = await getHoseByUid(clientId, buildingId, id);
+  const hose = await getHoseByUid(buildingId, id);
 
 
   if (!hose) {

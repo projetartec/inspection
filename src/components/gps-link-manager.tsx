@@ -40,7 +40,7 @@ export function GpsLinkManager({ clientId, building, onUpdate }: GpsLinkManagerP
   };
 
   const handleSave = async () => {
-    if (!URL.canParse(newLink)) {
+    if (newLink && !URL.canParse(newLink)) {
         toast({
             variant: "destructive",
             title: "Link Inválido",

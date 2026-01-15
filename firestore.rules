@@ -2,11 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite acesso de leitura e escrita a qualquer usuário.
-    // ATENÇÃO: Esta regra é insegura para produção e será ajustada
-    // quando a autenticação for implementada.
+    // Regra para a coleção 'clients'
+    match /clients/{clientId} {
+      allow read, write: if true; // Ajustar regras de segurança conforme necessário
+    }
+
+    // Regra para a nova coleção 'buildings'
+    match /buildings/{buildingId} {
+      allow read, write: if true; // Ajustar regras de segurança conforme necessário
+    }
+    
+    // Regra de fallback para outros documentos (se houver)
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false; // Por padrão, nega acesso a outras coleções
     }
   }
 }

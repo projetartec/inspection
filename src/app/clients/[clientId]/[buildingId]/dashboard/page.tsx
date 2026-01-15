@@ -57,9 +57,9 @@ export default function DashboardPage() {
             try {
                 setIsLoading(true);
 
-                const buildingPromise = getBuildingById(clientId, buildingId);
-                const extinguishersPromise = getExtinguishersByBuilding(clientId, buildingId);
-                const hosesPromise = getHosesByBuilding(clientId, buildingId);
+                const buildingPromise = getBuildingById(buildingId);
+                const extinguishersPromise = getExtinguishersByBuilding(buildingId);
+                const hosesPromise = getHosesByBuilding(buildingId);
 
                 const [building, extinguishers, hoses] = await Promise.all([
                     buildingPromise,

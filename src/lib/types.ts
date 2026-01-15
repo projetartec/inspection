@@ -68,6 +68,7 @@ export type ManualInspection = Inspection & { manualId: string };
 
 export type Building = {
   id: string;
+  clientId: string;
   name: string;
   extinguishers: Extinguisher[];
   hoses: Hydrant[];
@@ -78,7 +79,7 @@ export type Building = {
 
 export type Client = {
   id: string;
-  name: string; // "Empresa"
+  name: string;
   fantasyName?: string;
   address?: string;
   city?: string;
@@ -89,5 +90,6 @@ export type Client = {
   email?: string;
   adminContact?: string;
   caretakerContact?: string;
-  buildings: Building[];
+  buildingIds: string[];
+  buildingOrder: string[];
 };
