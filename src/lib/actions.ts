@@ -101,8 +101,11 @@ export async function updateBuildingOrderAction(clientId: string, orderedBuildin
 
 
 // --- Extinguisher Actions ---
-export async function createExtinguisherAction(clientId: string, buildingId: string, data: ExtinguisherFormValues) {
-    const result = await addExtinguisherData(buildingId, data);
+export async function createExtinguisherAction(clientId: string, buildingId: string, formData: FormData) {
+    const rawData = Object.fromEntries(formData);
+    const validatedData = ExtinguisherFormSchema.parse(rawData);
+    
+    const result = await addExtinguisherData(buildingId, validatedData);
     if (!result.success) {
         throw new Error(result.message);
     }
@@ -111,8 +114,15 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateExtinguisherAction(clientId: string, buildingId: string, uid: string, partialData: Partial<ExtinguisherFormValues>) {
-    const result = await updateExtinguisherData(buildingId, uid, partialData);
+export async function updateExtinguisherAction(clientId: string, uid: string, formData: FormData) {
+    const rawData = Object.fromEntries(formData);
+    const buildingId = rawData.buildingId as string;
+    if (!buildingId) {
+        return { error: 'Local não encontrado (ID do local ausente).' };
+    }
+    const validatedData = ExtinguisherFormSchema.partial().parse(rawData);
+    
+    const result = await updateExtinguisherData(buildingId, uid, validatedData);
     if (!result.success) {
         return { error: result.message };
     }
@@ -132,8 +142,11 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 }
 
 // --- Hose Actions ---
-export async function createHoseAction(clientId: string, buildingId: string, data: HydrantFormValues) {
-    const result = await addHoseData(buildingId, data);
+export async function createHoseAction(clientId: string, buildingId: string, formData: FormData) {
+    const rawData = Object.fromEntries(formData);
+    const validatedData = HydrantFormSchema.parse(rawData);
+    
+    const result = await addHoseData(buildingId, validatedData);
      if (!result.success) {
         throw new Error(result.message);
     }
@@ -142,8 +155,15 @@ export async function createHoseAction(clientId: string, buildingId: string, dat
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateHoseAction(clientId: string, buildingId: string, uid: string, partialData: Partial<HydrantFormValues>) {
-    const result = await updateHoseData(buildingId, uid, partialData);
+export async function updateHoseAction(clientId: string, uid: string, formData: FormData) {
+    const rawData = Object.fromEntries(formData);
+    const buildingId = rawData.buildingId as string;
+    if (!buildingId) {
+        return { error: 'Local não encontrado (ID do local ausente).' };
+    }
+    const validatedData = HydrantFormSchema.partial().parse(rawData);
+
+    const result = await updateHoseData(buildingId, uid, validatedData);
     if (!result.success) {
         return { error: result.message };
     }

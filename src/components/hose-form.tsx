@@ -41,27 +41,13 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
     event.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
-    const rawData = Object.fromEntries(formData.entries());
-
-    const validatedFields = HydrantFormSchema.safeParse(rawData);
     
-    if (!validatedFields.success) {
-        console.error(validatedFields.error.flatten().fieldErrors);
-        toast({
-            variant: "destructive",
-            title: "Erro de Validação",
-            description: "Por favor, verifique os campos do formulário.",
-        });
-        setIsSubmitting(false);
-        return;
-    }
-
     try {
         let result;
         if (isEditMode) {
-            result = await updateHoseAction(clientId, buildingId, hydrant.uid, validatedFields.data);
+            result = await updateHoseAction(clientId, hydrant.uid, formData);
         } else {
-            await createHoseAction(clientId, buildingId, validatedFields.data);
+            await createHoseAction(clientId, buildingId, formData);
             result = { success: true };
         }
 
@@ -89,6 +75,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+        <input type="hidden" name="buildingId" value={buildingId} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
                 <Label htmlFor="id-input">ID do Hidrante</Label>

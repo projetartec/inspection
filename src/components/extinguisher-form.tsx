@@ -33,27 +33,13 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
     event.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
-    const rawData = Object.fromEntries(formData.entries());
-
-    const validatedFields = ExtinguisherFormSchema.safeParse(rawData);
-  
-    if (!validatedFields.success) {
-      console.error(validatedFields.error.flatten().fieldErrors);
-      toast({
-        variant: "destructive",
-        title: "Erro de Validação",
-        description: "Por favor, verifique os campos do formulário.",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
+    
     try {
       let result;
       if (isEditMode) {
-        result = await updateExtinguisherAction(clientId, buildingId, extinguisher.uid, validatedFields.data);
+        result = await updateExtinguisherAction(clientId, extinguisher.uid, formData);
       } else {
-        await createExtinguisherAction(clientId, buildingId, validatedFields.data);
+        await createExtinguisherAction(clientId, buildingId, formData);
         result = { success: true };
       }
       
@@ -84,6 +70,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
   return (
       <form onSubmit={handleSubmit} className="space-y-8">
+        <input type="hidden" name="buildingId" value={buildingId} />
         <div className="space-y-2">
             <Label htmlFor="id-input">ID do Equipamento</Label>
             <Input 
