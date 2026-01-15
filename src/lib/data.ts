@@ -30,8 +30,11 @@ function clientFromDoc(doc: FirebaseFirestore.DocumentSnapshot): Client {
     email: data.email,
     adminContact: data.adminContact,
     caretakerContact: data.caretakerContact,
-    buildingIds: data.buildingIds || [],
-    buildingOrder: data.buildingOrder || [],
+    // Support old and new data model
+    buildingIds: data.buildingIds || (data.buildings || []).map((b: any) => b.id),
+    buildingOrder: data.buildingOrder || (data.buildings || []).map((b: any) => b.id),
+    // Keep raw buildings for migration if they exist
+    buildings: data.buildings,
   };
 }
 
@@ -134,28 +137,86 @@ export async function deleteClient(id: string) {
 export async function getBuildingById(buildingId: string): Promise<Building | null> {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
     const buildingDoc = await buildingRef.get();
-    if (!buildingDoc.exists) return null;
-    return buildingFromDoc(buildingDoc);
+
+    // If building exists in the new collection, return it.
+    if (buildingDoc.exists) {
+        return buildingFromDoc(buildingDoc);
+    }
+    
+    // Fallback: If not found, search for it in the old nested structure.
+    const clientsSnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
+    for (const clientDoc of clientsSnapshot.docs) {
+        const client = clientFromDoc(clientDoc);
+        const nestedBuilding = (client.buildings || []).find((b: any) => b.id === buildingId);
+        if (nestedBuilding) {
+            return {
+                id: nestedBuilding.id,
+                clientId: client.id,
+                name: nestedBuilding.name,
+                extinguishers: (nestedBuilding.extinguishers || []).map((e: any) => ({
+                    ...e,
+                    uid: e.uid || e.qrCodeValue || `ext-${Math.random()}`
+                })),
+                hoses: (nestedBuilding.hoses || []).map((h: any) => ({
+                    ...h,
+                    uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
+                })),
+                gpsLink: nestedBuilding.gpsLink,
+                lastInspected: nestedBuilding.lastInspected,
+                manualInspections: nestedBuilding.manualInspections || [],
+            };
+        }
+    }
+
+    return null; // Not found in new or old structure
 }
+
 
 export async function getBuildingsByClient(clientId: string): Promise<Building[]> {
   const client = await getClientById(clientId);
-  if (!client || client.buildingIds.length === 0) {
+  if (!client) {
     return [];
   }
   
-  // Use a 'in' query to fetch all buildings at once
-  const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).where(adminDb.FieldPath.documentId(), 'in', client.buildingIds).get();
+  // If client has buildingIds, fetch from the new collection
+  if (client.buildingIds && client.buildingIds.length > 0) {
+      const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION)
+                                          .where(adminDb.FieldPath.documentId(), 'in', client.buildingIds)
+                                          .get();
 
-  const buildingsMap = new Map(buildingsSnapshot.docs.map(doc => [doc.id, buildingFromDoc(doc)]));
+      // If we found buildings, the migration has likely happened for this client.
+      if (!buildingsSnapshot.empty) {
+          const buildingsMap = new Map(buildingsSnapshot.docs.map(doc => [doc.id, buildingFromDoc(doc)]));
+          const orderedBuildings = (client.buildingOrder || client.buildingIds)
+            .map(id => buildingsMap.get(id))
+            .filter((b): b is Building => !!b);
+          return orderedBuildings;
+      }
+  }
 
-  // Order the results based on the client's buildingOrder
-  const orderedBuildings = (client.buildingOrder || client.buildingIds)
-    .map(id => buildingsMap.get(id))
-    .filter((b): b is Building => !!b);
+  // Fallback for old data structure
+  if (client.buildings && Array.isArray(client.buildings)) {
+      return client.buildings.map((b: any) => ({
+            id: b.id,
+            clientId: client.id,
+            name: b.name,
+            extinguishers: (b.extinguishers || []).map((e: any) => ({
+                ...e,
+                uid: e.uid || e.qrCodeValue || `ext-${Math.random()}`
+            })),
+            hoses: (b.hoses || []).map((h: any) => ({
+                ...h,
+                uid: h.uid || h.qrCodeValue || `hose-${Math.random()}`
+            })),
+            gpsLink: b.gpsLink,
+            lastInspected: b.lastInspected,
+            manualInspections: b.manualInspections || [],
+      }));
+  }
 
-  return orderedBuildings;
+  return [];
 }
+
 
 export async function addBuilding(clientId: string, newBuildingData: { name: string }): Promise<void> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
@@ -181,19 +242,42 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
         
         transaction.set(buildingDocRef, newBuilding);
         
-        const currentBuildingIds = clientDoc.data()?.buildingIds || [];
-        const currentBuildingOrder = clientDoc.data()?.buildingOrder || [];
+        const clientData = clientDoc.data()!;
+        // Use current data, filtering out any old nested buildings array
+        const currentBuildingIds = clientData.buildingIds || (clientData.buildings || []).map((b: any) => b.id);
+        const currentBuildingOrder = clientData.buildingOrder || (clientData.buildings || []).map((b: any) => b.id);
         
         transaction.update(clientRef, {
             buildingIds: [...currentBuildingIds, buildingDocRef.id],
-            buildingOrder: [...currentBuildingOrder, buildingDocRef.id]
+            buildingOrder: [...currentBuildingOrder, buildingDocRef.id],
+            buildings: adminDb.FieldValue.delete() // Remove old field
         });
     });
 }
 
 export async function updateBuilding(buildingId: string, updatedData: Partial<Building>) {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-    await buildingRef.update(updatedData);
+    
+    const doc = await buildingRef.get();
+    if(doc.exists) {
+        await buildingRef.update(updatedData);
+    } else {
+        // Fallback to update old structure if building is not in new collection yet
+        const clientsSnapshot = await adminDb.collection(CLIENTS_COLLECTION).get();
+        for (const clientDoc of clientsSnapshot.docs) {
+             const client = clientFromDoc(clientDoc);
+             if ((client.buildings || []).some((b: any) => b.id === buildingId)) {
+                const updatedBuildings = (client.buildings || []).map((b: any) => {
+                    if (b.id === buildingId) {
+                        return { ...b, ...updatedData };
+                    }
+                    return b;
+                });
+                await clientDoc.ref.update({ buildings: updatedBuildings });
+                break; 
+             }
+        }
+    }
 }
 
 export async function deleteBuilding(clientId: string, buildingId: string) {
@@ -204,18 +288,31 @@ export async function deleteBuilding(clientId: string, buildingId: string) {
         const clientDoc = await transaction.get(clientRef);
         if (!clientDoc.exists) throw new Error('Cliente não encontrado.');
 
+        // Attempt to delete from new collection (might not exist)
         transaction.delete(buildingRef);
 
         const data = clientDoc.data()!;
-        const updatedIds = (data.buildingIds || []).filter((id: string) => id !== buildingId);
-        const updatedOrder = (data.buildingOrder || []).filter((id: string) => id !== buildingId);
+        const currentBuildingIds = data.buildingIds || (data.buildings || []).map((b: any) => b.id);
+        const currentBuildingOrder = data.buildingOrder || (data.buildings || []).map((b: any) => b.id);
 
-        transaction.update(clientRef, {
+        const updatedIds = currentBuildingIds.filter((id: string) => id !== buildingId);
+        const updatedOrder = currentBuildingOrder.filter((id: string) => id !== buildingId);
+        const updatedNestedBuildings = (data.buildings || []).filter((b: any) => b.id !== buildingId);
+
+        const updatePayload: any = {
             buildingIds: updatedIds,
-            buildingOrder: updatedOrder
-        });
+            buildingOrder: updatedOrder,
+        };
+
+        // If the old 'buildings' field exists, update it too.
+        if (data.buildings) {
+            updatePayload.buildings = updatedNestedBuildings;
+        }
+
+        transaction.update(clientRef, updatePayload);
     });
 }
+
 
 export async function updateBuildingOrder(clientId: string, orderedBuildingIds: string[]) {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
@@ -240,19 +337,19 @@ export async function getEquipmentForBuildings(buildingIds: string[]): Promise<{
       return { extinguishers: [], hoses: [] };
   }
   
-  const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).where(adminDb.FieldPath.documentId(), 'in', buildingIds).get();
+  const result: {
+      extinguishers: (Extinguisher & {buildingId: string, buildingName: string})[],
+      hoses: (Hydrant & {buildingId: string, buildingName: string})[]
+  } = { extinguishers: [], hoses: [] };
 
-  const result = {
-    extinguishers: [] as (Extinguisher & {buildingId: string, buildingName: string})[],
-    hoses: [] as (Hydrant & {buildingId: string, buildingName: string})[]
-  };
-
-  buildingsSnapshot.docs.forEach(doc => {
-      const building = buildingFromDoc(doc);
-      (building.extinguishers || []).forEach(ext => result.extinguishers.push({ ...ext, buildingId: building.id, buildingName: building.name }));
-      (building.hoses || []).forEach(hose => result.hoses.push({ ...hose, buildingId: building.id, buildingName: building.name }));
-  });
-
+  for (const buildingId of buildingIds) {
+      const building = await getBuildingById(buildingId);
+      if (building) {
+          (building.extinguishers || []).forEach(ext => result.extinguishers.push({ ...ext, buildingId: building.id, buildingName: building.name }));
+          (building.hoses || []).forEach(hose => result.hoses.push({ ...hose, buildingId: building.id, buildingName: building.name }));
+      }
+  }
+  
   return result;
 }
 
@@ -266,6 +363,47 @@ export async function getHoseByUid(buildingId: string, uid: string): Promise<Hyd
     const building = await getBuildingById(buildingId);
     return building?.hoses.find(h => h.uid === uid) || null;
 }
+
+async function performUpdate<T>(
+    buildingId: string,
+    uid: string,
+    updatedData: Partial<T>,
+    equipmentType: 'extinguishers' | 'hoses'
+): Promise<ActionResponse> {
+    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const buildingDoc = await transaction.get(buildingRef);
+            if (!buildingDoc.exists) {
+                throw new Error('Local não encontrado.');
+            }
+
+            const building = buildingFromDoc(buildingDoc);
+            const equipmentList = [...(building[equipmentType] as any[])];
+            const itemIndex = equipmentList.findIndex(e => e.uid === uid);
+
+            if (itemIndex === -1) {
+                throw new Error('Equipamento não encontrado.');
+            }
+
+            // Check for ID uniqueness if ID is being changed
+            const editableData = updatedData as { id?: string };
+            if (editableData.id && editableData.id !== equipmentList[itemIndex].id) {
+                const idExists = equipmentList.some(e => e.id === editableData.id && e.uid !== uid);
+                if (idExists) {
+                    throw new Error('O ID já está em uso, altere!');
+                }
+            }
+
+            equipmentList[itemIndex] = { ...equipmentList[itemIndex], ...updatedData };
+            transaction.update(buildingRef, { [equipmentType]: equipmentList });
+        });
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
 
 export async function addExtinguisher(buildingId: string, newExtinguisherData: ExtinguisherFormValues): Promise<ActionResponse> {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
@@ -299,34 +437,9 @@ export async function addExtinguisher(buildingId: string, newExtinguisherData: E
 }
 
 export async function updateExtinguisherData(buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>): Promise<ActionResponse> {
-    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-    
-    try {
-        await adminDb.runTransaction(async (transaction) => {
-            const buildingDoc = await transaction.get(buildingRef);
-            if (!buildingDoc.exists) throw new Error('Local não encontrado.');
-            
-            const building = buildingFromDoc(buildingDoc);
-            const extinguishers = building.extinguishers || [];
-            
-            const extIndex = extinguishers.findIndex(e => e.uid === uid);
-            if (extIndex === -1) throw new Error('Extintor não encontrado.');
-            
-            if (updatedData.id && updatedData.id !== extinguishers[extIndex].id) {
-                 const idExists = extinguishers.some(e => e.id === updatedData.id && e.uid !== uid);
-                 if (idExists) {
-                     throw new Error('O ID já está em uso, altere!');
-                 }
-            }
-
-            extinguishers[extIndex] = { ...extinguishers[extIndex], ...updatedData };
-            transaction.update(buildingRef, { extinguishers: extinguishers });
-        });
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, message: error.message };
-    }
+    return performUpdate<ExtinguisherFormValues>(buildingId, uid, updatedData, 'extinguishers');
 }
+
 
 export async function deleteExtinguisher(buildingId: string, uid: string) {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
@@ -372,34 +485,9 @@ export async function addHose(buildingId: string, newHoseData: HydrantFormValues
 }
 
 export async function updateHoseData(buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>): Promise<ActionResponse> {
-    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-    
-    try {
-        await adminDb.runTransaction(async (transaction) => {
-            const buildingDoc = await transaction.get(buildingRef);
-            if (!buildingDoc.exists) throw new Error('Local não encontrado.');
-            
-            const building = buildingFromDoc(buildingDoc);
-            const hoses = building.hoses || [];
-
-            const hoseIndex = hoses.findIndex(h => h.uid === uid);
-            if (hoseIndex === -1) throw new Error('Hidrante não encontrado.');
-
-            if (updatedData.id && updatedData.id !== hoses[hoseIndex].id) {
-                 const idExists = hoses.some(h => h.id === updatedData.id && h.uid !== uid);
-                 if (idExists) {
-                    throw new Error('O ID já está em uso, altere!');
-                 }
-            }
-
-            hoses[hoseIndex] = { ...hoses[hoseIndex], ...updatedData };
-            transaction.update(buildingRef, { hoses: hoses });
-        });
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, message: error.message };
-    }
+    return performUpdate<HydrantFormValues>(buildingId, uid, updatedData, 'hoses');
 }
+
 
 export async function deleteHose(buildingId: string, uid: string) {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
@@ -418,13 +506,35 @@ export async function deleteHose(buildingId: string, uid: string) {
 export async function finalizeInspection(session: InspectionSession) {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(session.buildingId);
 
+    // This is a one-time migration. If the building doesn't exist in the new collection, create it.
+    const buildingDoc = await buildingRef.get();
+    if (!buildingDoc.exists) {
+        const buildingData = await getBuildingById(session.buildingId); // This will read from the old structure
+        if (buildingData) {
+            const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(session.clientId);
+            const clientDoc = await clientRef.get();
+            const clientData = clientDoc.data();
+            
+            await buildingRef.set({ ...buildingData, clientId: session.clientId });
+            
+            if (clientData && clientData.buildings) {
+                await clientRef.update({
+                    buildingIds: (clientData.buildings || []).map((b: any) => b.id),
+                    buildingOrder: (clientData.buildings || []).map((b: any) => b.id),
+                    buildings: adminDb.FieldValue.delete()
+                });
+            }
+        }
+    }
+
+
     await adminDb.runTransaction(async (transaction) => {
-        const buildingDoc = await transaction.get(buildingRef);
-        if (!buildingDoc.exists) {
+        const freshBuildingDoc = await transaction.get(buildingRef);
+        if (!freshBuildingDoc.exists) {
             throw new Error('Local não encontrado');
         }
 
-        const building = buildingFromDoc(buildingDoc);
+        const building = buildingFromDoc(freshBuildingDoc);
         
         const updates: any = {
             lastInspected: new Date().toISOString()
@@ -438,7 +548,7 @@ export async function finalizeInspection(session: InspectionSession) {
         let hosesChanged = false;
         let manualInspectionsChanged = false;
         
-        session.inspectedItems.forEach(item => {
+        for (const item of session.inspectedItems) {
             const newInspection: Inspection = {
                 id: `insp-${Date.now()}-${Math.random()}`,
                 date: item.date,
@@ -465,6 +575,7 @@ export async function finalizeInspection(session: InspectionSession) {
                     if (item.updatedData) {
                         const existingHose = hoses[hoseIndex];
                         const mergedData = { ...existingHose, ...item.updatedData };
+                        // Reparsing to ensure all fields are correct after merge
                         const validatedData = HydrantFormSchema.parse(mergedData);
                         hoses[hoseIndex] = { ...existingHose, ...validatedData };
                     }
@@ -473,10 +584,10 @@ export async function finalizeInspection(session: InspectionSession) {
                  }
             } else if (item.qrCodeValue.startsWith('manual:')) {
                 manualInspectionsChanged = true;
-                const manualId = item.qrCodeValue.replace('manual:', '');
+                const manualId = item.id;
                 manualInspections.push({ ...newInspection, manualId: manualId });
             }
-        });
+        }
 
         if (extinguishersChanged) updates.extinguishers = extinguishers;
         if (hosesChanged) updates.hoses = hoses;
@@ -485,6 +596,7 @@ export async function finalizeInspection(session: InspectionSession) {
         transaction.update(buildingRef, updates);
     });
 }
+
 
 // --- Reorder Action ---
 export async function updateEquipmentOrder(buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {

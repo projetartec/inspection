@@ -92,4 +92,5 @@ export type Client = {
   caretakerContact?: string;
   buildingIds: string[];
   buildingOrder: string[];
+  buildings?: any[]; // For migration purposes
 };
