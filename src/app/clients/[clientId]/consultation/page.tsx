@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useContext, useCallback } from 'react';
@@ -292,7 +293,7 @@ export default function ConsultationPage() {
             
             setIsLoadingEquipment(true);
             try {
-                const equipmentData = await getEquipmentForBuildings(selectedBuildingIds);
+                const equipmentData = await getEquipmentForBuildings(clientId, selectedBuildingIds);
                 setEquipment(equipmentData);
             } catch (err) {
                  console.error("Falha ao buscar equipamentos para consulta:", err);
@@ -302,7 +303,7 @@ export default function ConsultationPage() {
         };
 
         fetchEquipmentData();
-    }, [selectedBuildingIds]);
+    }, [selectedBuildingIds, clientId]);
 
     const filteredItems = useMemo(() => {
         let finalExtinguishers = equipment.extinguishers;
@@ -480,3 +481,5 @@ export default function ConsultationPage() {
         </>
     );
 }
+
+    

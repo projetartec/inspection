@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -53,9 +54,9 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
       const { client, building, extinguishers, hoses } = await getReportDataAction(clientId, buildingId);
       if (client && building) {
         if (format === 'xlsx') {
-          await generateXlsxReportClient(client, building);
+          await generateXlsxReportClient(client, building, extinguishers, hoses);
         } else {
-          await generatePdfReportClient(client, building);
+          await generatePdfReportClient(client, building, extinguishers, hoses);
         }
         toast({
             title: 'Sucesso!',
@@ -230,3 +231,5 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     </div>
   );
 }
+
+    

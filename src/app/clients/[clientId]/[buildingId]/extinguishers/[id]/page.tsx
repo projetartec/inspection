@@ -1,4 +1,5 @@
 
+
 import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { getExtinguisherByUid } from '@/lib/data';
@@ -16,7 +17,7 @@ import { LocalDateTime } from '@/components/local-date-time';
 
 export default async function ExtinguisherDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const extinguisher = await getExtinguisherByUid(buildingId, id);
+  const extinguisher = await getExtinguisherByUid(clientId, buildingId, id);
 
 
   if (!extinguisher) {
@@ -137,3 +138,5 @@ export default async function ExtinguisherDetailPage({ params }: { params: { cli
     </div>
   );
 }
+
+    

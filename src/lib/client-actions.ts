@@ -1,5 +1,4 @@
 
-
 'use server';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -31,17 +30,13 @@ function formatDate(dateInput: string | null | undefined): string {
     }
 }
 
-export async function generatePdfReport(clientId: string, buildingId: string, extinguishers: Extinguisher[], hoses: Hydrant[]) {
-    const { client, building } = await getReportDataAction(clientId, buildingId);
-    
-    if (!client || !building) {
-        throw new Error("Client or building not found");
-    }
-
+export async function generatePdfReport(client: Client, building: Building) {
     const doc = new jsPDF({
         orientation: 'landscape',
     }) as jsPDFWithAutoTable;
 
+    const extinguishers = building.extinguishers || [];
+    const hoses = building.hoses || [];
     const generationDate = new Date();
     const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
     let finalY = 20;
@@ -148,12 +143,9 @@ export async function generatePdfReport(clientId: string, buildingId: string, ex
     doc.save(fileName);
 }
 
-export async function generateXlsxReport(clientId: string, buildingId: string, extinguishers: Extinguisher[], hoses: Hydrant[]) {
-    const { client, building } = await getReportDataAction(clientId, buildingId);
-    
-    if (!client || !building) {
-        throw new Error("Client or building not found");
-    }
+export async function generateXlsxReport(client: Client, building: Building) {
+    const extinguishers = building.extinguishers || [];
+    const hoses = building.hoses || [];
 
     const wb = XLSX.utils.book_new();
     const generationDate = new Date();
@@ -197,3 +189,5 @@ export async function generateXlsxReport(clientId: string, buildingId: string, e
     const fileName = `Relatorio_Inspecao_${client.name.replace(/ /g, '_')}_${building.name.replace(/ /g, '_')}.xlsx`;
     XLSX.writeFile(wb, fileName);
 }
+
+    

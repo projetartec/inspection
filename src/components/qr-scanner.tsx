@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -105,7 +106,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         let uid = decodedText.startsWith('fireguard-ext-') ? decodedText : decodedText.startsWith('fireguard-hose-') ? decodedText : null;
         
         if (uid) {
-            item = await getExtinguisherByUid(buildingId, uid) || await getHoseByUid(buildingId, uid);
+            item = await getExtinguisherByUid(clientId, buildingId, uid) || await getHoseByUid(clientId, buildingId, uid);
         }
 
         if (item) {
@@ -455,3 +456,5 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     </div>
   );
 }
+
+    

@@ -1,4 +1,5 @@
 
+
 import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { getHoseByUid } from '@/lib/data';
@@ -16,7 +17,7 @@ import { LocalDateTime } from '@/components/local-date-time';
 
 export default async function HoseDetailPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const hose = await getHoseByUid(buildingId, id);
+  const hose = await getHoseByUid(clientId, buildingId, id);
 
   if (!hose) {
     notFound();
@@ -118,3 +119,5 @@ export default async function HoseDetailPage({ params }: { params: { clientId: s
     </div>
   );
 }
+
+    

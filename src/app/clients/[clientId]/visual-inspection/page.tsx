@@ -63,6 +63,14 @@ export default function VisualInspectionPage() {
         fetchData();
     }, [clientId, buildingId]);
 
+    const handleUpdateItem = (itemType: 'extinguisher' | 'hose', updatedItem: Extinguisher | Hydrant) => {
+        if (itemType === 'extinguisher') {
+            setExtinguishers(prev => prev.map(item => item.uid === updatedItem.uid ? updatedItem as Extinguisher : item));
+        } else {
+            setHoses(prev => prev.map(item => item.uid === updatedItem.uid ? updatedItem as Hydrant : item));
+        }
+    };
+
     return (
         <div className="flex flex-col gap-8">
             <PageHeader title="Inspeção Visual">
@@ -80,17 +88,19 @@ export default function VisualInspectionPage() {
                    {isLoading ? (
                        <ListSkeleton />
                    ) : (
-                        <InspectionList items={extinguishers} type="extinguisher" />
+                        <InspectionList items={extinguishers} type="extinguisher" onUpdateItem={handleUpdateItem} />
                    )}
                 </TabsContent>
                 <TabsContent value="hoses">
                      {isLoading ? (
                        <ListSkeleton />
                    ) : (
-                        <InspectionList items={hoses} type="hose" />
+                        <InspectionList items={hoses} type="hose" onUpdateItem={handleUpdateItem}/>
                    )}
                 </TabsContent>
             </Tabs>
         </div>
     );
 }
+
+    

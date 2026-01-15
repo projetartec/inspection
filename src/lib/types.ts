@@ -1,6 +1,5 @@
 
 
-
 export type Inspection = {
   id: string;
   date: string;
@@ -90,7 +89,8 @@ export type Client = {
   email?: string;
   adminContact?: string;
   caretakerContact?: string;
-  buildingIds: string[];
+  buildings: Building[];
   buildingOrder: string[];
-  buildings?: any[]; // For migration purposes
 };
+
+    
