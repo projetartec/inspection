@@ -45,9 +45,9 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
     try {
         let result;
         if (isEditMode) {
-            result = await updateHoseAction(clientId, hydrant.uid, formData);
+            result = await updateHoseAction(hydrant.uid, formData);
         } else {
-            await createHoseAction(clientId, buildingId, formData);
+            await createHoseAction(formData);
             result = { success: true };
         }
 
@@ -75,6 +75,7 @@ export function HoseForm({ clientId, buildingId, hose: hydrant }: HoseFormProps)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+        <input type="hidden" name="clientId" value={clientId} />
         <input type="hidden" name="buildingId" value={buildingId} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">

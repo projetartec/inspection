@@ -101,8 +101,14 @@ export async function updateBuildingOrderAction(clientId: string, orderedBuildin
 
 
 // --- Extinguisher Actions ---
-export async function createExtinguisherAction(clientId: string, buildingId: string, formData: FormData) {
+export async function createExtinguisherAction(formData: FormData) {
     const rawData = Object.fromEntries(formData);
+    const buildingId = rawData.buildingId as string;
+    const clientId = rawData.clientId as string;
+    if (!buildingId || !clientId) {
+        throw new Error('ID do cliente ou do local ausente.');
+    }
+
     const validatedData = ExtinguisherFormSchema.parse(rawData);
     
     const result = await addExtinguisherData(buildingId, validatedData);
@@ -114,11 +120,12 @@ export async function createExtinguisherAction(clientId: string, buildingId: str
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateExtinguisherAction(clientId: string, uid: string, formData: FormData) {
+export async function updateExtinguisherAction(uid: string, formData: FormData) {
     const rawData = Object.fromEntries(formData);
     const buildingId = rawData.buildingId as string;
-    if (!buildingId) {
-        return { error: 'Local não encontrado (ID do local ausente).' };
+    const clientId = rawData.clientId as string;
+    if (!buildingId || !clientId) {
+        return { error: 'ID do cliente ou do local ausente.' };
     }
     const validatedData = ExtinguisherFormSchema.partial().parse(rawData);
     
@@ -142,8 +149,13 @@ export async function deleteExtinguisherAction(clientId: string, buildingId: str
 }
 
 // --- Hose Actions ---
-export async function createHoseAction(clientId: string, buildingId: string, formData: FormData) {
+export async function createHoseAction(formData: FormData) {
     const rawData = Object.fromEntries(formData);
+    const buildingId = rawData.buildingId as string;
+    const clientId = rawData.clientId as string;
+    if (!buildingId || !clientId) {
+        throw new Error('ID do cliente ou do local ausente.');
+    }
     const validatedData = HydrantFormSchema.parse(rawData);
     
     const result = await addHoseData(buildingId, validatedData);
@@ -155,11 +167,13 @@ export async function createHoseAction(clientId: string, buildingId: string, for
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
 }
 
-export async function updateHoseAction(clientId: string, uid: string, formData: FormData) {
+export async function updateHoseAction(uid: string, formData: FormData) {
     const rawData = Object.fromEntries(formData);
     const buildingId = rawData.buildingId as string;
-    if (!buildingId) {
-        return { error: 'Local não encontrado (ID do local ausente).' };
+    const clientId = rawData.clientId as string;
+
+    if (!buildingId || !clientId) {
+        return { error: 'ID do cliente ou do local ausente.' };
     }
     const validatedData = HydrantFormSchema.partial().parse(rawData);
 

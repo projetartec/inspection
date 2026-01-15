@@ -37,9 +37,9 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
     try {
       let result;
       if (isEditMode) {
-        result = await updateExtinguisherAction(clientId, extinguisher.uid, formData);
+        result = await updateExtinguisherAction(extinguisher.uid, formData);
       } else {
-        await createExtinguisherAction(clientId, buildingId, formData);
+        await createExtinguisherAction(formData);
         result = { success: true };
       }
       
@@ -70,6 +70,7 @@ export function ExtinguisherForm({ clientId, buildingId, extinguisher }: Extingu
 
   return (
       <form onSubmit={handleSubmit} className="space-y-8">
+        <input type="hidden" name="clientId" value={clientId} />
         <input type="hidden" name="buildingId" value={buildingId} />
         <div className="space-y-2">
             <Label htmlFor="id-input">ID do Equipamento</Label>
