@@ -178,23 +178,32 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
     return [];
   }
   
-  // If client has buildingIds, fetch from the new collection
-  if (client.buildingIds && client.buildingIds.length > 0) {
+  let buildingIdsToFetch = client.buildingIds || [];
+
+  // Fallback for old data structure
+  if ((!client.buildingIds || client.buildingIds.length === 0) && client.buildings && client.buildings.length > 0) {
+      buildingIdsToFetch = client.buildings.map((b: any) => b.id);
+  }
+
+  if (buildingIdsToFetch.length > 0) {
       const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION)
                                           .where('clientId', '==', clientId)
                                           .get();
 
-      // If we found buildings, the migration has likely happened for this client.
       if (!buildingsSnapshot.empty) {
           const buildingsMap = new Map(buildingsSnapshot.docs.map(doc => [doc.id, buildingFromDoc(doc)]));
-          const orderedBuildings = (client.buildingOrder || client.buildingIds)
+          
+          const order = client.buildingOrder && client.buildingOrder.length > 0 ? client.buildingOrder : buildingIdsToFetch;
+
+          const orderedBuildings = order
             .map(id => buildingsMap.get(id))
             .filter((b): b is Building => !!b);
           return orderedBuildings;
       }
   }
 
-  // Fallback for old data structure
+
+  // Fallback for very old data still nested
   if (client.buildings && Array.isArray(client.buildings)) {
       return client.buildings.map((b: any) => ({
             id: b.id,
