@@ -181,7 +181,7 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
   // If client has buildingIds, fetch from the new collection
   if (client.buildingIds && client.buildingIds.length > 0) {
       const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION)
-                                          .where(adminDb.FieldPath.documentId(), 'in', client.buildingIds)
+                                          .where('clientId', '==', clientId)
                                           .get();
 
       // If we found buildings, the migration has likely happened for this client.
