@@ -182,7 +182,7 @@ export default function ClientPage() {
                                   placeholder="Buscar local..."
                                   value={searchTerm}
                                   onChange={(e) => setSearchTerm(e.target.value)}
-                                  className="h-9 pr-8"
+                                  className="pr-8"
                               />
                               {searchTerm && (
                                   <Button 
