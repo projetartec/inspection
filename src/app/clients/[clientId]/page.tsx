@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteBuildingAction, updateBuildingOrderAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { GpsLinkManager } from '@/components/gps-link-manager';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
@@ -197,7 +196,7 @@ export default function ClientPage() {
                               )}
                           </div>
                            <div className="flex items-center space-x-2 self-end">
-                              <Label htmlFor="ni-filter" className="font-semibold text-xs text-muted-foreground">Pendente</Label>
+                              <Label htmlFor="ni-filter" className="font-semibold text-muted-foreground">Pendente</Label>
                               <Switch id="ni-filter" checked={showNotInspectedOnly} onCheckedChange={setShowNotInspectedOnly} />
                           </div>
                       </div>
