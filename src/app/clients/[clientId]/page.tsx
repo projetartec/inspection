@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function ClientPage() {
   const params = useParams() as { clientId: string };
@@ -196,7 +197,7 @@ export default function ClientPage() {
                               )}
                           </div>
                            <div className="flex items-center space-x-2 self-end">
-                              <Label htmlFor="ni-filter" className="font-semibold text-muted-foreground">Pendente</Label>
+                              <Label htmlFor="ni-filter" className="text-xs font-semibold text-muted-foreground">Pendente</Label>
                               <Switch id="ni-filter" checked={showNotInspectedOnly} onCheckedChange={setShowNotInspectedOnly} />
                           </div>
                       </div>
