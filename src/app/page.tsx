@@ -24,6 +24,7 @@ import {
 import { deleteClientAction } from '@/lib/actions';
 import { DeleteButton } from '@/components/delete-button';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -167,6 +168,7 @@ export default function Home() {
             <ClientForm onSuccess={handleCreateSuccess} />
         </div>
       </main>
+      <ThemeToggle />
     </div>
   );
 }

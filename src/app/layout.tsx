@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { UnloadPrompt } from '@/components/unload-prompt';
 import { GlobalInspectionProvider } from '@/hooks/use-inspection-session.tsx';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'FireGuard Inspector',
@@ -36,12 +37,19 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased bg-muted/40">
-        <GlobalInspectionProvider>
-            <UnloadPrompt />
-            {children}
-            <Toaster />
-        </GlobalInspectionProvider>
+      <body className="font-body antialiased bg-background text-foreground">
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <GlobalInspectionProvider>
+                <UnloadPrompt />
+                {children}
+                <Toaster />
+            </GlobalInspectionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
