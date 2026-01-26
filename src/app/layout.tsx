@@ -7,7 +7,7 @@ import { GlobalInspectionProvider } from '@/hooks/use-inspection-session.tsx';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'FireGuard Inspector',
+  title: 'InspCont',
   description: 'Aplicativo de inspeção para extintores e mangueiras de incêndio',
   manifest: '/manifest.json',
 };
