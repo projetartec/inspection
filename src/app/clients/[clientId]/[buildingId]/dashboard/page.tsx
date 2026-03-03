@@ -90,7 +90,7 @@ export default function DashboardPage() {
                 setStats([
                     { title: "Total de Extintores", value: extinguishers.length, icon: "https://i.imgur.com/acESc0O.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/extinguishers` },
                     { title: "Total de Mangueiras", value: hoses.length, icon: "https://i.imgur.com/Fq1OHRb.png", color: "text-muted-foreground", href: `/clients/${clientId}/${buildingId}/hoses` },
-                    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: null },
+                    { title: "Itens Vencidos", value: expiredExtinguishers + expiredHoses, icon: AlertTriangle, color: "text-destructive", description: `${expiredExtinguishers} extintores, ${expiredHoses} mangueiras`, href: `/clients/${clientId}/${buildingId}/expired` },
                 ]);
 
             } catch (error) {
