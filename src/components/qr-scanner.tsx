@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -13,7 +11,8 @@ import { Loader2, CameraOff, Edit, Check, ChevronDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
-import { extinguisherTypes, extinguisherWeights, getExtinguisherByUid, getHoseByUid, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/data';
+import { getExtinguisherByUid, getHoseByUid } from '@/lib/data';
+import { extinguisherTypes, extinguisherWeights, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -252,12 +251,12 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         const originalHose = scannedItem as Hydrant;
         const updatedData: Partial<Hydrant> = {};
         if (editableHoseLocation !== originalHose.location) updatedData.location = editableHoseLocation;
-        if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = editableHoseQuantity;
-        if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType;
-        if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter;
-        if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = editableHoseLength;
-        if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = editableHoseKeyQuantity;
-        if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = editableHoseNozzleQuantity;
+        if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = Number(editableHoseQuantity) as HydrantQuantity;
+        if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType as HydrantHoseType;
+        if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter as HydrantDiameter;
+        if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = Number(editableHoseLength) as HydrantHoseLength;
+        if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = Number(editableHoseKeyQuantity) as HydrantKeyQuantity;
+        if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = Number(editableHoseNozzleQuantity) as HydrantNozzleQuantity;
         if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
         if (Object.keys(updatedData).length > 0) itemData.updatedData = { id: originalHose.id, ...updatedData };
       }
@@ -456,5 +455,3 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     </div>
   );
 }
-
-    
