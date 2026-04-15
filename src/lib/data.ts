@@ -472,7 +472,7 @@ export async function finalizeInspection(session: InspectionSession) {
                         }
                         if ('quantity' in item.updatedData) {
                             const quantity = Number(item.updatedData.quantity);
-                            if (!isNaN(quantity)) {
+                            if (!isNaN(quantity) && quantity >= 1) {
                                 dataToUpdate.quantity = quantity as HydrantQuantity;
                             }
                         }
@@ -484,19 +484,19 @@ export async function finalizeInspection(session: InspectionSession) {
                         }
                         if ('hoseLength' in item.updatedData) {
                            const hoseLength = Number(item.updatedData.hoseLength);
-                           if (!isNaN(hoseLength)) {
+                           if (!isNaN(hoseLength) && hoseLength >= 10) {
                                 dataToUpdate.hoseLength = hoseLength as HydrantHoseLength;
                            }
                         }
                         if ('keyQuantity' in item.updatedData) {
                             const keyQuantity = Number(item.updatedData.keyQuantity);
-                            if (!isNaN(keyQuantity)) {
+                            if (!isNaN(keyQuantity) && keyQuantity >= 0) {
                                 dataToUpdate.keyQuantity = keyQuantity as HydrantKeyQuantity;
                             }
                         }
                         if ('nozzleQuantity' in item.updatedData) {
                             const nozzleQuantity = Number(item.updatedData.nozzleQuantity);
-                            if (!isNaN(nozzleQuantity)) {
+                            if (!isNaN(nozzleQuantity) && nozzleQuantity >= 0) {
                                 dataToUpdate.nozzleQuantity = nozzleQuantity as HydrantNozzleQuantity;
                             }
                         }
@@ -543,5 +543,6 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: buildings });
     });
 }
+
 
 
