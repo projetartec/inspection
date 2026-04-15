@@ -38,7 +38,10 @@ export const ExtinguisherFormSchema = z.object({
   type: z.enum(extinguisherTypes, { required_error: 'Por favor, selecione um tipo.' }),
   weight: z.coerce.number({ required_error: 'Por favor, selecione um peso válido.' }),
   expiryDate: z.string().optional(),
-  hydrostaticTestYear: z.coerce.string().or(z.coerce.number()).pipe(z.coerce.number().min(1900, 'Ano inválido').max(new Date().getFullYear() + 10, 'Ano inválido')),
+  hydrostaticTestYear: z.coerce.number({invalid_type_error: "Ano inválido"})
+    .min(1900, 'Ano inválido')
+    .max(new Date().getFullYear() + 10, 'Ano inválido')
+    .transform(String),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
 });
 export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
