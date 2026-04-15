@@ -2,9 +2,9 @@
 
 'use server';
 
-import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, Inspection, ExtinguisherType, ExtinguisherWeight, HydrantFormValues, HydrantHoseType, HydrantDiameter, HydrantHoseLength, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
-import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
+import { ClientFormValues } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 
 const CLIENTS_COLLECTION = 'clients';
@@ -101,13 +101,15 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
   }
   
   const buildingsMap = new Map((client.buildings || []).map(b => [b.id, b]));
-  const orderedIds = client.buildingOrder || (client.buildings || []).map(b => b.id);
+  const orderedIds = client.buildingOrder || [];
   
   const orderedBuildings = orderedIds
     .map(id => buildingsMap.get(id))
     .filter((b): b is Building => !!b);
+    
+  const unorderedBuildings = (client.buildings || []).filter(b => !orderedIds.includes(b.id));
 
-  return orderedBuildings;
+  return [...orderedBuildings, ...unorderedBuildings];
 }
 
 
@@ -283,7 +285,7 @@ async function performUpdate<T>(
 }
 
 
-export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: ExtinguisherFormValues): Promise<ActionResponse> {
+export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: any): Promise<ActionResponse> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
     try {
         await adminDb.runTransaction(async (transaction) => {
@@ -320,8 +322,8 @@ export async function addExtinguisher(clientId: string, buildingId: string, newE
     }
 }
 
-export async function updateExtinguisherData(clientId: string, buildingId: string, uid: string, updatedData: Partial<ExtinguisherFormValues>): Promise<ActionResponse> {
-    return performUpdate<ExtinguisherFormValues>(clientId, buildingId, uid, updatedData, 'extinguishers');
+export async function updateExtinguisherData(clientId: string, buildingId: string, uid: string, updatedData: Partial<any>): Promise<ActionResponse> {
+    return performUpdate<any>(clientId, buildingId, uid, updatedData, 'extinguishers');
 }
 
 
@@ -439,8 +441,20 @@ export async function finalizeInspection(session: InspectionSession) {
                 const extIndex = (building.extinguishers || []).findIndex(e => e.uid === item.uid);
                 if (extIndex !== -1) {
                     if (item.updatedData) {
-                         const validatedData = ExtinguisherFormSchema.partial().parse(item.updatedData);
-                         building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...validatedData };
+                        const dataToUpdate: Partial<Extinguisher> = {};
+                        if ('type' in item.updatedData) {
+                            dataToUpdate.type = item.updatedData.type as ExtinguisherType;
+                        }
+                        if ('weight' in item.updatedData) {
+                            const weight = Number(item.updatedData.weight);
+                            if (!isNaN(weight)) {
+                                dataToUpdate.weight = weight as ExtinguisherWeight;
+                            }
+                        }
+                        if ('expiryDate' in item.updatedData) {
+                            dataToUpdate.expiryDate = item.updatedData.expiryDate;
+                        }
+                        building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...dataToUpdate };
                     }
                     if (!building.extinguishers[extIndex].inspections) {
                         building.extinguishers[extIndex].inspections = [];
@@ -452,8 +466,17 @@ export async function finalizeInspection(session: InspectionSession) {
                  const hoseIndex = (building.hoses || []).findIndex(h => h.uid === item.uid);
                  if (hoseIndex !== -1) {
                     if (item.updatedData) {
-                        const validatedUpdate = HydrantFormSchema.partial().parse(item.updatedData);
-                        building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...validatedUpdate };
+                       const dataToUpdate: Partial<Hydrant> = {};
+                        if ('location' in item.updatedData) dataToUpdate.location = item.updatedData.location;
+                        if ('quantity' in item.updatedData) dataToUpdate.quantity = Number(item.updatedData.quantity) as HydrantQuantity;
+                        if ('hoseType' in item.updatedData) dataToUpdate.hoseType = item.updatedData.hoseType as HydrantHoseType;
+                        if ('diameter' in item.updatedData) dataToUpdate.diameter = item.updatedData.diameter as HydrantDiameter;
+                        if ('hoseLength' in item.updatedData) dataToUpdate.hoseLength = Number(item.updatedData.hoseLength) as HydrantHoseLength;
+                        if ('keyQuantity' in item.updatedData) dataToUpdate.keyQuantity = Number(item.updatedData.keyQuantity) as HydrantKeyQuantity;
+                        if ('nozzleQuantity' in item.updatedData) dataToUpdate.nozzleQuantity = Number(item.updatedData.nozzleQuantity) as HydrantNozzleQuantity;
+                        if ('hydrostaticTestDate' in item.updatedData) dataToUpdate.hydrostaticTestDate = item.updatedData.hydrostaticTestDate;
+                        
+                        building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...dataToUpdate };
                     }
                     if (!building.hoses[hoseIndex].inspections) {
                         building.hoses[hoseIndex].inspections = [];
@@ -492,3 +515,4 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: buildings });
     });
 }
+
