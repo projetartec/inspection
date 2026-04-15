@@ -467,14 +467,42 @@ export async function finalizeInspection(session: InspectionSession) {
                  if (hoseIndex !== -1) {
                     if (item.updatedData) {
                        const dataToUpdate: Partial<Hydrant> = {};
-                        if ('location' in item.updatedData) dataToUpdate.location = item.updatedData.location;
-                        if ('quantity' in item.updatedData) dataToUpdate.quantity = Number(item.updatedData.quantity) as HydrantQuantity;
-                        if ('hoseType' in item.updatedData) dataToUpdate.hoseType = item.updatedData.hoseType as HydrantHoseType;
-                        if ('diameter' in item.updatedData) dataToUpdate.diameter = item.updatedData.diameter as HydrantDiameter;
-                        if ('hoseLength' in item.updatedData) dataToUpdate.hoseLength = Number(item.updatedData.hoseLength) as HydrantHoseLength;
-                        if ('keyQuantity' in item.updatedData) dataToUpdate.keyQuantity = Number(item.updatedData.keyQuantity) as HydrantKeyQuantity;
-                        if ('nozzleQuantity' in item.updatedData) dataToUpdate.nozzleQuantity = Number(item.updatedData.nozzleQuantity) as HydrantNozzleQuantity;
-                        if ('hydrostaticTestDate' in item.updatedData) dataToUpdate.hydrostaticTestDate = item.updatedData.hydrostaticTestDate;
+                        if ('location' in item.updatedData && typeof item.updatedData.location === 'string') {
+                           dataToUpdate.location = item.updatedData.location;
+                        }
+                        if ('quantity' in item.updatedData) {
+                            const quantity = Number(item.updatedData.quantity);
+                            if (!isNaN(quantity)) {
+                                dataToUpdate.quantity = quantity as HydrantQuantity;
+                            }
+                        }
+                        if ('hoseType' in item.updatedData && typeof item.updatedData.hoseType === 'string') {
+                           dataToUpdate.hoseType = item.updatedData.hoseType as HydrantHoseType;
+                        }
+                        if ('diameter' in item.updatedData && typeof item.updatedData.diameter === 'string') {
+                            dataToUpdate.diameter = item.updatedData.diameter as HydrantDiameter;
+                        }
+                        if ('hoseLength' in item.updatedData) {
+                           const hoseLength = Number(item.updatedData.hoseLength);
+                           if (!isNaN(hoseLength)) {
+                                dataToUpdate.hoseLength = hoseLength as HydrantHoseLength;
+                           }
+                        }
+                        if ('keyQuantity' in item.updatedData) {
+                            const keyQuantity = Number(item.updatedData.keyQuantity);
+                            if (!isNaN(keyQuantity)) {
+                                dataToUpdate.keyQuantity = keyQuantity as HydrantKeyQuantity;
+                            }
+                        }
+                        if ('nozzleQuantity' in item.updatedData) {
+                            const nozzleQuantity = Number(item.updatedData.nozzleQuantity);
+                            if (!isNaN(nozzleQuantity)) {
+                                dataToUpdate.nozzleQuantity = nozzleQuantity as HydrantNozzleQuantity;
+                            }
+                        }
+                        if ('hydrostaticTestDate' in item.updatedData) {
+                           dataToUpdate.hydrostaticTestDate = item.updatedData.hydrostaticTestDate;
+                        }
                         
                         building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...dataToUpdate };
                     }
@@ -515,4 +543,5 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: buildings });
     });
 }
+
 
