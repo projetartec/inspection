@@ -227,6 +227,11 @@ export async function getHoseByUid(clientId: string, buildingId: string, uid: st
     return building?.hoses.find(h => h.uid === uid) || null;
 }
 
+interface ActionResponse {
+    success: boolean;
+    message?: string;
+}
+
 async function performUpdate<T>(
     clientId: string,
     buildingId: string,
@@ -249,8 +254,9 @@ async function performUpdate<T>(
             if (buildingIndex === -1) {
                 throw new Error('Local não encontrado.');
             }
-
-            const equipmentList = [...(buildings[buildingIndex][equipmentType] || [])];
+            
+            const building = buildings[buildingIndex];
+            const equipmentList = [...(building[equipmentType] || [])];
             const itemIndex = equipmentList.findIndex(e => e.uid === uid);
 
             if (itemIndex === -1) {
@@ -266,7 +272,7 @@ async function performUpdate<T>(
             }
 
             equipmentList[itemIndex] = { ...equipmentList[itemIndex], ...updatedData };
-            buildings[buildingIndex][equipmentType] = equipmentList;
+            building[equipmentType] = equipmentList;
             
             transaction.update(clientRef, { buildings: buildings });
         });
@@ -436,6 +442,9 @@ export async function finalizeInspection(session: InspectionSession) {
                          const validatedData = ExtinguisherFormSchema.partial().parse(item.updatedData);
                          building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...validatedData };
                     }
+                    if (!building.extinguishers[extIndex].inspections) {
+                        building.extinguishers[extIndex].inspections = [];
+                    }
                     building.extinguishers[extIndex].inspections.push(newInspection);
                     building.extinguishers[extIndex].lastInspected = item.date;
                 }
@@ -443,10 +452,11 @@ export async function finalizeInspection(session: InspectionSession) {
                  const hoseIndex = (building.hoses || []).findIndex(h => h.uid === item.uid);
                  if (hoseIndex !== -1) {
                     if (item.updatedData) {
-                        const existingHose = building.hoses[hoseIndex];
-                        const mergedData = { ...existingHose, ...item.updatedData };
-                        const validatedData = HydrantFormSchema.parse(mergedData);
-                        building.hoses[hoseIndex] = { ...existingHose, ...validatedData };
+                        const validatedUpdate = HydrantFormSchema.partial().parse(item.updatedData);
+                        building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...validatedUpdate };
+                    }
+                    if (!building.hoses[hoseIndex].inspections) {
+                        building.hoses[hoseIndex].inspections = [];
                     }
                     building.hoses[hoseIndex].inspections.push(newInspection);
                     building.hoses[hoseIndex].lastInspected = item.date;
@@ -482,6 +492,3 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: buildings });
     });
 }
-
-
-    
