@@ -6,6 +6,14 @@ import type { Extinguisher, Hydrant, Client, Building, Inspection, ExtinguisherT
 import { adminDb } from './firebase-admin'; 
 import { ClientFormValues } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
+import { 
+    extinguisherWeights,
+    hydrantHoseLengths, 
+    hydrantKeyQuantities, 
+    hydrantNozzleQuantities, 
+    hydrantQuantities 
+} from './types';
+
 
 const CLIENTS_COLLECTION = 'clients';
 
@@ -442,13 +450,13 @@ export async function finalizeInspection(session: InspectionSession) {
                 if (extIndex !== -1) {
                     if (item.updatedData) {
                         const dataToUpdate: Partial<Extinguisher> = {};
-                        if ('type' in item.updatedData) {
+                        if ('type' in item.updatedData && item.updatedData.type) {
                             dataToUpdate.type = item.updatedData.type as ExtinguisherType;
                         }
-                        if ('weight' in item.updatedData) {
-                            const weight = Number(item.updatedData.weight);
-                            if (!isNaN(weight)) {
-                                dataToUpdate.weight = weight as ExtinguisherWeight;
+                        if ('weight' in item.updatedData && item.updatedData.weight !== undefined) {
+                            const weightValue = Number(item.updatedData.weight);
+                            if (!isNaN(weightValue) && (extinguisherWeights as readonly number[]).includes(weightValue)) {
+                                dataToUpdate.weight = weightValue as ExtinguisherWeight;
                             }
                         }
                         if ('expiryDate' in item.updatedData) {
@@ -470,10 +478,10 @@ export async function finalizeInspection(session: InspectionSession) {
                         if ('location' in item.updatedData && typeof item.updatedData.location === 'string') {
                            dataToUpdate.location = item.updatedData.location;
                         }
-                        if ('quantity' in item.updatedData) {
-                            const quantity = Number(item.updatedData.quantity);
-                            if (!isNaN(quantity) && quantity >= 1) {
-                                dataToUpdate.quantity = quantity as HydrantQuantity;
+                        if ('quantity' in item.updatedData && item.updatedData.quantity !== undefined) {
+                            const quantityValue = Number(item.updatedData.quantity);
+                            if (!isNaN(quantityValue) && (hydrantQuantities as readonly number[]).includes(quantityValue)) {
+                                dataToUpdate.quantity = quantityValue as HydrantQuantity;
                             }
                         }
                         if ('hoseType' in item.updatedData && typeof item.updatedData.hoseType === 'string') {
@@ -482,22 +490,22 @@ export async function finalizeInspection(session: InspectionSession) {
                         if ('diameter' in item.updatedData && typeof item.updatedData.diameter === 'string') {
                             dataToUpdate.diameter = item.updatedData.diameter as HydrantDiameter;
                         }
-                        if ('hoseLength' in item.updatedData) {
-                           const hoseLength = Number(item.updatedData.hoseLength);
-                           if (!isNaN(hoseLength) && hoseLength >= 10) {
-                                dataToUpdate.hoseLength = hoseLength as HydrantHoseLength;
+                        if ('hoseLength' in item.updatedData && item.updatedData.hoseLength !== undefined) {
+                           const hoseLengthValue = Number(item.updatedData.hoseLength);
+                           if (!isNaN(hoseLengthValue) && (hydrantHoseLengths as readonly number[]).includes(hoseLengthValue)) {
+                                dataToUpdate.hoseLength = hoseLengthValue as HydrantHoseLength;
                            }
                         }
-                        if ('keyQuantity' in item.updatedData) {
-                            const keyQuantity = Number(item.updatedData.keyQuantity);
-                            if (!isNaN(keyQuantity) && keyQuantity >= 0) {
-                                dataToUpdate.keyQuantity = keyQuantity as HydrantKeyQuantity;
+                        if ('keyQuantity' in item.updatedData && item.updatedData.keyQuantity !== undefined) {
+                            const keyQuantityValue = Number(item.updatedData.keyQuantity);
+                            if (!isNaN(keyQuantityValue) && (hydrantKeyQuantities as readonly number[]).includes(keyQuantityValue)) {
+                                dataToUpdate.keyQuantity = keyQuantityValue as HydrantKeyQuantity;
                             }
                         }
-                        if ('nozzleQuantity' in item.updatedData) {
-                            const nozzleQuantity = Number(item.updatedData.nozzleQuantity);
-                            if (!isNaN(nozzleQuantity) && nozzleQuantity >= 0) {
-                                dataToUpdate.nozzleQuantity = nozzleQuantity as HydrantNozzleQuantity;
+                        if ('nozzleQuantity' in item.updatedData && item.updatedData.nozzleQuantity !== undefined) {
+                            const nozzleQuantityValue = Number(item.updatedData.nozzleQuantity);
+                            if (!isNaN(nozzleQuantityValue) && (hydrantNozzleQuantities as readonly number[]).includes(nozzleQuantityValue)) {
+                                dataToUpdate.nozzleQuantity = nozzleQuantityValue as HydrantNozzleQuantity;
                             }
                         }
                         if ('hydrostaticTestDate' in item.updatedData) {
@@ -543,6 +551,7 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
         transaction.update(clientRef, { buildings: buildings });
     });
 }
+
 
 
 
