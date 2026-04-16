@@ -82,7 +82,7 @@ export async function updateBuildingAction(clientId: string, buildingId: string,
         return;
     }
 
-    await updateBuildingData(buildingId, updatedData);
+    await updateBuildingData(clientId, buildingId, updatedData);
 
     revalidatePath(`/clients/${clientId}`);
     revalidatePath(`/clients/${clientId}/${buildingId}/edit`);
@@ -104,14 +104,15 @@ export async function updateBuildingOrderAction(clientId: string, orderedBuildin
 // --- Extinguisher Actions ---
 export async function createExtinguisherAction(formData: FormData) {
     const rawData = Object.fromEntries(formData);
+    const clientId = rawData.clientId as string;
     const buildingId = rawData.buildingId as string;
-    if (!buildingId) {
-        throw new Error('ID do local ausente.');
+    if (!buildingId || !clientId) {
+        throw new Error('ID do cliente ou do local ausente.');
     }
 
     const validatedData = ExtinguisherFormSchema.parse(rawData);
     
-    const result = await addExtinguisherData(buildingId, validatedData);
+    const result = await addExtinguisherData(clientId, buildingId, validatedData);
     if (!result.success) {
         throw new Error(result.message);
     }
@@ -129,7 +130,7 @@ export async function updateExtinguisherAction(uid: string, formData: FormData) 
     }
     const validatedData = ExtinguisherFormSchema.partial().parse(rawData);
     
-    const result = await updateExtinguisherData(buildingId, uid, validatedData);
+    const result = await updateExtinguisherData(clientId, buildingId, uid, validatedData);
     if (!result.success) {
         return { error: result.message };
     }
@@ -142,7 +143,7 @@ export async function updateExtinguisherAction(uid: string, formData: FormData) 
 }
 
 export async function deleteExtinguisherAction(clientId: string, buildingId: string, uid: string) {
-    await deleteExtinguisherData(buildingId, uid);
+    await deleteExtinguisherData(clientId, buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -158,7 +159,7 @@ export async function createHoseAction(formData: FormData) {
     }
     const validatedData = HydrantFormSchema.parse(rawData);
     
-    const result = await addHoseData(buildingId, validatedData);
+    const result = await addHoseData(clientId, buildingId, validatedData);
      if (!result.success) {
         throw new Error(result.message);
     }
@@ -177,7 +178,7 @@ export async function updateHoseAction(uid: string, formData: FormData) {
     }
     const validatedData = HydrantFormSchema.partial().parse(rawData);
 
-    const result = await updateHoseData(buildingId, uid, validatedData);
+    const result = await updateHoseData(clientId, buildingId, uid, validatedData);
     if (!result.success) {
         return { error: result.message };
     }
@@ -190,7 +191,7 @@ export async function updateHoseAction(uid: string, formData: FormData) {
 }
 
 export async function deleteHoseAction(clientId: string, buildingId: string, uid: string) {
-    await deleteHoseData(buildingId, uid);
+    await deleteHoseData(clientId, buildingId, uid);
 
     revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
     revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
@@ -209,11 +210,9 @@ export async function finalizeInspectionAction(session: InspectionSession) {
 
 // --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
-    const [client, building] = await Promise.all([
-        getClientById(clientId),
-        getBuildingData(buildingId),
-    ]);
-    if (!building) {
+    const client = await getClientById(clientId);
+    const building = await getBuildingData(clientId, buildingId);
+    if (!client || !building) {
          return { client: null, building: null, extinguishers: [], hoses: [] };
     }
 
@@ -237,7 +236,7 @@ export async function getExpiryReportDataAction(clientId: string, buildingId: st
     let buildings: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingData(buildingId);
+        const building = await getBuildingData(clientId, buildingId);
         if (building) buildings.push(building);
     } else {
         buildings = await getBuildingsByClient(clientId);
@@ -269,7 +268,7 @@ export async function getDescriptiveReportDataAction(clientId: string, buildingI
     let buildings: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingData(buildingId);
+        const building = await getBuildingData(clientId, buildingId);
         if(building) buildings.push(building);
     } else {
         buildings = await getBuildingsByClient(clientId);
@@ -283,7 +282,7 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
     let buildingsData: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingData(buildingId);
+        const building = await getBuildingData(clientId, buildingId);
         if(building) buildingsData.push(building);
     } else {
         buildingsData = await getBuildingsByClient(clientId);
@@ -311,7 +310,6 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
 
 // --- Reorder Action ---
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
-    await updateEquipmentOrder(buildingId, equipmentType, orderedItems);
+    await updateEquipmentOrder(clientId, buildingId, equipmentType, orderedItems);
     revalidatePath(`/clients/${clientId}/${buildingId}/${equipmentType}`);
 }
-

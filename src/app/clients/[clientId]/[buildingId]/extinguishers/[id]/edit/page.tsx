@@ -9,7 +9,7 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default async function EditExtinguisherPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const extinguisher = await getExtinguisherByUid(buildingId, id);
+  const extinguisher = await getExtinguisherByUid(clientId, buildingId, id);
 
 
   if (!extinguisher) {
@@ -50,5 +50,3 @@ export default async function EditExtinguisherPage({ params }: { params: { clien
     </>
   );
 }
-
-    

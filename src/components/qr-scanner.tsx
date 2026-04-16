@@ -108,8 +108,8 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         if (uid) {
             const isExtinguisher = uid.startsWith('fireguard-ext-');
             item = isExtinguisher 
-                ? await getExtinguisherByUid(buildingId, uid) 
-                : await getHoseByUid(buildingId, uid);
+                ? await getExtinguisherByUid(clientId, buildingId, uid) 
+                : await getHoseByUid(clientId, buildingId, uid);
         }
 
         if (item) {

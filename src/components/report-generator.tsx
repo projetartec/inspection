@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { FileText, Loader2, ChevronDown, ClipboardList, AlertCircle } from 'lucide-react';
@@ -231,5 +231,3 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     </div>
   );
 }
-
-    

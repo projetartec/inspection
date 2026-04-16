@@ -51,9 +51,9 @@ export default function ExpiredItemsPage() {
         try {
             setIsLoading(true);
             const [building, extinguishers, hoses] = await Promise.all([
-                getBuildingById(buildingId),
-                getExtinguishersByBuilding(buildingId),
-                getHosesByBuilding(buildingId)
+                getBuildingById(clientId, buildingId),
+                getExtinguishersByBuilding(clientId, buildingId),
+                getHosesByBuilding(clientId, buildingId)
             ]);
 
             if (!building) {
