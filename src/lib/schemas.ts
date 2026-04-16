@@ -44,7 +44,7 @@ export const ExtinguisherFormSchema = z.object({
     .max(new Date().getFullYear() + 10, 'Ano inválido')
     .transform(String),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
-}).passthrough(); // Allow clientId and buildingId
+}).passthrough(); // Allow other fields like uid, qrCodeValue etc.
 export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
 
 export const HydrantFormSchema = z.object({
@@ -57,7 +57,7 @@ export const HydrantFormSchema = z.object({
   keyQuantity: z.coerce.number().min(0, 'A quantidade de chaves é obrigatória.').refine(val => hydrantKeyQuantities.includes(val as any), { message: 'Quantidade de chaves inválida.' }),
   nozzleQuantity: z.coerce.number().min(0, 'A quantidade de esguichos é obrigatória.').refine(val => hydrantNozzleQuantities.includes(val as any), { message: 'Quantidade de esguichos inválida.' }),
   hydrostaticTestDate: z.string().optional(),
-}).passthrough(); // Allow clientId and buildingId
+}).passthrough(); // Allow other fields like uid, qrCodeValue etc.
 export type HydrantFormValues = z.infer<typeof HydrantFormSchema>;
 
 

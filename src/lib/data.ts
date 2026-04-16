@@ -4,7 +4,7 @@
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection, ExtinguisherType, ExtinguisherWeight } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
-import { ClientFormValues, ExtinguisherFormSchema, HydrantFormValues, HydrantFormSchema } from './schemas';
+import { ClientFormValues, ExtinguisherFormValues, HydrantFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { 
     extinguisherTypes, 
@@ -174,7 +174,7 @@ export async function getExtinguishersByBuilding(clientId: string, buildingId: s
 }
 
 export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hydrant[]> {
-    const building = await getById(clientId, buildingId);
+    const building = await getBuildingById(clientId, buildingId);
     return building?.hoses || [];
 }
 
@@ -399,34 +399,27 @@ export async function finalizeInspection(session: InspectionSession) {
             }
 
             if (originalItem && equipmentIndex !== -1) {
-                let updatedData = {};
-
-                if (isExtinguisher && item.updatedData) {
-                    const original = originalItem as Extinguisher;
-                    const updates = item.updatedData as Partial<Extinguisher>;
-                    updatedData = {
-                        type: updates.type && extinguisherTypes.includes(updates.type) ? updates.type : original.type,
-                        weight: updates.weight && extinguisherWeights.includes(updates.weight) ? updates.weight : original.weight,
-                        expiryDate: updates.expiryDate || original.expiryDate,
-                    };
-                } else if (isHose && item.updatedData) {
-                    const original = originalItem as Hydrant;
-                    const updates = item.updatedData as Partial<Hydrant>;
-                    updatedData = {
-                         location: updates.location || original.location,
-                         quantity: updates.quantity && hydrantQuantities.includes(updates.quantity) ? updates.quantity : original.quantity,
-                         hoseType: updates.hoseType && hydrantTypes.includes(updates.hoseType) ? updates.hoseType : original.hoseType,
-                         diameter: updates.diameter && hydrantDiameters.includes(updates.diameter) ? updates.diameter : original.diameter,
-                         hoseLength: updates.hoseLength && hydrantHoseLengths.includes(updates.hoseLength) ? updates.hoseLength : original.hoseLength,
-                         keyQuantity: (updates.keyQuantity !== undefined && hydrantKeyQuantities.includes(updates.keyQuantity)) ? updates.keyQuantity : original.keyQuantity,
-                         nozzleQuantity: (updates.nozzleQuantity !== undefined && hydrantNozzleQuantities.includes(updates.nozzleQuantity)) ? updates.nozzleQuantity : original.nozzleQuantity,
-                         hydrostaticTestDate: updates.hydrostaticTestDate || original.hydrostaticTestDate,
+                const combinedData = { ...originalItem, ...item.updatedData };
+                
+                let validatedData = {};
+                try {
+                    if (isExtinguisher) {
+                        validatedData = ExtinguisherFormSchema.parse(combinedData);
+                    } else if (isHose) {
+                        validatedData = HydrantFormSchema.parse(combinedData);
                     }
+                } catch (e) {
+                    console.error("Validation failed during inspection finalization", e);
+                    // If validation fails, we should not proceed with updating this item
+                    // to prevent data corruption. But we should continue with other items.
+                    // For now, let's just log and continue, effectively skipping the update for the invalid item.
+                    continue; 
                 }
+
                 
                 const combinedItem = { 
                     ...originalItem, 
-                    ...updatedData,
+                    ...validatedData,
                     inspections: [...(originalItem.inspections || []), newInspection],
                     lastInspected: item.date,
                 };
