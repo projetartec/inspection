@@ -4,7 +4,7 @@
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection, ExtinguisherType, ExtinguisherWeight, HydrantFormValues, HydrantHoseType, HydrantDiameter, HydrantHoseLength, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { adminDb } from './firebase-admin'; 
-import { ClientFormValues } from './schemas';
+import { ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { 
     extinguisherWeights,
@@ -448,77 +448,52 @@ export async function finalizeInspection(session: InspectionSession) {
             if (item.qrCodeValue.startsWith('fireguard-ext-')) {
                 const extIndex = (building.extinguishers || []).findIndex(e => e.uid === item.uid);
                 if (extIndex !== -1) {
+                    let updatedExtinguisher = { ...building.extinguishers[extIndex] };
+
                     if (item.updatedData) {
-                        const dataToUpdate: Partial<Extinguisher> = {};
-                        if ('type' in item.updatedData && item.updatedData.type) {
-                            dataToUpdate.type = item.updatedData.type as ExtinguisherType;
-                        }
-                        if ('weight' in item.updatedData && item.updatedData.weight !== undefined) {
-                            const weightValue = Number(item.updatedData.weight);
-                            if (!isNaN(weightValue) && (extinguisherWeights as readonly number[]).includes(weightValue)) {
-                                dataToUpdate.weight = weightValue as ExtinguisherWeight;
-                            }
-                        }
-                        if ('expiryDate' in item.updatedData) {
-                            dataToUpdate.expiryDate = item.updatedData.expiryDate;
-                        }
-                        building.extinguishers[extIndex] = { ...building.extinguishers[extIndex], ...dataToUpdate };
+                         updatedExtinguisher = { ...updatedExtinguisher, ...item.updatedData };
                     }
-                    if (!building.extinguishers[extIndex].inspections) {
-                        building.extinguishers[extIndex].inspections = [];
+                    
+                    if (!updatedExtinguisher.inspections) {
+                        updatedExtinguisher.inspections = [];
                     }
-                    building.extinguishers[extIndex].inspections.push(newInspection);
-                    building.extinguishers[extIndex].lastInspected = item.date;
+                    updatedExtinguisher.inspections.push(newInspection);
+                    updatedExtinguisher.lastInspected = item.date;
+
+                    // Validate the entire object before saving
+                    const validationResult = ExtinguisherFormSchema.safeParse(updatedExtinguisher);
+                    if (!validationResult.success) {
+                        console.error("Validation failed for extinguisher:", validationResult.error.flatten());
+                        throw new Error(`Dados inválidos para o extintor ${updatedExtinguisher.id}.`);
+                    }
+
+                    // Use the validated (and coerced) data for the update
+                    building.extinguishers[extIndex] = validationResult.data as Extinguisher;
                 }
             } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
                  const hoseIndex = (building.hoses || []).findIndex(h => h.uid === item.uid);
                  if (hoseIndex !== -1) {
+                    let updatedHose = { ...building.hoses[hoseIndex] };
+
                     if (item.updatedData) {
-                       const dataToUpdate: Partial<Hydrant> = {};
-                        if ('location' in item.updatedData && typeof item.updatedData.location === 'string') {
-                           dataToUpdate.location = item.updatedData.location;
-                        }
-                        if ('quantity' in item.updatedData && item.updatedData.quantity !== undefined) {
-                            const quantityValue = Number(item.updatedData.quantity);
-                            if (!isNaN(quantityValue) && (hydrantQuantities as readonly number[]).includes(quantityValue)) {
-                                dataToUpdate.quantity = quantityValue as HydrantQuantity;
-                            }
-                        }
-                        if ('hoseType' in item.updatedData && typeof item.updatedData.hoseType === 'string') {
-                           dataToUpdate.hoseType = item.updatedData.hoseType as HydrantHoseType;
-                        }
-                        if ('diameter' in item.updatedData && typeof item.updatedData.diameter === 'string') {
-                            dataToUpdate.diameter = item.updatedData.diameter as HydrantDiameter;
-                        }
-                        if ('hoseLength' in item.updatedData && item.updatedData.hoseLength !== undefined) {
-                           const hoseLengthValue = Number(item.updatedData.hoseLength);
-                           if (!isNaN(hoseLengthValue) && (hydrantHoseLengths as readonly number[]).includes(hoseLengthValue)) {
-                                dataToUpdate.hoseLength = hoseLengthValue as HydrantHoseLength;
-                           }
-                        }
-                        if ('keyQuantity' in item.updatedData && item.updatedData.keyQuantity !== undefined) {
-                            const keyQuantityValue = Number(item.updatedData.keyQuantity);
-                            if (!isNaN(keyQuantityValue) && (hydrantKeyQuantities as readonly number[]).includes(keyQuantityValue)) {
-                                dataToUpdate.keyQuantity = keyQuantityValue as HydrantKeyQuantity;
-                            }
-                        }
-                        if ('nozzleQuantity' in item.updatedData && item.updatedData.nozzleQuantity !== undefined) {
-                            const nozzleQuantityValue = Number(item.updatedData.nozzleQuantity);
-                            if (!isNaN(nozzleQuantityValue) && (hydrantNozzleQuantities as readonly number[]).includes(nozzleQuantityValue)) {
-                                dataToUpdate.nozzleQuantity = nozzleQuantityValue as HydrantNozzleQuantity;
-                            }
-                        }
-                        if ('hydrostaticTestDate' in item.updatedData) {
-                           dataToUpdate.hydrostaticTestDate = item.updatedData.hydrostaticTestDate;
-                        }
-                        
-                        building.hoses[hoseIndex] = { ...building.hoses[hoseIndex], ...dataToUpdate };
+                        updatedHose = { ...updatedHose, ...item.updatedData };
                     }
-                    if (!building.hoses[hoseIndex].inspections) {
-                        building.hoses[hoseIndex].inspections = [];
+
+                    if (!updatedHose.inspections) {
+                        updatedHose.inspections = [];
                     }
-                    building.hoses[hoseIndex].inspections.push(newInspection);
-                    building.hoses[hoseIndex].lastInspected = item.date;
+                    updatedHose.inspections.push(newInspection);
+                    updatedHose.lastInspected = item.date;
+
+                    // Validate the entire object before saving
+                    const validationResult = HydrantFormSchema.safeParse(updatedHose);
+                    if (!validationResult.success) {
+                        console.error("Validation failed for hose:", validationResult.error.flatten());
+                        throw new Error(`Dados inválidos para o hidrante ${updatedHose.id}.`);
+                    }
+
+                    // Use the validated (and coerced) data for the update
+                    building.hoses[hoseIndex] = validationResult.data as Hydrant;
                  }
             } else if (item.qrCodeValue.startsWith('manual:')) {
                  if (!building.manualInspections) building.manualInspections = [];
@@ -555,3 +530,6 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
 
 
 
+
+
+    

@@ -43,7 +43,7 @@ export const ExtinguisherFormSchema = z.object({
     .max(new Date().getFullYear() + 10, 'Ano inválido')
     .transform(String),
   observations: z.string().max(500, 'As observações devem ter no máximo 500 caracteres.').optional().default(''),
-});
+}).passthrough();
 export type ExtinguisherFormValues = z.infer<typeof ExtinguisherFormSchema>;
 
 // Schema for partial updates during inspection
@@ -61,10 +61,12 @@ export const HydrantFormSchema = z.object({
   keyQuantity: z.coerce.number().min(0, 'A quantidade de chaves é obrigatória.'),
   nozzleQuantity: z.coerce.number().min(0, 'A quantidade de esguichos é obrigatória.'),
   hydrostaticTestDate: z.string().optional(),
-});
+}).passthrough();
 export type HydrantFormValues = z.infer<typeof HydrantFormSchema>;
 
 
 // Compatibility export
 export const HoseFormSchema = HydrantFormSchema;
 export type HoseFormValues = HydrantFormValues;
+
+    
