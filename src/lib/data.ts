@@ -7,11 +7,14 @@ import { adminDb } from './firebase-admin';
 import { ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { 
+    extinguisherTypes,
     extinguisherWeights,
+    hydrantDiameters,
     hydrantHoseLengths, 
     hydrantKeyQuantities, 
     hydrantNozzleQuantities, 
-    hydrantQuantities 
+    hydrantQuantities,
+    hydrantTypes
 } from './types';
 
 
@@ -448,10 +451,24 @@ export async function finalizeInspection(session: InspectionSession) {
             if (item.qrCodeValue.startsWith('fireguard-ext-')) {
                 const extIndex = (building.extinguishers || []).findIndex(e => e.uid === item.uid);
                 if (extIndex !== -1) {
-                    let updatedExtinguisher = { ...building.extinguishers[extIndex] };
+                    const originalExtinguisher = building.extinguishers[extIndex];
+                    let updatedExtinguisher = { ...originalExtinguisher };
 
                     if (item.updatedData) {
-                         updatedExtinguisher = { ...updatedExtinguisher, ...item.updatedData };
+                        const updates = item.updatedData as Partial<Extinguisher>;
+
+                        if (updates.type && extinguisherTypes.includes(updates.type)) {
+                            updatedExtinguisher.type = updates.type;
+                        }
+                        if (updates.weight !== undefined) {
+                            const newWeight = Number(updates.weight);
+                            if (extinguisherWeights.includes(newWeight as ExtinguisherWeight)) {
+                                updatedExtinguisher.weight = newWeight as ExtinguisherWeight;
+                            }
+                        }
+                        if (updates.expiryDate !== undefined) {
+                             updatedExtinguisher.expiryDate = updates.expiryDate;
+                        }
                     }
                     
                     if (!updatedExtinguisher.inspections) {
@@ -460,23 +477,39 @@ export async function finalizeInspection(session: InspectionSession) {
                     updatedExtinguisher.inspections.push(newInspection);
                     updatedExtinguisher.lastInspected = item.date;
 
-                    // Validate the entire object before saving
-                    const validationResult = ExtinguisherFormSchema.safeParse(updatedExtinguisher);
-                    if (!validationResult.success) {
-                        console.error("Validation failed for extinguisher:", validationResult.error.flatten());
-                        throw new Error(`Dados inválidos para o extintor ${updatedExtinguisher.id}.`);
-                    }
-
-                    // Use the validated (and coerced) data for the update
-                    building.extinguishers[extIndex] = validationResult.data as Extinguisher;
+                    building.extinguishers[extIndex] = updatedExtinguisher;
                 }
             } else if (item.qrCodeValue.startsWith('fireguard-hose-')) {
                  const hoseIndex = (building.hoses || []).findIndex(h => h.uid === item.uid);
                  if (hoseIndex !== -1) {
-                    let updatedHose = { ...building.hoses[hoseIndex] };
+                    const originalHose = building.hoses[hoseIndex];
+                    let updatedHose = { ...originalHose };
 
                     if (item.updatedData) {
-                        updatedHose = { ...updatedHose, ...item.updatedData };
+                       const updates = item.updatedData as Partial<Hydrant>;
+
+                        if (updates.location) updatedHose.location = updates.location;
+                        if (updates.hoseType && hydrantTypes.includes(updates.hoseType)) updatedHose.hoseType = updates.hoseType;
+                        if (updates.diameter && hydrantDiameters.includes(updates.diameter)) updatedHose.diameter = updates.diameter;
+                        if (updates.hydrostaticTestDate !== undefined) updatedHose.hydrostaticTestDate = updates.hydrostaticTestDate;
+
+                        // Safely update numeric fields
+                        if (updates.quantity !== undefined) {
+                             const newQuantity = Number(updates.quantity);
+                             if (hydrantQuantities.includes(newQuantity as HydrantQuantity)) updatedHose.quantity = newQuantity as HydrantQuantity;
+                        }
+                         if (updates.hoseLength !== undefined) {
+                             const newLength = Number(updates.hoseLength);
+                             if (hydrantHoseLengths.includes(newLength as HydrantHoseLength)) updatedHose.hoseLength = newLength as HydrantHoseLength;
+                        }
+                         if (updates.keyQuantity !== undefined) {
+                             const newKeys = Number(updates.keyQuantity);
+                             if (hydrantKeyQuantities.includes(newKeys as HydrantKeyQuantity)) updatedHose.keyQuantity = newKeys as HydrantKeyQuantity;
+                        }
+                         if (updates.nozzleQuantity !== undefined) {
+                             const newNozzles = Number(updates.nozzleQuantity);
+                             if (hydrantNozzleQuantities.includes(newNozzles as HydrantNozzleQuantity)) updatedHose.nozzleQuantity = newNozzles as HydrantNozzleQuantity;
+                        }
                     }
 
                     if (!updatedHose.inspections) {
@@ -485,15 +518,7 @@ export async function finalizeInspection(session: InspectionSession) {
                     updatedHose.inspections.push(newInspection);
                     updatedHose.lastInspected = item.date;
 
-                    // Validate the entire object before saving
-                    const validationResult = HydrantFormSchema.safeParse(updatedHose);
-                    if (!validationResult.success) {
-                        console.error("Validation failed for hose:", validationResult.error.flatten());
-                        throw new Error(`Dados inválidos para o hidrante ${updatedHose.id}.`);
-                    }
-
-                    // Use the validated (and coerced) data for the update
-                    building.hoses[hoseIndex] = validationResult.data as Hydrant;
+                    building.hoses[hoseIndex] = updatedHose;
                  }
             } else if (item.qrCodeValue.startsWith('manual:')) {
                  if (!building.manualInspections) building.manualInspections = [];
