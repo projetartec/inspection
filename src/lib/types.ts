@@ -89,8 +89,5 @@ export type Client = {
   email?: string;
   adminContact?: string;
   caretakerContact?: string;
-  buildings: Building[];
-  buildingOrder: string[];
+  buildingOrder?: string[];
 };
-
-    

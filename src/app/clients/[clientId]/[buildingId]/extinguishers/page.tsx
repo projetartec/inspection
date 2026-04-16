@@ -68,8 +68,8 @@ export default function ExtinguishersPage() {
         try {
             setIsLoading(true);
             const [building, data] = await Promise.all([
-                getBuildingById(clientId, buildingId),
-                getExtinguishersByBuilding(clientId, buildingId)
+                getBuildingById(buildingId),
+                getExtinguishersByBuilding(buildingId)
             ]);
 
             if (!building) {

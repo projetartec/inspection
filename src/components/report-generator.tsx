@@ -113,7 +113,7 @@ export function ReportGenerator({ clientId, buildingId }: ReportGeneratorProps) 
     await new Promise(resolve => setTimeout(resolve, 50));
     try {
       const { client, buildings } = await getNonConformityReportDataAction(clientId, buildingId);
-      if (client && buildings) {
+      if (client && buildings && buildings.length > 0) {
           if (format === 'pdf') {
               await generateNonConformityPdfReport(client, buildings, type);
           } else {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -105,7 +106,10 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         let uid = decodedText.startsWith('fireguard-ext-') ? decodedText : decodedText.startsWith('fireguard-hose-') ? decodedText : null;
         
         if (uid) {
-            item = await getExtinguisherByUid(clientId, buildingId, uid) || await getHoseByUid(clientId, buildingId, uid);
+            const isExtinguisher = uid.startsWith('fireguard-ext-');
+            item = isExtinguisher 
+                ? await getExtinguisherByUid(buildingId, uid) 
+                : await getHoseByUid(buildingId, uid);
         }
 
         if (item) {
@@ -239,26 +243,28 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         itemStatuses: itemStatuses,
     };
 
-    if (scannedItem && overallStatus === 'N/C') {
-      if ((scannedItem as Extinguisher).type) {
-        const originalExtinguisher = scannedItem as Extinguisher;
-        const updatedData: Partial<Extinguisher> = {};
-        if (editableType !== originalExtinguisher.type) updatedData.type = editableType;
-        if (editableWeight !== originalExtinguisher.weight) updatedData.weight = editableWeight;
-        if (editableExpiry !== originalExtinguisher.expiryDate) updatedData.expiryDate = editableExpiry;
-        if (Object.keys(updatedData).length > 0) itemData.updatedData = { id: originalExtinguisher.id, ...updatedData };
-      } else if ((scannedItem as Hydrant).hoseType) {
-        const originalHose = scannedItem as Hydrant;
-        const updatedData: Partial<Hydrant> = {};
-        if (editableHoseLocation !== originalHose.location) updatedData.location = editableHoseLocation;
-        if (editableHoseQuantity !== originalHose.quantity) updatedData.quantity = Number(editableHoseQuantity) as HydrantQuantity;
-        if (editableHoseType !== originalHose.hoseType) updatedData.hoseType = editableHoseType as HydrantHoseType;
-        if (editableHoseDiameter !== originalHose.diameter) updatedData.diameter = editableHoseDiameter as HydrantDiameter;
-        if (editableHoseLength !== originalHose.hoseLength) updatedData.hoseLength = Number(editableHoseLength) as HydrantHoseLength;
-        if (editableHoseKeyQuantity !== originalHose.keyQuantity) updatedData.keyQuantity = Number(editableHoseKeyQuantity) as HydrantKeyQuantity;
-        if (editableHoseNozzleQuantity !== originalHose.nozzleQuantity) updatedData.nozzleQuantity = Number(editableHoseNozzleQuantity) as HydrantNozzleQuantity;
-        if (editableHoseTestDate !== originalHose.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
-        if (Object.keys(updatedData).length > 0) itemData.updatedData = { id: originalHose.id, ...updatedData };
+    if (scannedItem) {
+      let updatedData: { [key: string]: any } = {};
+
+      if ((scannedItem as Extinguisher).type) { // It's an extinguisher
+        const original = scannedItem as Extinguisher;
+        if (editableType !== original.type) updatedData.type = editableType;
+        if (editableWeight !== original.weight) updatedData.weight = editableWeight;
+        if (editableExpiry !== original.expiryDate) updatedData.expiryDate = editableExpiry;
+      } else if ((scannedItem as Hydrant).hoseType) { // It's a hose
+        const original = scannedItem as Hydrant;
+        if (editableHoseLocation !== original.location) updatedData.location = editableHoseLocation;
+        if (editableHoseQuantity !== original.quantity) updatedData.quantity = editableHoseQuantity;
+        if (editableHoseType !== original.hoseType) updatedData.hoseType = editableHoseType;
+        if (editableHoseDiameter !== original.diameter) updatedData.diameter = editableHoseDiameter;
+        if (editableHoseLength !== original.hoseLength) updatedData.hoseLength = editableHoseLength;
+        if (editableHoseKeyQuantity !== original.keyQuantity) updatedData.keyQuantity = editableHoseKeyQuantity;
+        if (editableHoseNozzleQuantity !== original.nozzleQuantity) updatedData.nozzleQuantity = editableHoseNozzleQuantity;
+        if (editableHoseTestDate !== original.hydrostaticTestDate) updatedData.hydrostaticTestDate = editableHoseTestDate;
+      }
+
+      if (Object.keys(updatedData).length > 0) {
+        itemData.updatedData = updatedData;
       }
     }
     

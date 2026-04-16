@@ -1,4 +1,5 @@
 
+
 import { notFound } from 'next/navigation';
 import { getBuildingById } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
@@ -9,7 +10,7 @@ import { MobileNav } from '@/components/mobile-nav';
 
 export default async function EditBuildingPage({ params }: { params: { clientId: string, buildingId: string } }) {
   const { clientId, buildingId } = params;
-  const building = await getBuildingById(clientId, buildingId);
+  const building = await getBuildingById(buildingId);
 
   if (!building) {
     notFound();

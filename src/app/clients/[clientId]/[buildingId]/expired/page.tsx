@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -50,9 +51,9 @@ export default function ExpiredItemsPage() {
         try {
             setIsLoading(true);
             const [building, extinguishers, hoses] = await Promise.all([
-                getBuildingById(clientId, buildingId),
-                getExtinguishersByBuilding(clientId, buildingId),
-                getHosesByBuilding(clientId, buildingId)
+                getBuildingById(buildingId),
+                getExtinguishersByBuilding(buildingId),
+                getHosesByBuilding(buildingId)
             ]);
 
             if (!building) {

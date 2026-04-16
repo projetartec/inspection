@@ -1,4 +1,5 @@
 
+
 import { notFound } from 'next/navigation';
 import { getExtinguisherByUid } from '@/lib/data';
 import { PageHeader } from '@/components/page-header';
@@ -8,7 +9,7 @@ import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default async function EditExtinguisherPage({ params }: { params: { clientId: string, buildingId: string, id: string } }) {
   const { clientId, buildingId, id } = params;
-  const extinguisher = await getExtinguisherByUid(clientId, buildingId, id);
+  const extinguisher = await getExtinguisherByUid(buildingId, id);
 
 
   if (!extinguisher) {
