@@ -3,7 +3,6 @@
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection, AbbreviatedInspectionSession } from '@/lib/types';
 import { ClientFormValues, ExtinguisherFormValues, HydrantFormValues } from './schemas';
-import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { adminDb } from './firebase-admin'; 
 import { FieldValue } from 'firebase-admin/firestore';
 import { 
@@ -109,8 +108,6 @@ export async function deleteClient(id: string) {
 
     const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).where('clientId', '==', id).get();
     buildingsSnapshot.forEach(doc => {
-        // Here you might want to delete subcollections too, but it requires a recursive function.
-        // For now, just deleting the building doc.
         batch.delete(doc.ref);
     });
 
@@ -125,12 +122,13 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
     if (!client) return [];
 
     const buildingsSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).where('clientId', '==', clientId).get();
-    const newBuildings = buildingsSnapshot.docs.map(buildingFromDoc);
+    let newBuildings: Building[] = [];
+    if (!buildingsSnapshot.empty) {
+        newBuildings = buildingsSnapshot.docs.map(buildingFromDoc);
+    }
     
-    // Include old buildings from the client document
     const oldBuildings = (client.buildings || []).map(b => ({ ...b, clientId: clientId } as Building));
     
-    // Merge and remove duplicates, preferring the new structure
     const buildingMap = new Map<string, Building>();
     oldBuildings.forEach(b => buildingMap.set(b.id, b));
     newBuildings.forEach(b => buildingMap.set(b.id, b));
@@ -148,9 +146,8 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
 }
 
 export async function getBuildingById(clientId: string, buildingId: string, transaction?: FirebaseFirestore.Transaction): Promise<Building | null> {
-    const get = transaction ? transaction.get.bind(transaction) : adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).get.bind(adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId));
-
-    const buildingDoc = await get(adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId));
+    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
+    const buildingDoc = await (transaction ? transaction.get(buildingRef) : buildingRef.get());
 
     if (buildingDoc.exists) {
         const building = buildingFromDoc(buildingDoc);
@@ -182,21 +179,43 @@ export async function addBuilding(clientId: string, newBuildingData: { name: str
 
 export async function updateBuilding(clientId: string, buildingId: string, updatedData: Partial<Omit<Building, 'id' | 'clientId'>>) {
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-    await buildingRef.update(updatedData);
+    const buildingDoc = await buildingRef.get();
+    
+    if (buildingDoc.exists) {
+        await buildingRef.update(updatedData);
+    } else {
+        // Handle legacy update
+        const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+        const clientSnap = await clientRef.get();
+        if (clientSnap.exists) {
+            const clientData = clientSnap.data() as Client;
+            const buildings = clientData.buildings || [];
+            const buildingIndex = buildings.findIndex(b => b.id === buildingId);
+            if (buildingIndex !== -1) {
+                buildings[buildingIndex] = { ...buildings[buildingIndex], ...updatedData };
+                await clientRef.update({ buildings });
+            }
+        }
+    }
 }
 
 export async function deleteBuilding(clientId: string, buildingId: string) {
-    // This is a complex operation because it should delete all subcollections.
-    // For now, we'll just delete the main documents. A cloud function would be better for cleanup.
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
 
     await adminDb.runTransaction(async (t) => {
         t.delete(buildingRef);
-        t.update(clientRef, { 
-            buildingOrder: FieldValue.arrayRemove(buildingId),
-            buildings: FieldValue.arrayRemove( (await getBuildingById(clientId, buildingId)) ) // This might not work well
-        });
+        
+        const clientDoc = await t.get(clientRef);
+        if (clientDoc.exists) {
+            const clientData = clientDoc.data() as Client;
+            let updatedBuildings = clientData.buildings?.filter(b => b.id !== buildingId) || [];
+            let updatedOrder = clientData.buildingOrder?.filter(id => id !== buildingId) || [];
+            t.update(clientRef, { 
+                buildings: updatedBuildings,
+                buildingOrder: updatedOrder
+            });
+        }
     });
 }
 
@@ -215,17 +234,30 @@ async function getEquipmentFromSubcollection<T>(buildingId: string, subcollectio
 export async function getExtinguishersByBuilding(clientId: string, buildingId: string): Promise<Extinguisher[]> {
     const building = await getBuildingById(clientId, buildingId);
     if (!building) return [];
+    
     const newExtinguishers = await getEquipmentFromSubcollection<Extinguisher>(buildingId, EXTINGUISHERS_SUBCOLLECTION);
+    
     const legacyExtinguishers = building.extinguishers || [];
-    return [...legacyExtinguishers, ...newExtinguishers];
+    
+    const allItems = new Map<string, Extinguisher>();
+    legacyExtinguishers.forEach(item => allItems.set(item.uid, item));
+    newExtinguishers.forEach(item => allItems.set(item.uid, item));
+
+    return Array.from(allItems.values());
 }
 
 export async function getHosesByBuilding(clientId: string, buildingId: string): Promise<Hydrant[]> {
     const building = await getBuildingById(clientId, buildingId);
     if (!building) return [];
+
     const newHoses = await getEquipmentFromSubcollection<Hydrant>(buildingId, HOSES_SUBCOLLECTION);
     const legacyHoses = building.hoses || [];
-    return [...legacyHoses, ...newHoses];
+
+    const allItems = new Map<string, Hydrant>();
+    legacyHoses.forEach(item => allItems.set(item.uid, item));
+    newHoses.forEach(item => allItems.set(item.uid, item));
+
+    return Array.from(allItems.values());
 }
 
 export async function getExtinguisherByUid(clientId: string, buildingId: string, uid: string): Promise<Extinguisher | null> {
@@ -246,11 +278,7 @@ export async function getHoseByUid(clientId: string, buildingId: string, uid: st
     return building?.hoses?.find(h => h.uid === uid) || null;
 }
 
-
 export async function addExtinguisher(clientId: string, buildingId: string, newExtinguisherData: ExtinguisherFormValues): Promise<{success: boolean, message?: string}> {
-    const building = await getBuildingById(clientId, buildingId);
-    if (!building) return { success: false, message: 'Local não encontrado.'};
-
     const allExtinguishers = await getExtinguishersByBuilding(clientId, buildingId);
     if (allExtinguishers.some(e => e.id === newExtinguisherData.id)) {
         return { success: false, message: 'O ID já está em uso neste local, altere!' };
@@ -275,10 +303,62 @@ export async function updateExtinguisherData(clientId: string, buildingId: strin
         return { success: false, message: 'O ID já está em uso, altere!' };
     }
 
-    const docRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(EXTINGUISHERS_SUBCOLLECTION).doc(uid);
-    await docRef.update(updatedData);
+    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
+    const extinguisherRef = buildingRef.collection(EXTINGUISHERS_SUBCOLLECTION).doc(uid);
+    const extinguisherSnap = await extinguisherRef.get();
 
-    return { success: true };
+    // Case 1: Extinguisher is in the new subcollection structure. Update it directly.
+    if (extinguisherSnap.exists) {
+        await extinguisherRef.update(updatedData);
+        return { success: true };
+    }
+
+    // Case 2: Extinguisher might be in the legacy structure. Migrate it on update.
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const clientDoc = await transaction.get(clientRef);
+            if (!clientDoc.exists) {
+                throw new Error("Cliente não encontrado.");
+            }
+            
+            const clientData = clientDoc.data() as Client;
+            const buildings = clientData.buildings || [];
+            const buildingIndex = buildings.findIndex(b => b.id === buildingId);
+
+            if (buildingIndex === -1) {
+                throw new Error("Equipamento não encontrado para atualização (prédio não localizado na estrutura antiga).");
+            }
+            
+            const building = buildings[buildingIndex];
+            const extIndex = building.extinguishers?.findIndex(e => e.uid === uid) ?? -1;
+
+            if (extIndex === -1) {
+                 throw new Error("Equipamento não encontrado para atualização (extintor não localizado na estrutura antiga).");
+            }
+            
+            // It's a legacy extinguisher. We will migrate it.
+            const extinguisherToMigrate = building.extinguishers![extIndex];
+            
+            // 1. Create the new migrated extinguisher object with updates applied
+            const migratedExtinguisherData = { ...extinguisherToMigrate, ...updatedData };
+            
+            // 2. Remove the extinguisher from the legacy array
+            const updatedExtinguishersArray = building.extinguishers!.filter(e => e.uid !== uid);
+            buildings[buildingIndex].extinguishers = updatedExtinguishersArray;
+            
+            // 3. Set the new extinguisher document in the subcollection
+            transaction.set(extinguisherRef, migratedExtinguisherData);
+            
+            // 4. Update the client document with the removed extinguisher
+            transaction.update(clientRef, { buildings: buildings });
+        });
+        return { success: true };
+    } catch (error: any) {
+        console.error("Erro na transação de atualização de extintor:", error);
+        return { success: false, message: error.message || 'Falha ao atualizar o equipamento.' };
+    }
 }
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, uid: string) {
@@ -302,16 +382,69 @@ export async function addHose(clientId: string, buildingId: string, newHoseData:
 }
 
 export async function updateHoseData(clientId: string, buildingId: string, uid: string, updatedData: Partial<HydrantFormValues>): Promise<{success: boolean, message?: string}> {
-     const allHoses = await getHosesByBuilding(clientId, buildingId);
+    const allHoses = await getHosesByBuilding(clientId, buildingId);
     if (updatedData.id && allHoses.some(h => h.id === updatedData.id && h.uid !== uid)) {
         return { success: false, message: 'O ID já está em uso, altere!' };
     }
 
-    const docRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(HOSES_SUBCOLLECTION).doc(uid);
-    await docRef.update(updatedData);
+    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
+    const hoseRef = buildingRef.collection(HOSES_SUBCOLLECTION).doc(uid);
+    const hoseSnap = await hoseRef.get();
 
-    return { success: true };
+    // Case 1: Hose is in the new subcollection structure. Update it directly.
+    if (hoseSnap.exists) {
+        await hoseRef.update(updatedData);
+        return { success: true };
+    }
+
+    // Case 2: Hose might be in the legacy structure. Migrate it on update.
+    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+    
+    try {
+        await adminDb.runTransaction(async (transaction) => {
+            const clientDoc = await transaction.get(clientRef);
+            if (!clientDoc.exists) {
+                throw new Error("Cliente não encontrado.");
+            }
+            
+            const clientData = clientDoc.data() as Client;
+            const buildings = clientData.buildings || [];
+            const buildingIndex = buildings.findIndex(b => b.id === buildingId);
+
+            if (buildingIndex === -1) {
+                throw new Error("Equipamento não encontrado para atualização (prédio não localizado na estrutura antiga).");
+            }
+            
+            const building = buildings[buildingIndex];
+            const hoseIndex = building.hoses?.findIndex(h => h.uid === uid) ?? -1;
+
+            if (hoseIndex === -1) {
+                 throw new Error("Equipamento não encontrado para atualização (mangueira não localizada na estrutura antiga).");
+            }
+            
+            // It's a legacy hose. We will migrate it.
+            const hoseToMigrate = building.hoses![hoseIndex];
+            
+            // 1. Create the new migrated hose object with updates applied
+            const migratedHoseData = { ...hoseToMigrate, ...updatedData };
+            
+            // 2. Remove the hose from the legacy array
+            const updatedHosesArray = building.hoses!.filter(h => h.uid !== uid);
+            buildings[buildingIndex].hoses = updatedHosesArray;
+            
+            // 3. Set the new hose document in the subcollection
+            transaction.set(hoseRef, migratedHoseData);
+            
+            // 4. Update the client document with the removed hose
+            transaction.update(clientRef, { buildings: buildings });
+        });
+        return { success: true };
+    } catch (error: any) {
+        console.error("Erro na transação de atualização de mangueira:", error);
+        return { success: false, message: error.message || 'Falha ao atualizar o equipamento.' };
+    }
 }
+
 
 export async function deleteHose(clientId: string, buildingId: string, uid: string) {
     const docRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(HOSES_SUBCOLLECTION).doc(uid);
@@ -319,8 +452,6 @@ export async function deleteHose(clientId: string, buildingId: string, uid: stri
 }
 
 export async function updateEquipmentOrder(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
-    // This is more complex with subcollections and is a lower priority.
-    // For now, this function will be a no-op.
     console.log("Reordering in subcollections is not yet implemented.");
 }
 
@@ -330,7 +461,12 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
     
     await adminDb.runTransaction(async t => {
         const buildingDoc = await t.get(buildingRef);
-        if (!buildingDoc.exists) throw new Error("Local não encontrado.");
+        if (!buildingDoc.exists) {
+            const clientDoc = await t.get(adminDb.collection(CLIENTS_COLLECTION).doc(clientId));
+            if (!clientDoc.exists || !clientDoc.data()?.buildings?.some((b: Building) => b.id === buildingId)) {
+                throw new Error("Local não encontrado.");
+            }
+        }
 
         const batch = adminDb.batch();
 
@@ -366,11 +502,11 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
 
             const updatePayload: { [key: string]: any } = { lastInspected: item.dt };
             if (item.ud) {
-                if (isExtinguisher) {
+                 if (isExtinguisher) {
                     const validatedUpdate: Partial<ExtinguisherFormValues> = {};
                     const data = item.ud as Partial<ExtinguisherFormValues>;
                     if (data.type && extinguisherTypes.includes(data.type)) validatedUpdate.type = data.type;
-                    if (data.weight !== undefined && extinguisherWeights.includes(Number(data.weight) as any)) validatedUpdate.weight = Number(data.weight);
+                    if (data.weight !== undefined && extinguisherWeights.includes(Number(data.weight))) validatedUpdate.weight = Number(data.weight);
                     if (data.expiryDate !== undefined) validatedUpdate.expiryDate = data.expiryDate;
                     if (data.hydrostaticTestYear !== undefined) validatedUpdate.hydrostaticTestYear = data.hydrostaticTestYear;
                     Object.assign(updatePayload, validatedUpdate);
@@ -378,12 +514,12 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
                     const validatedUpdate: Partial<HydrantFormValues> = {};
                     const data = item.ud as Partial<HydrantFormValues>;
                     if (data.location) validatedUpdate.location = data.location;
-                    if (data.quantity !== undefined && hydrantQuantities.includes(Number(data.quantity) as any)) validatedUpdate.quantity = Number(data.quantity);
+                    if (data.quantity !== undefined && hydrantQuantities.includes(Number(data.quantity))) validatedUpdate.quantity = Number(data.quantity);
                     if (data.hoseType && hydrantTypes.includes(data.hoseType)) validatedUpdate.hoseType = data.hoseType;
                     if (data.diameter && hydrantDiameters.includes(data.diameter)) validatedUpdate.diameter = data.diameter;
-                    if (data.hoseLength !== undefined && hydrantHoseLengths.includes(Number(data.hoseLength) as any)) validatedUpdate.hoseLength = Number(data.hoseLength);
-                    if (data.keyQuantity !== undefined && hydrantKeyQuantities.includes(Number(data.keyQuantity) as any)) validatedUpdate.keyQuantity = Number(data.keyQuantity);
-                    if (data.nozzleQuantity !== undefined && hydrantNozzleQuantities.includes(Number(data.nozzleQuantity) as any)) validatedUpdate.nozzleQuantity = Number(data.nozzleQuantity);
+                    if (data.hoseLength !== undefined && hydrantHoseLengths.includes(Number(data.hoseLength))) validatedUpdate.hoseLength = Number(data.hoseLength);
+                    if (data.keyQuantity !== undefined && hydrantKeyQuantities.includes(Number(data.keyQuantity))) validatedUpdate.keyQuantity = Number(data.keyQuantity);
+                    if (data.nozzleQuantity !== undefined && hydrantNozzleQuantities.includes(Number(data.nozzleQuantity))) validatedUpdate.nozzleQuantity = Number(data.nozzleQuantity);
                     if (data.hydrostaticTestDate !== undefined) validatedUpdate.hydrostaticTestDate = data.hydrostaticTestDate;
                     Object.assign(updatePayload, validatedUpdate);
                 }
@@ -397,7 +533,6 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
     });
 }
 
-
 // --- Report Data Fetching Actions ---
 
 async function getFullBuildingData(clientId: string, buildingId: string): Promise<Building> {
@@ -405,7 +540,6 @@ async function getFullBuildingData(clientId: string, buildingId: string): Promis
     const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
     const hoses = await getHosesByBuilding(clientId, buildingId);
     
-    // Fetch inspections for each equipment
     for (const ext of extinguishers) {
         const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
         ext.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
@@ -440,7 +574,6 @@ export async function getEquipmentForBuildings(clientId: string, buildingIds: st
     const hoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
     return { extinguishers, hoses };
 }
-
 
 export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
      const client = await getClientById(clientId);
