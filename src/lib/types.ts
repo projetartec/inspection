@@ -22,7 +22,7 @@ export type Extinguisher = {
   expiryDate: string; // Corresponds to RECARGA
   hydrostaticTestYear: string; // Corresponds to TEST. HIDROSTATICO
   observations: string; // Corresponds to LOCALIZAÇÃO
-  inspections: Inspection[];
+  inspections?: Inspection[]; // Legacy, will be phased out
   lastInspected?: string;
 };
 
@@ -58,7 +58,7 @@ export type Hydrant = {
   keyQuantity: HydrantKeyQuantity; // CHAVE
   nozzleQuantity: HydrantNozzleQuantity; // ESG (Esguicho)
   hydrostaticTestDate: string; // PROX. TESTE HIDR.
-  inspections: Inspection[];
+  inspections?: Inspection[]; // Legacy, will be phased out
   lastInspected?: string;
 };
 
@@ -68,8 +68,8 @@ export type Building = {
   id: string;
   clientId: string; // Link back to the client
   name: string;
-  extinguishers: Extinguisher[];
-  hoses: Hydrant[];
+  extinguishers?: Extinguisher[]; // Legacy
+  hoses?: Hydrant[]; // Legacy
   manualInspections?: ManualInspection[];
   gpsLink?: string;
   lastInspected?: string;
@@ -88,7 +88,6 @@ export type Client = {
   email?: string;
   adminContact?: string;
   caretakerContact?: string;
-  // This field remains for backward compatibility and to hold buildings that haven't been migrated yet.
-  buildings?: Omit<Building, 'clientId'>[];
+  buildings?: Omit<Building, 'clientId'>[]; // Legacy
   buildingOrder?: string[];
 };
