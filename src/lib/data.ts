@@ -2,9 +2,10 @@
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
-import { adminDb } from './firebase-admin'; 
+import { revalidatePath } from 'next/cache';
 import { ClientFormValues, ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
+import { adminDb } from './firebase-admin'; 
 import { FieldValue } from 'firebase-admin/firestore';
 import { 
     extinguisherTypes, 
@@ -37,7 +38,7 @@ function clientFromDoc(doc: FirebaseFirestore.DocumentSnapshot): Client {
     email: data.email,
     adminContact: data.adminContact,
     caretakerContact: data.caretakerContact,
-    buildings: data.buildings || [],
+    buildings: data.buildings || [], // Keep for reading old data
     buildingOrder: data.buildingOrder || [],
   };
 }
@@ -55,6 +56,7 @@ function buildingFromDoc(doc: FirebaseFirestore.DocumentSnapshot): Building {
         lastInspected: data.lastInspected,
     };
 }
+
 
 // --- Client Data Functions ---
 
@@ -111,6 +113,7 @@ export async function deleteClient(id: string) {
     await batch.commit();
 }
 
+
 // --- Building Data Functions (NEW MIGRATION-AWARE LOGIC) ---
 
 export async function getBuildingsByClient(clientId: string): Promise<Building[]> {
@@ -121,6 +124,7 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
     const newBuildings = buildingsSnapshot.docs.map(buildingFromDoc);
     const newBuildingIds = new Set(newBuildings.map(b => b.id));
 
+    // Include old buildings only if they haven't been migrated yet
     const oldBuildings = (client.buildings || [])
         .filter(b => !newBuildingIds.has(b.id))
         .map(b => ({ ...b, clientId: clientId } as Building));
@@ -129,21 +133,28 @@ export async function getBuildingsByClient(clientId: string): Promise<Building[]
     const buildingOrder = client.buildingOrder || [];
     const buildingMap = new Map(allBuildings.map(b => [b.id, b]));
 
+    // Use buildingOrder for sorting, append any unordered buildings at the end
     const orderedBuildings = buildingOrder.map(id => buildingMap.get(id)).filter(Boolean) as Building[];
-    const unorderedBuildings = allBuildings.filter(b => !buildingOrder.includes(b.id));
+    const unorderedBuildingIds = new Set(orderedBuildings.map(b => b.id));
+    const unorderedBuildings = allBuildings.filter(b => !unorderedBuildingIds.has(b.id));
 
     return [...orderedBuildings, ...unorderedBuildings];
 }
 
 export async function getBuildingById(clientId: string, buildingId: string): Promise<Building | null> {
+    // 1. Try to fetch from the new 'buildings' collection first.
     const buildingDoc = await adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).get();
     if (buildingDoc.exists) {
         const building = buildingFromDoc(buildingDoc);
+        // Ensure it belongs to the correct client
         return building.clientId === clientId ? building : null;
     }
 
+    // 2. If not found, fall back to the old structure within the client document.
     const client = await getClientById(clientId);
     const oldBuilding = client?.buildings?.find(b => b.id === buildingId);
+    
+    // Return the old building data, conforming to the new Building type
     return oldBuilding ? { ...oldBuilding, clientId } as Building : null;
 }
 
@@ -151,19 +162,23 @@ async function saveBuilding(building: Building, transaction: FirebaseFirestore.T
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(building.id);
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(building.clientId);
 
+    // 1. Write the full, updated building to its own document in the 'buildings' collection.
     transaction.set(buildingRef, building);
+    
+    // 2. Ensure this building's ID is in the client's buildingOrder array.
+    transaction.update(clientRef, { buildingOrder: FieldValue.arrayUnion(building.id) });
 
+    // 3. Remove the building from the old, embedded 'buildings' array inside the client doc, if it exists.
     const clientDoc = await transaction.get(clientRef);
     if (clientDoc.exists) {
         const clientData = clientFromDoc(clientDoc);
-        const oldBuildingIndex = (clientData.buildings || []).findIndex(b => b.id === building.id);
-        if (oldBuildingIndex !== -1) {
-            const updatedOldBuildings = [...clientData.buildings!];
-            updatedOldBuildings.splice(oldBuildingIndex, 1);
+        if (clientData.buildings && clientData.buildings.some(b => b.id === building.id)) {
+            const updatedOldBuildings = clientData.buildings.filter(b => b.id !== building.id);
             transaction.update(clientRef, { buildings: updatedOldBuildings });
         }
     }
 }
+
 
 export async function addBuilding(clientId: string, newBuildingData: { name: string; gpsLink?: string }): Promise<void> {
     const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
@@ -383,21 +398,24 @@ export async function finalizeInspection(session: InspectionSession) {
         const isExtinguisher = item.qrCodeValue.startsWith('fireguard-ext-');
         const isHose = item.qrCodeValue.startsWith('fireguard-hose-');
         
-        let equipmentIndex = -1;
-
         if (isExtinguisher) {
-            equipmentIndex = building.extinguishers.findIndex(e => e.uid === item.uid);
+            const equipmentIndex = building.extinguishers.findIndex(e => e.uid === item.uid);
             if (equipmentIndex !== -1) {
                 const originalItem = building.extinguishers[equipmentIndex];
                 let updatedItem = { ...originalItem };
 
                 if (item.updatedData) {
                     const updates = item.updatedData as Partial<Extinguisher>;
-                    if (updates.type && extinguisherTypes.includes(updates.type)) updatedItem.type = updates.type;
+                    if (updates.type && extinguisherTypes.includes(updates.type)) {
+                        updatedItem.type = updates.type;
+                    }
                     const newWeight = Number(updates.weight);
-                    if (updates.weight && extinguisherWeights.includes(newWeight as any)) updatedItem.weight = newWeight;
-                    if (updates.hydrostaticTestYear) updatedItem.hydrostaticTestYear = String(updates.hydrostaticTestYear);
-                    if (updates.expiryDate !== undefined) updatedItem.expiryDate = updates.expiryDate;
+                    if (updates.weight !== undefined && !isNaN(newWeight) && extinguisherWeights.includes(newWeight as any)) {
+                        updatedItem.weight = newWeight;
+                    }
+                    if (updates.expiryDate !== undefined) {
+                         updatedItem.expiryDate = updates.expiryDate;
+                    }
                 }
 
                 updatedItem.inspections = [...(originalItem.inspections || []), newInspection];
@@ -405,25 +423,40 @@ export async function finalizeInspection(session: InspectionSession) {
                 building.extinguishers[equipmentIndex] = updatedItem;
             }
         } else if (isHose) {
-            equipmentIndex = building.hoses.findIndex(h => h.uid === item.uid);
+            const equipmentIndex = building.hoses.findIndex(h => h.uid === item.uid);
             if (equipmentIndex !== -1) {
                 const originalItem = building.hoses[equipmentIndex];
                 let updatedItem = { ...originalItem };
 
                 if (item.updatedData) {
                     const updates = item.updatedData as Partial<Hydrant>;
-                    if (updates.location) updatedItem.location = updates.location;
+                     if (updates.location) updatedItem.location = updates.location;
+
                     const newQuantity = Number(updates.quantity);
-                    if (updates.quantity && hydrantQuantities.includes(newQuantity as any)) updatedItem.quantity = newQuantity;
-                    if (updates.hoseType && hydrantTypes.includes(updates.hoseType)) updatedItem.hoseType = updates.hoseType;
-                    if (updates.diameter && hydrantDiameters.includes(updates.diameter)) updatedItem.diameter = updates.diameter;
+                    if (updates.quantity !== undefined && !isNaN(newQuantity) && hydrantQuantities.includes(newQuantity as any)) {
+                        updatedItem.quantity = newQuantity;
+                    }
+                    if (updates.hoseType && hydrantTypes.includes(updates.hoseType)) {
+                        updatedItem.hoseType = updates.hoseType;
+                    }
+                    if (updates.diameter && hydrantDiameters.includes(updates.diameter)) {
+                        updatedItem.diameter = updates.diameter;
+                    }
                     const newLength = Number(updates.hoseLength);
-                    if (updates.hoseLength && hydrantHoseLengths.includes(newLength as any)) updatedItem.hoseLength = newLength;
+                    if (updates.hoseLength !== undefined && !isNaN(newLength) && hydrantHoseLengths.includes(newLength as any)) {
+                        updatedItem.hoseLength = newLength;
+                    }
                     const newKeyQty = Number(updates.keyQuantity);
-                    if (updates.keyQuantity !== undefined && hydrantKeyQuantities.includes(newKeyQty as any)) updatedItem.keyQuantity = newKeyQty;
+                    if (updates.keyQuantity !== undefined && !isNaN(newKeyQty) && hydrantKeyQuantities.includes(newKeyQty as any)) {
+                        updatedItem.keyQuantity = newKeyQty;
+                    }
                     const newNozzleQty = Number(updates.nozzleQuantity);
-                    if (updates.nozzleQuantity !== undefined && hydrantNozzleQuantities.includes(newNozzleQty as any)) updatedItem.nozzleQuantity = newNozzleQty;
-                    if (updates.hydrostaticTestDate !== undefined) updatedItem.hydrostaticTestDate = updates.hydrostaticTestDate;
+                    if (updates.nozzleQuantity !== undefined && !isNaN(newNozzleQty) && hydrantNozzleQuantities.includes(newNozzleQty as any)) {
+                        updatedItem.nozzleQuantity = newNozzleQty;
+                    }
+                    if (updates.hydrostaticTestDate !== undefined) {
+                        updatedItem.hydrostaticTestDate = updates.hydrostaticTestDate;
+                    }
                 }
 
                 updatedItem.inspections = [...(originalItem.inspections || []), newInspection];
@@ -436,8 +469,108 @@ export async function finalizeInspection(session: InspectionSession) {
         }
     }
     
-    // Save the entire building, which will trigger the migration if needed
+    // This transaction will now also handle the migration.
     await adminDb.runTransaction(async t => {
         await saveBuilding(building, t);
     });
+}
+
+
+// --- Report Actions ---
+export async function getReportDataAction(clientId: string, buildingId: string) {
+    const client = await getClientById(clientId);
+    const building = await getBuildingById(clientId, buildingId);
+    if (!client || !building) {
+         return { client: null, building: null, extinguishers: [], hoses: [] };
+    }
+
+    const extinguishers = building?.extinguishers || [];
+    const hoses = building?.hoses || [];
+
+    return { client, building, extinguishers, hoses };
+}
+
+export async function getClientReportDataAction(clientId: string) {
+    const client = await getClientById(clientId);
+    if (!client) return { client: null, buildings: [] };
+
+    const buildings = await getBuildingsByClient(clientId);
+
+    return { client, buildings };
+}
+
+export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
+    const client = await getClientById(clientId);
+    let buildings: Building[] = [];
+
+    if (buildingId) {
+        const building = await getBuildingById(clientId, buildingId);
+        if (building) buildings.push(building);
+    } else {
+        buildings = await getBuildingsByClient(clientId);
+    }
+
+    return { client, buildings };
+}
+
+export async function getHosesReportDataAction(clientId: string) {
+    const client = await getClientById(clientId);
+    if (!client) return { client: null, buildingsWithHoses: [] };
+
+    const buildingsWithHoses = await getBuildingsByClient(clientId);
+
+    return { client, buildingsWithHoses };
+}
+
+export async function getExtinguishersReportDataAction(clientId: string) {
+    const client = await getClientById(clientId);
+    if (!client) return { client: null, buildingsWithExtinguishers: [] };
+
+    const buildingsWithExtinguishers = await getBuildingsByClient(clientId);
+    
+    return { client, buildingsWithExtinguishers };
+}
+
+export async function getDescriptiveReportDataAction(clientId: string, buildingId?: string) {
+    const client = await getClientById(clientId);
+    let buildings: Building[] = [];
+
+    if (buildingId) {
+        const building = await getBuildingById(clientId, buildingId);
+        if(building) buildings.push(building);
+    } else {
+        buildings = await getBuildingsByClient(clientId);
+    }
+    
+    return { client, buildings };
+}
+
+export async function getNonConformityReportDataAction(clientId: string, buildingId?: string) {
+    const client = await getClientById(clientId);
+    let buildingsData: Building[] = [];
+
+    if (buildingId) {
+        const building = await getBuildingById(clientId, buildingId);
+        if(building) buildingsData.push(building);
+    } else {
+        buildingsData = await getBuildingsByClient(clientId);
+    }
+
+    const buildingsWithNC = buildingsData.map(b => {
+        const ncExtinguishers = (b.extinguishers || []).filter(e => {
+            if (!e.inspections || e.inspections.length === 0) return false;
+            const lastInspection = e.inspections[e.inspections.length - 1];
+            return lastInspection.status === 'N/C';
+        });
+
+        const ncHoses = (b.hoses || []).filter(h => {
+             if (!h.inspections || h.inspections.length === 0) return false;
+            const lastInspection = h.inspections[h.inspections.length - 1];
+            return lastInspection.status === 'N/C';
+        });
+        
+        return { ...b, extinguishers: ncExtinguishers, hoses: ncHoses };
+    }).filter(b => b.extinguishers.length > 0 || b.hoses.length > 0);
+
+    return { client, buildings: buildingsWithNC };
 }
