@@ -1,5 +1,4 @@
 
-
 export type Inspection = {
   id: string;
   date: string;
@@ -67,6 +66,7 @@ export type ManualInspection = Inspection & { manualId: string };
 
 export type Building = {
   id: string;
+  clientId: string; // Link back to the client
   name: string;
   extinguishers: Extinguisher[];
   hoses: Hydrant[];
@@ -88,6 +88,7 @@ export type Client = {
   email?: string;
   adminContact?: string;
   caretakerContact?: string;
-  buildings: Building[];
+  // This field remains for backward compatibility and to hold buildings that haven't been migrated yet.
+  buildings?: Omit<Building, 'clientId'>[];
   buildingOrder?: string[];
 };
