@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -10,7 +11,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { BackupManager } from "./backup-manager"
 
 export function ThemeToggle() {
   const { setTheme } = useTheme()
@@ -41,6 +44,7 @@ export function ThemeToggle() {
                 <Monitor className="mr-2" />
                 <span>Sistema</span>
             </DropdownMenuItem>
+            <BackupManager isGlobal={true} />
         </DropdownMenuContent>
         </DropdownMenu>
     </div>

@@ -556,3 +556,87 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
 
     return { client, buildings: buildingsWithNC };
 }
+
+// --- Backup/Restore ---
+
+async function getFullClientData(clientId: string): Promise<Client & { buildings: Building[] }> {
+    const client = await getClientById(clientId);
+    if (!client) throw new Error(`Cliente com ID ${clientId} não encontrado.`);
+
+    const buildingStubs = await getBuildingsByClient(clientId);
+    const buildings = await Promise.all(buildingStubs.map(b => getFullBuildingData(clientId, b.id)));
+    
+    // We remove the legacy 'buildings' array from the client object before backup
+    const { buildings: legacyBuildings, ...clientData } = client;
+
+    return { ...clientData, buildings };
+}
+
+export async function getBackupData(clientId?: string) {
+    if (clientId) {
+        const clientData = await getFullClientData(clientId);
+        return { clients: [clientData] };
+    } else {
+        const allClientsStubs = await getClients();
+        const allClientsData = await Promise.all(allClientsStubs.map(c => getFullClientData(c.id)));
+        return { clients: allClientsData };
+    }
+}
+
+export async function restoreBackup(data: any) {
+    if (!data || !Array.isArray(data.clients)) {
+        throw new Error("Formato de backup inválido. O arquivo deve conter uma chave 'clients' com uma lista.");
+    }
+    
+    const writeBatch = adminDb.batch();
+
+    for (const client of data.clients) {
+        if (!client.id) continue;
+        const { buildings, ...clientData } = client;
+        const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(client.id);
+        writeBatch.set(clientRef, clientData, { merge: true });
+
+        if (Array.isArray(buildings)) {
+            for (const building of buildings) {
+                if (!building.id) continue;
+                const { extinguishers, hoses, ...buildingData } = building;
+                const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(building.id);
+                writeBatch.set(buildingRef, buildingData, { merge: true });
+                
+                if (Array.isArray(extinguishers)) {
+                    for (const ext of extinguishers) {
+                        if (!ext.uid) continue;
+                        const { inspections: extInspections, ...extData } = ext;
+                        const extRef = buildingRef.collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid);
+                        writeBatch.set(extRef, extData, { merge: true });
+                        if(Array.isArray(extInspections)) {
+                            for(const insp of extInspections) {
+                                if (!insp.id) continue;
+                                const inspRef = extRef.collection(INSPECTIONS_SUBCOLLECTION).doc(insp.id);
+                                writeBatch.set(inspRef, insp);
+                            }
+                        }
+                    }
+                }
+                
+                if (Array.isArray(hoses)) {
+                     for (const hose of hoses) {
+                        if (!hose.uid) continue;
+                        const { inspections: hoseInspections, ...hoseData } = hose;
+                        const hoseRef = buildingRef.collection(HOSES_SUBCOLLECTION).doc(hose.uid);
+                        writeBatch.set(hoseRef, hoseData, { merge: true });
+                         if(Array.isArray(hoseInspections)) {
+                            for(const insp of hoseInspections) {
+                                if (!insp.id) continue;
+                                const inspRef = hoseRef.collection(INSPECTIONS_SUBCOLLECTION).doc(insp.id);
+                                writeBatch.set(inspRef, insp);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    await writeBatch.commit();
+}

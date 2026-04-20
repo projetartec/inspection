@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ClientReportGenerator } from "./client-report-generator";
 import Image from 'next/image';
 import { logout } from "@/app/login/actions";
+import { BackupManager } from "./backup-manager";
 
 
 export function MainNav({ consultationSummary }: { consultationSummary?: React.ReactNode }) {
@@ -143,6 +144,7 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                   )}
               </SidebarContent>
                <SidebarFooter className="gap-2">
+                 <BackupManager clientId={clientId} />
                  <ClientReportGenerator clientId={clientId} />
                  <form action={logout}>
                     <Button variant="outline" className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0">

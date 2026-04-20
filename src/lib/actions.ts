@@ -21,9 +21,8 @@ import {
     deleteHose as deleteHoseData,
     finalizeInspection as finalizeInspectionData,
     updateEquipmentOrder,
-    getExtinguisherByUid,
-    getHoseByUid,
-    getBuildingById as getBuildingData,
+    getBackupData,
+    restoreBackup,
 } from './data';
 import { getClientById, getBuildingsByClient, getEquipmentForBuildings } from './data';
 
@@ -317,4 +316,21 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
     await updateEquipmentOrder(clientId, buildingId, equipmentType, orderedItems);
     revalidatePath(`/clients/${clientId}/${buildingId}/${equipmentType}`);
+}
+
+// --- Backup Actions ---
+export async function getBackupDataAction(clientId?: string) {
+    const backupData = await getBackupData(clientId);
+    return JSON.stringify(backupData, null, 2);
+}
+
+export async function restoreBackupAction(backupContent: string) {
+    try {
+        const data = JSON.parse(backupContent);
+        await restoreBackup(data);
+        revalidatePath('/', 'layout'); // Revalidate everything
+    } catch (error: any) {
+        console.error("Restore backup failed:", error);
+        throw new Error("Falha ao restaurar backup. Verifique o arquivo e tente novamente. " + error.message);
+    }
 }
