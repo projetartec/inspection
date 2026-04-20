@@ -5,15 +5,17 @@
 import React, { useState, useEffect } from 'react';
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
 import { notFound, useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, Play, Eye } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AlertTriangle, Play, Eye, FileWarning } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Extinguisher, Hydrant as Hose } from '@/lib/types';
+import type { Extinguisher, Hydrant as Hose, ManualInspection } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInspectionSession } from '@/hooks/use-inspection-session';
 import Image from 'next/image';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { LocalDateTime } from '@/components/local-date-time';
 
 interface Stat {
     title: string;
@@ -39,6 +41,39 @@ function StatCardSkeleton() {
     )
 }
 
+function ManualInspectionSkeleton() {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-3 w-64 mt-1" />
+            </CardHeader>
+            <CardContent>
+                 <div className="border rounded-md">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                                <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                                <TableHead><Skeleton className="h-4 w-full" /></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Array(2).fill(0).map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 export default function DashboardPage() {
     const params = useParams() as { clientId: string, buildingId: string };
     const { clientId, buildingId } = params;
@@ -46,6 +81,7 @@ export default function DashboardPage() {
 
     const [buildingName, setBuildingName] = useState<string>('');
     const [stats, setStats] = useState<Stat[]>([]);
+    const [manualInspections, setManualInspections] = useState<ManualInspection[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const { session: inspectionSession, startInspection } = useInspectionSession();
@@ -72,6 +108,7 @@ export default function DashboardPage() {
                     return;
                 }
                 setBuildingName(building.name);
+                setManualInspections(building.manualInspections || []);
 
                 const isExpired = (item: { expiryDate?: string, hydrostaticTestDate?: string }) => {
                     const dateStr = item.expiryDate || item.hydrostaticTestDate;
@@ -195,6 +232,44 @@ export default function DashboardPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {isLoading ? <ManualInspectionSkeleton /> : manualInspections.length > 0 && (
+                 <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <FileWarning className="h-6 w-6 text-amber-500" />
+                            <div>
+                                <CardTitle>Registros Manuais e Falhas de Leitura</CardTitle>
+                                <CardDescription>Itens registrados manualmente durante inspeções (ex: QR danificado, item faltando).</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[180px]">Data</TableHead>
+                                        <TableHead>ID Manual</TableHead>
+                                        <TableHead>Observações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {[...manualInspections].reverse().map((insp) => (
+                                        <TableRow key={insp.id}>
+                                            <TableCell>
+                                                <LocalDateTime dateString={insp.date} formatString="dd/MM/yyyy HH:mm" />
+                                            </TableCell>
+                                            <TableCell className="font-medium">{insp.manualId}</TableCell>
+                                            <TableCell>{insp.notes}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
