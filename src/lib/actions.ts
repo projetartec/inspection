@@ -1,8 +1,7 @@
 
-
 'use server';
 
-import type { Extinguisher, Hydrant, Client, Building } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, AbbreviatedInspectionSession } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
@@ -198,15 +197,21 @@ export async function deleteHoseAction(clientId: string, buildingId: string, uid
 }
 
 // --- Inspection Action ---
-export async function finalizeInspectionAction(session: InspectionSession) {
-    await finalizeInspectionData(session);
-
-    const { clientId, buildingId } = session;
-    revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
-    revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-    revalidatePath(`/clients/${clientId}`);
+export async function finalizeInspectionAction(session: AbbreviatedInspectionSession) {
+    try {
+        await finalizeInspectionData(session);
+    
+        const { cId: clientId, bId: buildingId } = session;
+        revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
+        revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
+        revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
+        revalidatePath(`/clients/${clientId}`);
+    } catch (error: any) {
+        console.error('Server Action Error: finalizeInspectionAction failed.', error);
+        throw new Error('Falha ao finalizar a inspeção no servidor. ' + error.message);
+    }
 }
+
 
 // --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {

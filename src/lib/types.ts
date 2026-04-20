@@ -91,3 +91,22 @@ export type Client = {
   buildings?: Omit<Building, 'clientId'>[]; // Legacy
   buildingOrder?: string[];
 };
+
+// Abbreviated types for optimizing Firestore payload
+export type AbbreviatedInspectedItem = {
+  uid: string;
+  id: string;
+  qv: string; // qrCodeValue
+  dt: string; // date
+  nt: string; // notes
+  s: 'OK' | 'N/C'; // status
+  is?: { [key: string]: 'OK' | 'N/C' }; // itemStatuses
+  ud?: Partial<any>; // updatedData
+};
+
+export type AbbreviatedInspectionSession = {
+  cId: string; // clientId
+  bId: string; // buildingId
+  st: string; // startTime
+  it: AbbreviatedInspectedItem[]; // inspectedItems
+};

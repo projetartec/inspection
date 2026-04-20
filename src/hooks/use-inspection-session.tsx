@@ -6,6 +6,7 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
 import { finalizeInspectionAction } from '@/lib/actions';
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
+import type { AbbreviatedInspectionSession } from '@/lib/types';
 
 export interface InspectedItem {
     uid: string; // The UID of the extinguisher or hose
@@ -117,8 +118,25 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
         
         setIsLoading(true);
         try {
-            // Call the new single, optimized server action
-            await finalizeInspectionAction(session);
+            // Transform the session object to its abbreviated form to reduce payload size
+            const abbreviatedSession: AbbreviatedInspectionSession = {
+                cId: session.clientId,
+                bId: session.buildingId,
+                st: session.startTime,
+                it: session.inspectedItems.map(item => ({
+                    uid: item.uid,
+                    id: item.id,
+                    qv: item.qrCodeValue,
+                    dt: item.date,
+                    nt: item.notes,
+                    s: item.status,
+                    is: item.itemStatuses,
+                    ud: item.updatedData,
+                })),
+            };
+
+            // Call the server action with the optimized payload
+            await finalizeInspectionAction(abbreviatedSession);
             
             // Clear the session on success
             updateSession(null);

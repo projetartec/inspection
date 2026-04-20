@@ -1,7 +1,7 @@
 
 'use server';
 
-import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, Inspection, AbbreviatedInspectionSession } from '@/lib/types';
 import { ClientFormValues, ExtinguisherFormValues, HydrantFormValues } from './schemas';
 import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { adminDb } from './firebase-admin'; 
@@ -318,98 +318,87 @@ export async function deleteHose(clientId: string, buildingId: string, uid: stri
     await docRef.delete();
 }
 
-export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
-    // This is more complex with subcollections and is a lower priority than fixing the main bug.
-    // A simple reorder isn't possible without adding an 'order' field to each document.
+export async function updateEquipmentOrder(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
+    // This is more complex with subcollections and is a lower priority.
     // For now, this function will be a no-op.
     console.log("Reordering in subcollections is not yet implemented.");
 }
 
-export async function finalizeInspection(session: InspectionSession) {
-    const { clientId, buildingId } = session;
+export async function finalizeInspection(session: AbbreviatedInspectionSession) {
+    const { cId: clientId, bId: buildingId } = session;
     const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
     
     await adminDb.runTransaction(async t => {
         const buildingDoc = await t.get(buildingRef);
         if (!buildingDoc.exists) throw new Error("Local não encontrado.");
 
-        const building = buildingFromDoc(buildingDoc);
-        const legacyExtinguishers = building.extinguishers || [];
-        const legacyHoses = building.hoses || [];
-
         const batch = adminDb.batch();
 
-        for (const item of session.inspectedItems) {
-            const isManualEntry = item.qrCodeValue.startsWith('manual:');
+        for (const item of session.it) {
+            const isManualEntry = item.qv.startsWith('manual:');
             if (isManualEntry) {
-                // Save manual entries to a separate subcollection on the building
                 const manualRef = buildingRef.collection('manualInspections').doc();
-                batch.set(manualRef, { ...item, date: new Date().toISOString() });
+                const manualInspectionData = {
+                    id: manualRef.id,
+                    manualId: item.id,
+                    date: item.dt,
+                    notes: item.nt,
+                    status: item.s,
+                    itemStatuses: item.is
+                };
+                batch.set(manualRef, manualInspectionData);
                 continue;
             }
 
-            const isExtinguisher = item.qrCodeValue.startsWith('fireguard-ext-');
+            const isExtinguisher = item.qv.startsWith('fireguard-ext-');
             const collectionName = isExtinguisher ? EXTINGUISHERS_SUBCOLLECTION : HOSES_SUBCOLLECTION;
             const equipRef = buildingRef.collection(collectionName).doc(item.uid);
 
-            const legacyList = isExtinguisher ? legacyExtinguishers : legacyHoses;
-            const legacyItemIndex = legacyList.findIndex(e => e.uid === item.uid);
-            
-            // If item is in legacy array, migrate it
-            if (legacyItemIndex > -1) {
-                const legacyItemData = legacyList[legacyItemIndex];
-                const newEquipData: any = { ...legacyItemData };
-                delete newEquipData.inspections; // Remove inspections array from main object
-
-                // Write the main equipment data to the new subcollection
-                batch.set(equipRef, newEquipData);
-
-                // Move old inspections to the new inspections subcollection
-                if (legacyItemData.inspections) {
-                    for (const oldInspection of legacyItemData.inspections) {
-                        const oldInspRef = equipRef.collection(INSPECTIONS_SUBCOLLECTION).doc(oldInspection.id);
-                        batch.set(oldInspRef, oldInspection);
-                    }
-                }
-            }
-
-            // Add the new inspection to the inspections subcollection
             const newInspRef = equipRef.collection(INSPECTIONS_SUBCOLLECTION).doc();
             const newInspection = {
                 id: newInspRef.id,
-                date: item.date,
-                notes: item.notes,
-                status: item.status,
-                itemStatuses: item.itemStatuses
+                date: item.dt,
+                notes: item.nt,
+                status: item.s,
+                itemStatuses: item.is,
             };
             batch.set(newInspRef, newInspection);
 
-            // Update the main equipment document with lastInspected and any data changes
-            const updatePayload: { [key: string]: any } = { lastInspected: item.date };
-            if (item.updatedData) {
-                Object.assign(updatePayload, item.updatedData);
+            const updatePayload: { [key: string]: any } = { lastInspected: item.dt };
+            if (item.ud) {
+                if (isExtinguisher) {
+                    const validatedUpdate: Partial<ExtinguisherFormValues> = {};
+                    const data = item.ud as Partial<ExtinguisherFormValues>;
+                    if (data.type && extinguisherTypes.includes(data.type)) validatedUpdate.type = data.type;
+                    if (data.weight !== undefined && extinguisherWeights.includes(Number(data.weight) as any)) validatedUpdate.weight = Number(data.weight);
+                    if (data.expiryDate !== undefined) validatedUpdate.expiryDate = data.expiryDate;
+                    if (data.hydrostaticTestYear !== undefined) validatedUpdate.hydrostaticTestYear = data.hydrostaticTestYear;
+                    Object.assign(updatePayload, validatedUpdate);
+                } else {
+                    const validatedUpdate: Partial<HydrantFormValues> = {};
+                    const data = item.ud as Partial<HydrantFormValues>;
+                    if (data.location) validatedUpdate.location = data.location;
+                    if (data.quantity !== undefined && hydrantQuantities.includes(Number(data.quantity) as any)) validatedUpdate.quantity = Number(data.quantity);
+                    if (data.hoseType && hydrantTypes.includes(data.hoseType)) validatedUpdate.hoseType = data.hoseType;
+                    if (data.diameter && hydrantDiameters.includes(data.diameter)) validatedUpdate.diameter = data.diameter;
+                    if (data.hoseLength !== undefined && hydrantHoseLengths.includes(Number(data.hoseLength) as any)) validatedUpdate.hoseLength = Number(data.hoseLength);
+                    if (data.keyQuantity !== undefined && hydrantKeyQuantities.includes(Number(data.keyQuantity) as any)) validatedUpdate.keyQuantity = Number(data.keyQuantity);
+                    if (data.nozzleQuantity !== undefined && hydrantNozzleQuantities.includes(Number(data.nozzleQuantity) as any)) validatedUpdate.nozzleQuantity = Number(data.nozzleQuantity);
+                    if (data.hydrostaticTestDate !== undefined) validatedUpdate.hydrostaticTestDate = data.hydrostaticTestDate;
+                    Object.assign(updatePayload, validatedUpdate);
+                }
             }
             batch.update(equipRef, updatePayload);
         }
 
+        batch.update(buildingRef, { lastInspected: new Date().toISOString() });
+
         await batch.commit();
-
-        // After the batch commit, if there were migrations, clean up the legacy arrays
-        if (legacyExtinguishers.length > 0 || legacyHoses.length > 0) {
-            const cleanupPayload: { [key: string]: any } = {};
-            if (legacyExtinguishers.length > 0) cleanupPayload.extinguishers = FieldValue.delete();
-            if (legacyHoses.length > 0) cleanupPayload.hoses = FieldValue.delete();
-            await buildingRef.update(cleanupPayload);
-        }
     });
-
-    // Update building's main lastInspected timestamp
-    await buildingRef.update({ lastInspected: new Date().toISOString() });
 }
 
 
 // --- Report Data Fetching Actions ---
-// These need to be updated to read from subcollections
 
 async function getFullBuildingData(clientId: string, buildingId: string): Promise<Building> {
     const building = (await getBuildingById(clientId, buildingId))!;
@@ -418,11 +407,11 @@ async function getFullBuildingData(clientId: string, buildingId: string): Promis
     
     // Fetch inspections for each equipment
     for (const ext of extinguishers) {
-        const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid).collection(INSPECTIONS_SUBCOLLECTION).get();
+        const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
         ext.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
     }
      for (const hose of hoses) {
-        const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(HOSES_SUBCOLLECTION).doc(hose.uid).collection(INSPECTIONS_SUBCOLLECTION).get();
+        const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(HOSES_SUBCOLLECTION).doc(hose.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
         hose.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
     }
 
@@ -444,6 +433,14 @@ export async function getClientReportDataAction(clientId: string) {
     
     return { client, buildings };
 }
+
+export async function getEquipmentForBuildings(clientId: string, buildingIds: string[]) {
+    const buildings = await Promise.all(buildingIds.map(bId => getFullBuildingData(clientId, bId)));
+    const extinguishers = buildings.flatMap(b => (b.extinguishers || []).map(e => ({ ...e, buildingName: b.name, buildingId: b.id })));
+    const hoses = buildings.flatMap(b => (b.hoses || []).map(h => ({ ...h, buildingName: b.name, buildingId: b.id })));
+    return { extinguishers, hoses };
+}
+
 
 export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
      const client = await getClientById(clientId);
