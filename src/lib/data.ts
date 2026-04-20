@@ -185,17 +185,37 @@ export async function updateBuilding(clientId: string, buildingId: string, updat
     if (buildingDoc.exists) {
         await buildingRef.update(updatedData);
     } else {
-        const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-        const clientSnap = await clientRef.get();
-        if (clientSnap.exists) {
-            const clientData = clientSnap.data() as Client;
-            const buildings = clientData.buildings || [];
-            const buildingIndex = buildings.findIndex(b => b.id === buildingId);
-            if (buildingIndex !== -1) {
-                buildings[buildingIndex] = { ...buildings[buildingIndex], ...updatedData };
-                await clientRef.update({ buildings });
-            }
-        }
+        // This is legacy logic. We should migrate instead of updating in place.
+        const client = await getClientById(clientId);
+        if (!client || !client.buildings) return;
+
+        const buildingToMigrate = client.buildings.find(b => b.id === buildingId);
+        if (!buildingToMigrate) return;
+        
+        const migratedBuilding = {
+            ...buildingToMigrate,
+            ...updatedData,
+            clientId: clientId,
+        };
+        delete migratedBuilding.extinguishers;
+        delete migratedBuilding.hoses;
+
+        const batch = adminDb.batch();
+        batch.set(buildingRef, migratedBuilding);
+        (buildingToMigrate.extinguishers || []).forEach(ext => {
+            const extRef = buildingRef.collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid);
+            batch.set(extRef, ext);
+        });
+        (buildingToMigrate.hoses || []).forEach(hose => {
+            const hoseRef = buildingRef.collection(HOSES_SUBCOLLECTION).doc(hose.uid);
+            batch.set(hoseRef, hose);
+        });
+        
+        // This is the risky part we avoid in finalizeInspection
+        // For a single building update, it's less likely to be over 1MB, but still a risk.
+        // The safest approach is to just write to the new location and let the read logic handle the merge.
+        // For now, let's just write to new location to avoid breaking user flow.
+        await buildingRef.set({ ...buildingToMigrate, ...updatedData, clientId }, { merge: true });
     }
 }
 
@@ -208,13 +228,18 @@ export async function deleteBuilding(clientId: string, buildingId: string) {
         
         const clientDoc = await t.get(clientRef);
         if (clientDoc.exists) {
-            const clientData = clientDoc.data() as Client;
-            let updatedBuildings = clientData.buildings?.filter(b => b.id !== buildingId) || [];
-            let updatedOrder = clientData.buildingOrder?.filter(id => id !== buildingId) || [];
-            t.update(clientRef, { 
-                buildings: updatedBuildings,
-                buildingOrder: updatedOrder
-            });
+            // This could fail if client doc is > 1MB.
+            try {
+                const clientData = clientDoc.data() as Client;
+                let updatedBuildings = clientData.buildings?.filter(b => b.id !== buildingId) || [];
+                let updatedOrder = clientData.buildingOrder?.filter(id => id !== buildingId) || [];
+                t.update(clientRef, { 
+                    buildings: updatedBuildings,
+                    buildingOrder: updatedOrder
+                });
+            } catch (error) {
+                console.warn(`Could not update client doc ${clientId} to remove legacy building ${buildingId}. It may be oversized. Manual cleanup may be needed.`);
+            }
         }
     });
 }
@@ -303,46 +328,23 @@ export async function updateExtinguisherData(clientId: string, buildingId: strin
         return { success: false, message: 'O ID já está em uso, altere!' };
     }
 
-    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-    const extinguisherRef = buildingRef.collection(EXTINGUISHERS_SUBCOLLECTION).doc(uid);
-    
+    const currentExtinguisher = await getExtinguisherByUid(clientId, buildingId, uid);
+    if (!currentExtinguisher) {
+        return { success: false, message: 'Extintor não encontrado.' };
+    }
+
+    const finalData = { ...currentExtinguisher, ...updatedData };
+    const extinguisherRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(EXTINGUISHERS_SUBCOLLECTION).doc(uid);
+
     try {
-        await adminDb.runTransaction(async (transaction) => {
-            const extinguisherSnap = await transaction.get(extinguisherRef);
-            
-            if (extinguisherSnap.exists) {
-                transaction.update(extinguisherRef, updatedData);
-                return;
-            }
-
-            const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-            const clientDoc = await transaction.get(clientRef);
-            if (!clientDoc.exists) throw new Error("Cliente não encontrado.");
-            
-            const clientData = clientDoc.data() as Client;
-            const buildings = [...(clientData.buildings || [])];
-            const buildingIndex = buildings.findIndex(b => b.id === buildingId);
-            if (buildingIndex === -1) throw new Error("Prédio não encontrado na estrutura antiga.");
-
-            const building = buildings[buildingIndex];
-            const extIndex = building.extinguishers?.findIndex(e => e.uid === uid) ?? -1;
-            if (extIndex === -1) throw new Error("Extintor não encontrado na estrutura antiga.");
-
-            const extinguisherToMigrate = building.extinguishers![extIndex];
-            const migratedData = { ...extinguisherToMigrate, ...updatedData };
-            
-            building.extinguishers!.splice(extIndex, 1);
-            buildings[buildingIndex] = building;
-
-            transaction.set(extinguisherRef, migratedData);
-            transaction.update(clientRef, { buildings: buildings });
-        });
+        await extinguisherRef.set(finalData, { merge: true });
         return { success: true };
     } catch (error: any) {
-        console.error("Erro na transação de atualização de extintor:", error);
+        console.error("Erro ao atualizar extintor:", error);
         return { success: false, message: error.message || 'Falha ao atualizar o equipamento.' };
     }
 }
+
 
 export async function deleteExtinguisher(clientId: string, buildingId: string, uid: string) {
     const docRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(EXTINGUISHERS_SUBCOLLECTION).doc(uid);
@@ -370,43 +372,19 @@ export async function updateHoseData(clientId: string, buildingId: string, uid: 
         return { success: false, message: 'O ID já está em uso, altere!' };
     }
 
-    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-    const hoseRef = buildingRef.collection(HOSES_SUBCOLLECTION).doc(uid);
+    const currentHose = await getHoseByUid(clientId, buildingId, uid);
+    if (!currentHose) {
+        return { success: false, message: 'Hidrante não encontrado.' };
+    }
+
+    const finalData = { ...currentHose, ...updatedData };
+    const hoseRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId).collection(HOSES_SUBCOLLECTION).doc(uid);
 
     try {
-        await adminDb.runTransaction(async (transaction) => {
-            const hoseSnap = await transaction.get(hoseRef);
-            
-            if (hoseSnap.exists) {
-                transaction.update(hoseRef, updatedData);
-                return;
-            }
-
-            const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-            const clientDoc = await transaction.get(clientRef);
-            if (!clientDoc.exists) throw new Error("Cliente não encontrado.");
-            
-            const clientData = clientDoc.data() as Client;
-            const buildings = [...(clientData.buildings || [])];
-            const buildingIndex = buildings.findIndex(b => b.id === buildingId);
-            if (buildingIndex === -1) throw new Error("Prédio não encontrado na estrutura antiga.");
-            
-            const building = buildings[buildingIndex];
-            const hoseIndex = building.hoses?.findIndex(h => h.uid === uid) ?? -1;
-            if (hoseIndex === -1) throw new Error("Hidrante não encontrado na estrutura antiga.");
-            
-            const hoseToMigrate = building.hoses![hoseIndex];
-            const migratedData = { ...hoseToMigrate, ...updatedData };
-            
-            building.hoses!.splice(hoseIndex, 1);
-            buildings[buildingIndex] = building;
-
-            transaction.set(hoseRef, migratedData);
-            transaction.update(clientRef, { buildings: buildings });
-        });
+        await hoseRef.set(finalData, { merge: true });
         return { success: true };
     } catch (error: any) {
-        console.error("Erro na transação de atualização de hidrante:", error);
+        console.error("Erro ao atualizar hidrante:", error);
         return { success: false, message: error.message || 'Falha ao atualizar o equipamento.' };
     }
 }
@@ -423,35 +401,35 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
 
 export async function finalizeInspection(session: AbbreviatedInspectionSession) {
     const { cId: clientId, bId: buildingId } = session;
-    const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
-    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
 
     try {
+        // Fetch legacy client data outside the transaction for migration purposes.
+        const client = await getClientById(clientId);
+        if (!client) {
+            throw new Error(`Cliente com ID ${clientId} não encontrado.`);
+        }
+        const buildingDataFromLegacy = (client.buildings || []).find(b => b.id === buildingId);
+
         await adminDb.runTransaction(async (t) => {
-            const clientDoc = await t.get(clientRef);
-            const buildingDoc = await t.get(buildingRef);
+            const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
+            let buildingDoc = await t.get(buildingRef);
 
-            let buildingDataFromLegacy: Omit<Building, 'clientId'> | undefined;
-
+            // Step 1: Ensure the building document exists in the new collection (MIGRATE if needed)
             if (!buildingDoc.exists) {
-                if (!clientDoc.exists) throw new Error("Cliente não encontrado durante a transação.");
-                const clientData = clientDoc.data() as Client;
-                buildingDataFromLegacy = (clientData.buildings || []).find(b => b.id === buildingId);
-
                 if (!buildingDataFromLegacy) {
-                    throw new Error(`Prédio legado com ID ${buildingId} não encontrado no cliente ${clientId}.`);
+                    throw new Error(`Prédio legado com ID ${buildingId} não foi encontrado nos dados do cliente ${clientId}.`);
                 }
-
                 const newBuildingPayload: Partial<Building> = { ...buildingDataFromLegacy, clientId: clientId };
                 delete newBuildingPayload.extinguishers;
                 delete newBuildingPayload.hoses;
-
                 t.set(buildingRef, newBuildingPayload);
             }
 
+            // Step 2: Process each inspected item
             for (const item of session.it) {
                 if (item.uid === 'manual') {
-                    t.update(buildingRef, { 
+                    // Handle manual entries by updating the building doc
+                    t.update(buildingRef, {
                         manualInspections: FieldValue.arrayUnion({
                             id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                             manualId: item.id,
@@ -464,41 +442,42 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
                     continue;
                 }
 
+                // Handle regular equipment
                 const isExtinguisher = item.qv.startsWith('fireguard-ext-');
                 const collectionName = isExtinguisher ? EXTINGUISHERS_SUBCOLLECTION : HOSES_SUBCOLLECTION;
                 const equipRef = buildingRef.collection(collectionName).doc(item.uid);
+                
+                let equipDoc = await t.get(equipRef);
+                
+                // Migrate equipment if it doesn't exist in the subcollection
+                if (!equipDoc.exists && buildingDataFromLegacy) {
+                    const legacyArray = isExtinguisher ? buildingDataFromLegacy.extinguishers : buildingDataFromLegacy.hoses;
+                    const legacyEquipData = (legacyArray || []).find((e: any) => e.uid === item.uid);
+                    if (legacyEquipData) {
+                        t.set(equipRef, legacyEquipData);
+                    }
+                }
+                
+                // Prepare update payload for the equipment
+                const updatePayload: { [key: string]: any } = { lastInspected: item.dt, ...(item.ud || {}) };
 
+                // Apply updates to the equipment document
+                t.set(equipRef, updatePayload, { merge: true });
+
+                // Add the new inspection to the sub-subcollection
                 const newInspRef = equipRef.collection(INSPECTIONS_SUBCOLLECTION).doc();
                 t.set(newInspRef, {
                     id: newInspRef.id, date: item.dt, notes: item.nt, status: item.s, itemStatuses: item.is
                 });
-
-                const updatePayload: { [key: string]: any } = { lastInspected: item.dt };
-                if (item.ud) { Object.assign(updatePayload, item.ud); }
-
-                const equipDoc = await t.get(equipRef);
-                if (!equipDoc.exists && buildingDataFromLegacy) {
-                    const legacyArray = isExtinguisher ? buildingDataFromLegacy.extinguishers : buildingDataFromLegacy.hoses;
-                    const legacyEquipData = (legacyArray || []).find((e: any) => e.uid === item.uid);
-                    
-                    if (legacyEquipData) {
-                        t.set(equipRef, { ...legacyEquipData, ...updatePayload });
-                    } else {
-                        t.set(equipRef, updatePayload);
-                    }
-                } else {
-                    t.update(equipRef, updatePayload);
-                }
             }
 
-            if (buildingDataFromLegacy && clientDoc.exists) {
-                const originalBuildings = (clientDoc.data() as Client).buildings || [];
-                const updatedBuildings = originalBuildings.filter(b => b.id !== buildingId);
-                t.update(clientRef, { buildings: updatedBuildings });
-            }
-
+            // Step 3: Update the building's last inspected timestamp
             t.update(buildingRef, { lastInspected: new Date().toISOString() });
+            
+            // CRITICAL: We no longer try to update the client document, avoiding the 1MB limit error.
+            // The old data in client.buildings will be ignored by the read logic.
         });
+        
     } catch (error) {
         console.error("Erro na transação ao finalizar inspeção:", error);
         throw new Error('Falha ao finalizar inspeção. ' + (error instanceof Error ? error.message : String(error)));
