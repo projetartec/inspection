@@ -399,32 +399,72 @@ export async function finalizeInspection(session: InspectionSession) {
             }
 
             if (originalItem && equipmentIndex !== -1) {
-                const combinedData = { ...originalItem, ...item.updatedData };
-                
-                let validatedData = {};
-                try {
+                const updatedItem = { ...originalItem };
+
+                if (item.updatedData) {
                     if (isExtinguisher) {
-                        validatedData = ExtinguisherFormSchema.parse(combinedData);
+                        const updates = item.updatedData as Partial<Extinguisher>;
+                        if (updates.type && extinguisherTypes.includes(updates.type)) {
+                            (updatedItem as Extinguisher).type = updates.type;
+                        }
+                        if (updates.weight) {
+                            const newWeight = Number(updates.weight);
+                            if (extinguisherWeights.includes(newWeight as any)) {
+                                (updatedItem as Extinguisher).weight = newWeight;
+                            }
+                        }
+                        if (updates.hydrostaticTestYear) {
+                            const year = Number(updates.hydrostaticTestYear);
+                            if (!isNaN(year) && year > 1900 && year < 2100) {
+                                (updatedItem as Extinguisher).hydrostaticTestYear = String(year);
+                            }
+                        }
+                        if (updates.expiryDate !== undefined) {
+                            (updatedItem as Extinguisher).expiryDate = updates.expiryDate;
+                        }
                     } else if (isHose) {
-                        validatedData = HydrantFormSchema.parse(combinedData);
+                        const updates = item.updatedData as Partial<Hydrant>;
+                        if (updates.location) { (updatedItem as Hydrant).location = updates.location; }
+                        if (updates.quantity) {
+                            const newQuantity = Number(updates.quantity);
+                            if (hydrantQuantities.includes(newQuantity as any)) {
+                                (updatedItem as Hydrant).quantity = newQuantity;
+                            }
+                        }
+                        if (updates.hoseType && hydrantTypes.includes(updates.hoseType)) {
+                            (updatedItem as Hydrant).hoseType = updates.hoseType;
+                        }
+                        if (updates.diameter && hydrantDiameters.includes(updates.diameter)) {
+                            (updatedItem as Hydrant).diameter = updates.diameter;
+                        }
+                        if (updates.hoseLength) {
+                            const newLength = Number(updates.hoseLength);
+                            if (hydrantHoseLengths.includes(newLength as any)) {
+                                (updatedItem as Hydrant).hoseLength = newLength;
+                            }
+                        }
+                        if (updates.keyQuantity !== undefined) {
+                            const newKeyQuantity = Number(updates.keyQuantity);
+                            if (hydrantKeyQuantities.includes(newKeyQuantity as any)) {
+                                (updatedItem as Hydrant).keyQuantity = newKeyQuantity;
+                            }
+                        }
+                        if (updates.nozzleQuantity !== undefined) {
+                            const newNozzleQuantity = Number(updates.nozzleQuantity);
+                            if (hydrantNozzleQuantities.includes(newNozzleQuantity as any)) {
+                                (updatedItem as Hydrant).nozzleQuantity = newNozzleQuantity;
+                            }
+                        }
+                        if (updates.hydrostaticTestDate !== undefined) {
+                            (updatedItem as Hydrant).hydrostaticTestDate = updates.hydrostaticTestDate;
+                        }
                     }
-                } catch (e) {
-                    console.error("Validation failed during inspection finalization", e);
-                    // If validation fails, we should not proceed with updating this item
-                    // to prevent data corruption. But we should continue with other items.
-                    // For now, let's just log and continue, effectively skipping the update for the invalid item.
-                    continue; 
                 }
 
-                
-                const combinedItem = { 
-                    ...originalItem, 
-                    ...validatedData,
-                    inspections: [...(originalItem.inspections || []), newInspection],
-                    lastInspected: item.date,
-                };
+                updatedItem.inspections = [...(originalItem.inspections || []), newInspection];
+                updatedItem.lastInspected = item.date;
 
-                (equipmentArray as any[])[equipmentIndex] = combinedItem;
+                (equipmentArray as any[])[equipmentIndex] = updatedItem;
 
             } else if (item.qrCodeValue.startsWith('manual:')) {
                  if (!building.manualInspections) building.manualInspections = [];
