@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, ManualInspection, Inspection } from '@/lib/types';
@@ -20,9 +21,16 @@ import {
     deleteHose as deleteHoseData,
     saveInspectedItem,
     updateEquipmentOrder,
-    getBackupData,
-    restoreBackup,
+    getBackupData as getBackupDataFromDb,
+    restoreBackup as restoreBackupToDb,
     getLatestInspectionForEquipment,
+    getReportData,
+    getClientReportData,
+    getExpiryReportData,
+    getHosesReportData,
+    getExtinguishersReportData,
+    getDescriptiveReportData,
+    getNonConformityReportData
 } from './data';
 import { getClientById, getBuildingsByClient, getEquipmentForBuildings } from './data';
 
@@ -224,118 +232,31 @@ export async function getLatestInspectionAction(buildingId: string, equipmentTyp
 
 // --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
-    const client = await getClientById(clientId);
-    const building = await getBuildingById(clientId, buildingId); // Corrected function name
-    if (!client || !building) {
-         return { client: null, building: null, extinguishers: [], hoses: [] };
-    }
-
-    const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
-    const hoses = await getHosesByBuilding(clientId, buildingId);
-
-    return { client, building: {...building, extinguishers, hoses}, extinguishers, hoses };
+    return await getReportData(clientId, buildingId);
 }
 
 export async function getClientReportDataAction(clientId: string) {
-    const client = await getClientById(clientId);
-    if (!client) return { client: null, buildings: [] };
-
-    const buildings = await getBuildingsByClient(clientId);
-
-    return { client, buildings };
+    return await getClientReportData(clientId);
 }
 
 export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
-    const client = await getClientById(clientId);
-    let buildings: Building[] = [];
-
-    if (buildingId) {
-        const building = await getBuildingById(clientId, buildingId);
-        if (building) buildings.push(building);
-    } else {
-        buildings = await getBuildingsByClient(clientId);
-    }
-     const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
-        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
-        const hoses = await getHosesByBuilding(clientId, b.id);
-        return { ...b, extinguishers, hoses };
-    }));
-
-
-    return { client, buildings: buildingsWithEquipment };
+    return await getExpiryReportData(clientId, buildingId, month, year);
 }
 
 export async function getHosesReportDataAction(clientId: string) {
-    return getClientReportDataAction(clientId);
+    return await getHosesReportData(clientId);
 }
 
 export async function getExtinguishersReportDataAction(clientId: string) {
-    return getClientReportDataAction(clientId);
+    return await getExtinguishersReportData(clientId);
 }
 
 export async function getDescriptiveReportDataAction(clientId: string, buildingId?: string) {
-    const client = await getClientById(clientId);
-    let buildings: Building[] = [];
-
-    if (buildingId) {
-        const building = await getBuildingById(clientId, buildingId);
-        if(building) buildings.push(building);
-    } else {
-        buildings = await getBuildingsByClient(clientId);
-    }
-     const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
-        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
-        const hoses = await getHosesByBuilding(clientId, b.id);
-        return { ...b, extinguishers, hoses };
-    }));
-    
-    return { client, buildings: buildingsWithEquipment };
+    return await getDescriptiveReportData(clientId, buildingId);
 }
 
 export async function getNonConformityReportDataAction(clientId: string, buildingId?: string) {
-    const client = await getClientById(clientId);
-    let buildingsData: Building[] = [];
-
-    if (buildingId) {
-        const b = await getBuildingById(clientId, buildingId);
-        if(b) buildingsData.push(b);
-    } else {
-        buildingsData = await getBuildingsByClient(clientId);
-    }
-    
-    const buildingsWithEquipment = await Promise.all(buildingsData.map(async (b) => {
-        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
-        const hoses = await getHosesByBuilding(clientId, b.id);
-        
-        for (const ext of extinguishers) {
-            const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(b.id).collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
-            ext.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
-        }
-        for (const hose of hoses) {
-            const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(b.id).collection(HOSES_SUBCOLLECTION).doc(hose.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
-            hose.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
-        }
-
-        return { ...b, extinguishers, hoses };
-    }));
-
-    const buildingsWithNC = buildingsWithEquipment.map(b => {
-        const ncExtinguishers = (b.extinguishers || []).filter(e => {
-            if (!e.inspections || e.inspections.length === 0) return false;
-            const lastInspection = e.inspections.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-            return lastInspection.status === 'N/C';
-        });
-
-        const ncHoses = (b.hoses || []).filter(h => {
-             if (!h.inspections || h.inspections.length === 0) return false;
-            const lastInspection = h.inspections.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-            return lastInspection.status === 'N/C';
-        });
-        
-        return { ...b, extinguishers: ncExtinguishers, hoses: ncHoses };
-    }).filter(b => (b.extinguishers?.length || 0) > 0 || (b.hoses?.length || 0) > 0);
-
-    return { client, buildings: buildingsWithNC };
+    return await getNonConformityReportData(clientId, buildingId);
 }
 
 // --- Reorder Action ---
@@ -346,14 +267,14 @@ export async function updateEquipmentOrderAction(clientId: string, buildingId: s
 
 // --- Backup Actions ---
 export async function getBackupDataAction(clientId?: string, buildingId?: string) {
-    const backupData = await getBackupData(clientId, buildingId);
+    const backupData = await getBackupDataFromDb(clientId, buildingId);
     return JSON.stringify(backupData, null, 2);
 }
 
 export async function restoreBackupAction(backupContent: string) {
     try {
         const data = JSON.parse(backupContent);
-        await restoreBackup(data);
+        await restoreBackupToDb(data);
         revalidatePath('/', 'layout'); // Revalidate everything
     } catch (error: any) {
         console.error("Restore backup failed:", error);

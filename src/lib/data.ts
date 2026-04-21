@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -458,7 +459,7 @@ async function getFullBuildingData(clientId: string, buildingId: string): Promis
     return { ...building, extinguishers, hoses };
 }
 
-export async function getReportDataAction(clientId: string, buildingId: string) {
+export async function getReportData(clientId: string, buildingId: string) {
     const client = await getClientById(clientId);
     const building = await getBuildingById(clientId, buildingId);
     if (!client || !building) {
@@ -470,7 +471,7 @@ export async function getReportDataAction(clientId: string, buildingId: string) 
     return { client, building: {...building, extinguishers, hoses}, extinguishers, hoses };
 }
 
-export async function getClientReportDataAction(clientId: string) {
+export async function getClientReportData(clientId: string) {
     const client = await getClientById(clientId);
     if (!client) return { client: null, buildings: [] };
 
@@ -487,7 +488,7 @@ export async function getEquipmentForBuildings(clientId: string, buildingIds: st
     return { extinguishers, hoses };
 }
 
-export async function getExpiryReportDataAction(clientId: string, buildingId: string | undefined, month: number, year: number) {
+export async function getExpiryReportData(clientId: string, buildingId: string | undefined, month: number, year: number) {
      const client = await getClientById(clientId);
     if (!client) return { client: null, buildings: [] };
     
@@ -508,15 +509,15 @@ export async function getExpiryReportDataAction(clientId: string, buildingId: st
     return { client, buildings };
 }
 
-export async function getHosesReportDataAction(clientId: string) {
-    return getClientReportDataAction(clientId);
+export async function getHosesReportData(clientId: string) {
+    return getClientReportData(clientId);
 }
 
-export async function getExtinguishersReportDataAction(clientId: string) {
-    return getClientReportDataAction(clientId);
+export async function getExtinguishersReportData(clientId: string) {
+    return getClientReportData(clientId);
 }
 
-export async function getDescriptiveReportDataAction(clientId: string, buildingId?: string) {
+export async function getDescriptiveReportData(clientId: string, buildingId?: string) {
     const client = await getClientById(clientId);
     let buildings: Building[] = [];
 
@@ -535,7 +536,7 @@ export async function getDescriptiveReportDataAction(clientId: string, buildingI
     return { client, buildings: buildingsWithEquipment };
 }
 
-export async function getNonConformityReportDataAction(clientId: string, buildingId?: string) {
+export async function getNonConformityReportData(clientId: string, buildingId?: string) {
     const client = await getClientById(clientId);
     let buildingsData: Building[] = [];
 
