@@ -44,7 +44,7 @@ export function ThemeToggle() {
                 <Monitor className="mr-2" />
                 <span>Sistema</span>
             </DropdownMenuItem>
-            <BackupManager isGlobal={true} />
+            <BackupManager displayMode="global" />
         </DropdownMenuContent>
         </DropdownMenu>
     </div>

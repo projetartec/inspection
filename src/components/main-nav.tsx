@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2, FileSearch, LogOut } from "lucide-react";
+import { LayoutDashboard, Flame, Droplets, Users, ChevronLeft, Flag, Loader2, FileSearch, LogOut, DatabaseBackup } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import {
   SidebarHeader,
@@ -143,7 +143,7 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
                   )}
               </SidebarContent>
                <SidebarFooter className="gap-2">
-                 <BackupManager clientId={clientId} />
+                 <BackupManager clientId={clientId} displayMode="client" />
                  <ClientReportGenerator clientId={clientId} />
                  <form action={logout}>
                     <Button variant="outline" className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0">
@@ -226,6 +226,7 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
               <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
             </Button>
         )}
+        {buildingId && <BackupManager clientId={clientId} buildingId={buildingId} displayMode="building" />}
         {buildingId && <ReportGenerator clientId={clientId} buildingId={buildingId} />}
          <form action={logout}>
             <Button variant="outline" className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0">

@@ -7,7 +7,12 @@ import { useToast } from '@/hooks/use-toast';
 import { getBackupDataAction, restoreBackupAction } from '@/lib/actions';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Download, Upload, Loader2 } from 'lucide-react';
+import { Download, Upload, Loader2, DatabaseBackup, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,27 +27,35 @@ import {
 
 interface BackupManagerProps {
   clientId?: string;
-  isGlobal?: boolean;
+  buildingId?: string;
+  displayMode: 'global' | 'client' | 'building';
 }
 
-export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps) {
+export function BackupManager({ clientId, buildingId, displayMode }: BackupManagerProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const router = useRouter();
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const backupData = await getBackupDataAction(clientId);
+      const backupData = await getBackupDataAction(clientId, buildingId);
       const blob = new Blob([backupData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
 
-      const clientName = isGlobal ? 'GERAL' : clientId || 'cliente';
       const date = new Date().toISOString().split('T')[0];
-      a.download = `backup_${clientName}_${date}.json`;
+      let filename = `backup_${date}.json`;
+      if (displayMode === 'building' && buildingId) {
+        filename = `backup_predio_${buildingId}_${date}.json`;
+      } else if (displayMode === 'client' && clientId) {
+        filename = `backup_cliente_${clientId}_${date}.json`;
+      } else if (displayMode === 'global') {
+        filename = `backup_GERAL_${date}.json`;
+      }
+
+      a.download = filename;
       a.href = url;
       document.body.appendChild(a);
       a.click();
@@ -88,7 +101,6 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
           title: 'Importação Concluída',
           description: 'Os dados do backup foram carregados. A página será atualizada em instantes.',
         });
-        // Reload after a short delay to allow toast to show and data to propagate.
         setTimeout(() => window.location.reload(), 2000);
       } catch (error: any) {
         console.error('Import failed:', error);
@@ -103,7 +115,6 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
     };
     reader.readAsText(file);
 
-    // Reset file input
     if(fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -113,23 +124,22 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
     fileInputRef.current?.click();
   };
 
-  const exportLabel = isGlobal ? 'Exportar Backup Geral' : 'Exportar Backup do Cliente';
-  const importLabel = 'Carregar Backup';
+  const isLoading = isExporting || isImporting;
 
-  if(isGlobal) {
+  if(displayMode === 'global') {
     return (
         <>
             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".json" className="hidden" />
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleExport(); }} disabled={isExporting}>
                 {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                <span>{exportLabel}</span>
+                <span>Exportar Backup Geral</span>
             </DropdownMenuItem>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isImporting}>
                         {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        <span>{importLabel}</span>
+                        <span>Carregar Backup</span>
                     </DropdownMenuItem>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -149,7 +159,58 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
     );
   }
 
-  // For Client Sidebar (not dropdown items)
+  if (displayMode === 'building') {
+      return (
+        <div className="space-y-2">
+            <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".json" className="hidden" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                  <Button
+                      disabled={isLoading}
+                      className="justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
+                      variant='outline'
+                  >
+                      {isLoading ? (
+                          <Loader2 className="animate-spin h-4 w-4" />
+                      ) : (
+                          <DatabaseBackup className="h-4 w-4" />
+                      )}
+                      <span className="group-data-[collapsible=icon]:hidden ml-2">Backup</span>
+                      <ChevronDown className="h-4 w-4 ml-auto group-data-[collapsible=icon]:hidden" />
+                  </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onSelect={handleExport} disabled={isExporting}>
+                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    <span>Exportar Backup do Prédio</span>
+                </DropdownMenuItem>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isImporting}>
+                            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            <span>Carregar Backup</span>
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação irá carregar os dados do arquivo de backup. Dados existentes com o mesmo ID serão atualizados e novos dados serão adicionados. Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={triggerFileSelect}>Continuar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+  }
+
+  // displayMode === 'client'
   return (
     <div className="space-y-2">
         <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".json" className="hidden" />
@@ -160,7 +221,7 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
             disabled={isExporting}
         >
             {isExporting ? <Loader2 className="animate-spin" /> : <Download />}
-            <span className="group-data-[collapsible=icon]:hidden ml-2">{exportLabel}</span>
+            <span className="group-data-[collapsible=icon]:hidden ml-2">Exportar Backup do Cliente</span>
         </Button>
          <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -170,7 +231,7 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
                     disabled={isImporting}
                 >
                     {isImporting ? <Loader2 className="animate-spin" /> : <Upload />}
-                    <span className="group-data-[collapsible=icon]:hidden ml-2">{importLabel}</span>
+                    <span className="group-data-[collapsible=icon]:hidden ml-2">Carregar Backup</span>
                 </Button>
             </AlertDialogTrigger>
              <AlertDialogContent>

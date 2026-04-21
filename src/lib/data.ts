@@ -454,7 +454,7 @@ async function getFullBuildingData(clientId: string, buildingId: string): Promis
 
 export async function getReportDataAction(clientId: string, buildingId: string) {
     const client = await getClientById(clientId);
-    const building = await getFullBuildingData(clientId, buildingId);
+    const building = await getBuildingData(clientId, buildingId);
     return { client, building, extinguishers: building.extinguishers, hoses: building.hoses };
 }
 
@@ -557,7 +557,21 @@ async function getFullClientData(clientId: string): Promise<Client & { buildings
     return { ...clientData, buildings };
 }
 
-export async function getBackupData(clientId?: string) {
+export async function getBackupData(clientId?: string, buildingId?: string) {
+    if (clientId && buildingId) {
+        const client = await getClientById(clientId);
+        if (!client) throw new Error(`Cliente com ID ${clientId} não encontrado.`);
+        const buildingData = await getFullBuildingData(clientId, buildingId);
+        const { buildings: legacyBuildings, ...clientDataWithoutBuildings } = client;
+        return {
+            clients: [
+                {
+                    ...clientDataWithoutBuildings,
+                    buildings: [buildingData]
+                }
+            ]
+        };
+    }
     if (clientId) {
         const clientData = await getFullClientData(clientId);
         return { clients: [clientData] };

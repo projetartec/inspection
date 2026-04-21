@@ -285,31 +285,30 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
     let buildingsData: Building[] = [];
 
     if (buildingId) {
-        const building = await getBuildingData(clientId, buildingId);
-        if(building) buildingsData.push(building);
+        buildingsData.push(await getBuildingData(clientId, buildingId));
     } else {
-        buildingsData = await getBuildingsByClient(clientId);
+        const buildingStubs = await getBuildingsByClient(clientId);
+        buildingsData = await Promise.all(buildingStubs.map(b => getBuildingData(clientId, b.id)));
     }
 
     const buildingsWithNC = buildingsData.map(b => {
         const ncExtinguishers = (b.extinguishers || []).filter(e => {
             if (!e.inspections || e.inspections.length === 0) return false;
-            const lastInspection = e.inspections[e.inspections.length - 1];
+            const lastInspection = e.inspections.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
             return lastInspection.status === 'N/C';
         });
 
         const ncHoses = (b.hoses || []).filter(h => {
              if (!h.inspections || h.inspections.length === 0) return false;
-            const lastInspection = h.inspections[h.inspections.length - 1];
+            const lastInspection = h.inspections.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
             return lastInspection.status === 'N/C';
         });
         
         return { ...b, extinguishers: ncExtinguishers, hoses: ncHoses };
-    }).filter(b => b.extinguishers.length > 0 || b.hoses.length > 0);
+    }).filter(b => (b.extinguishers?.length || 0) > 0 || (b.hoses?.length || 0) > 0);
 
     return { client, buildings: buildingsWithNC };
 }
-
 
 // --- Reorder Action ---
 export async function updateEquipmentOrderAction(clientId: string, buildingId: string, equipmentType: 'extinguishers' | 'hoses', orderedItems: (Extinguisher | Hydrant)[]) {
@@ -318,8 +317,8 @@ export async function updateEquipmentOrderAction(clientId: string, buildingId: s
 }
 
 // --- Backup Actions ---
-export async function getBackupDataAction(clientId?: string) {
-    const backupData = await getBackupData(clientId);
+export async function getBackupDataAction(clientId?: string, buildingId?: string) {
+    const backupData = await getBackupData(clientId, buildingId);
     return JSON.stringify(backupData, null, 2);
 }
 
