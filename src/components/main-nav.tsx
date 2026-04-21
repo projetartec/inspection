@@ -41,19 +41,18 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
     if (!session) return;
     setIsSubmitting(true);
     try {
-        await endInspection();
+        endInspection(); // This now only clears the local session
         toast({
-            title: 'Inspeção Finalizada',
-            description: 'A sessão de inspeção foi salva com sucesso.',
+            title: 'Sessão Encerrada',
+            description: 'Você pode iniciar uma nova inspeção a qualquer momento.',
         });
         router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
-        router.refresh();
     } catch (error: any) {
         console.error(error);
         toast({
             variant: 'destructive',
-            title: 'Erro ao Salvar',
-            description: error.message || 'Não foi possível salvar a sessão de inspeção.',
+            title: 'Erro',
+            description: error.message || 'Não foi possível encerrar a sessão.',
         });
     } finally {
         setIsSubmitting(false);

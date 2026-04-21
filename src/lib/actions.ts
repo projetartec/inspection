@@ -1,10 +1,10 @@
 
 'use server';
 
-import type { Extinguisher, Hydrant, Client, Building, AbbreviatedInspectionSession } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
-import type { InspectedItem, InspectionSession } from '@/hooks/use-inspection-session.tsx';
+import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
 import {
     addClient as addClientData,
     updateClient as updateClientData,
@@ -19,7 +19,7 @@ import {
     addHose as addHoseData,
     updateHoseData,
     deleteHose as deleteHoseData,
-    finalizeInspection as finalizeInspectionData,
+    saveInspectedItem,
     updateEquipmentOrder,
     getBackupData,
     restoreBackup,
@@ -196,18 +196,17 @@ export async function deleteHoseAction(clientId: string, buildingId: string, uid
 }
 
 // --- Inspection Action ---
-export async function finalizeInspectionAction(session: AbbreviatedInspectionSession) {
+export async function saveInspectedItemAction(clientId: string, buildingId: string, item: InspectedItem) {
     try {
-        await finalizeInspectionData(session);
-    
-        const { cId: clientId, bId: buildingId } = session;
+        await saveInspectedItem(clientId, buildingId, item);
         revalidatePath(`/clients/${clientId}/${buildingId}/dashboard`);
         revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers`);
         revalidatePath(`/clients/${clientId}/${buildingId}/hoses`);
-        revalidatePath(`/clients/${clientId}`);
+        revalidatePath(`/clients/${clientId}/${buildingId}/extinguishers/${item.uid}`);
+        revalidatePath(`/clients/${clientId}/${buildingId}/hoses/${item.uid}`);
     } catch (error: any) {
-        console.error('Server Action Error: finalizeInspectionAction failed.', error);
-        throw new Error('Falha ao finalizar a inspeção no servidor. ' + error.message);
+        console.error('Server Action Error: saveInspectedItemAction failed.', error);
+        throw new Error('Falha ao salvar a inspeção do item. ' + error.message);
     }
 }
 

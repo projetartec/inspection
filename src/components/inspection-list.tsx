@@ -1,6 +1,4 @@
 
-
-
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { CheckCircle2, Loader2, Edit, ChevronDown, Check } from 'lucide-react';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session';
+import { saveInspectedItemAction } from '@/lib/actions';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { extinguisherTypes, extinguisherWeights, hydrantDiameters, hydrantHoseLengths, hydrantTypes, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -63,24 +62,15 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
   const [editableHoseTestDate, setEditableHoseTestDate] = useState<string | undefined>();
 
 
-  const { session, addItemToInspection } = useInspectionSession();
+  const { session } = useInspectionSession();
   const { toast } = useToast();
 
   const handleOpenDialog = (item: Item) => {
     setSelectedItem(item);
     
-    // Check if there's a pending inspection for this item in the current session
-    const pendingInspection = session?.inspectedItems.find(i => i.qrCodeValue === item.qrCodeValue);
-    
-    if (pendingInspection) {
-        setNotes(pendingInspection.notes || '');
-        setItemStatuses(pendingInspection.itemStatuses || {});
-    } else {
-        // Otherwise, use the last saved inspection data
-        const lastInspection = item.inspections?.[item.inspections.length - 1];
-        setNotes(lastInspection?.notes || '');
-        setItemStatuses(lastInspection?.itemStatuses || {});
-    }
+    const lastInspection = item.inspections?.[item.inspections.length - 1];
+    setNotes(lastInspection?.notes || '');
+    setItemStatuses(lastInspection?.itemStatuses || {});
 
     setIsDataAccordionOpen(false); // Reset accordion state
 
@@ -118,8 +108,8 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
     setItemStatuses(allOkStatuses);
   };
 
-  const handleLogInspection = () => {
-    if (!selectedItem) return;
+  const handleLogInspection = async () => {
+    if (!selectedItem || !session) return;
 
     setIsSubmitting(true);
     
@@ -139,13 +129,7 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
 
     const overallStatus = hasNC ? 'N/C' : 'OK';
 
-    const newInspection: Inspection = {
-        id: `insp-${Date.now()}-${Math.random()}`, // Temporary ID for client-side
-        date: new Date().toISOString(),
-        notes: notes,
-        status: overallStatus,
-        itemStatuses: itemStatuses,
-    };
+    const newInspectionDate = new Date().toISOString();
 
     let updatedItemData: Partial<Item> = {};
     if (type === 'extinguisher') {
@@ -169,38 +153,42 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
         updatedItemData = updatedHoseData;
     }
 
-
-    const finalItemState: Item = {
-        ...selectedItem,
-        ...updatedItemData,
-        lastInspected: newInspection.date,
-        inspections: [...(selectedItem.inspections || []), newInspection],
-    };
-
-    // Update parent state
-    onUpdateItem(type, finalItemState);
-
-
-    const itemForSession: InspectedItem = {
+    const itemForSave: InspectedItem = {
       uid: selectedItem.uid,
       id: selectedItem.id,
       qrCodeValue: selectedItem.qrCodeValue,
-      date: newInspection.date,
-      notes: newInspection.notes,
-      status: newInspection.status,
-      itemStatuses: newInspection.itemStatuses,
+      date: newInspectionDate,
+      notes: notes,
+      status: overallStatus,
+      itemStatuses: itemStatuses,
       updatedData: Object.keys(updatedItemData).length > 0 ? updatedItemData : undefined,
     };
 
-    addItemToInspection(itemForSession);
-    
-    toast({
-        title: 'Confirmado!',
-        description: `Inspeção do item ${selectedItem.id} registrada.`,
-    });
+    try {
+        await saveInspectedItemAction(session.clientId, session.buildingId, itemForSave);
+        
+        const finalItemState: Item = {
+            ...selectedItem,
+            ...updatedItemData,
+            lastInspected: newInspectionDate,
+        };
+        onUpdateItem(type, finalItemState);
 
-    setIsSubmitting(false);
-    handleCloseDialog();
+        toast({
+            title: 'Salvo!',
+            description: `Inspeção do item ${selectedItem.id} salva com sucesso.`,
+        });
+
+        handleCloseDialog();
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: error.message || 'Não foi possível salvar a inspeção.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   if (items.length === 0) {

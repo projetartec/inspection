@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, CameraOff, Edit, Check, ChevronDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
+import { saveInspectedItemAction } from '@/lib/actions';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { getExtinguisherByUid, getHoseByUid } from '@/lib/data';
 import { extinguisherTypes, extinguisherWeights, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/types';
@@ -77,7 +78,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
   
   const router = useRouter();
   const { toast } = useToast();
-  const { session, addItemToInspection, startInspection } = useInspectionSession();
+  const { session, startInspection } = useInspectionSession();
 
   // Ensure an inspection is active
   useEffect(() => {
@@ -196,6 +197,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
 
 
   const handleLogInspection = async () => {
+    if (!session) return;
     if (mode === ScanMode.Result && !scanResult) return;
     if (mode === ScanMode.ManualEntry && !manualId) {
         toast({
@@ -206,22 +208,21 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         return;
     }
     
-    const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
-    const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
-
-    const hasNC = Object.values(itemStatuses).some(s => s === 'N/C');
-    const allItemsChecked = issuesList.every(issue => itemStatuses[issue]);
-
-    if(mode === ScanMode.Result && !allItemsChecked) {
-         toast({ variant: 'destructive', title: 'Checklist Incompleto', description: 'Por favor, marque o status de todos os itens.' });
-         return;
-    }
-
     let overallStatus: Inspection['status'] = 'OK';
     if(mode === ScanMode.ManualEntry){
         overallStatus = 'N/C';
     } else {
-        overallStatus = hasNC ? 'N/C' : 'OK';
+      const itemType = (scannedItem as Extinguisher)?.type ? 'extinguisher' : (scannedItem as Hydrant)?.hoseType ? 'hose' : null;
+      const issuesList = itemType === 'extinguisher' ? extinguisherIssues : hoseIssues;
+
+      const hasNC = Object.values(itemStatuses).some(s => s === 'N/C');
+      const allItemsChecked = issuesList.every(issue => itemStatuses[issue]);
+
+      if(mode === ScanMode.Result && !allItemsChecked) {
+          toast({ variant: 'destructive', title: 'Checklist Incompleto', description: 'Por favor, marque o status de todos os itens.' });
+          return;
+      }
+      overallStatus = hasNC ? 'N/C' : 'OK';
     }
     
     setIsSubmitting(true);
@@ -233,7 +234,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         finalNotes = `[REGISTRO MANUAL] ${notes}`;
     }
     
-    const itemData: InspectedItem = {
+    const itemForSave: InspectedItem = {
         uid: scannedItem?.uid || 'manual',
         id: scannedItem?.id || manualId,
         qrCodeValue: itemIdentifier!,
@@ -264,13 +265,26 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
       }
 
       if (Object.keys(updatedData).length > 0) {
-        itemData.updatedData = updatedData;
+        itemForSave.updatedData = updatedData;
       }
     }
     
-    addItemToInspection(itemData);
-
-    resetState();
+    try {
+        await saveInspectedItemAction(session.clientId, session.buildingId, itemForSave);
+        toast({
+            title: 'Salvo!',
+            description: `Item ${itemForSave.id} registrado com sucesso.`,
+        });
+        resetState();
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: error.message || 'Não foi possível salvar a inspeção do item.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   if (cameraError) {

@@ -1,16 +1,14 @@
 
-
-"use client";
+'use client';
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import type { Inspection, Extinguisher, Hydrant } from '@/lib/types';
-import { finalizeInspectionAction } from '@/lib/actions';
+import type { Extinguisher, Hydrant } from '@/lib/types';
 import { ExtinguisherFormValues, HydrantFormValues } from '@/lib/schemas';
-import type { AbbreviatedInspectionSession } from '@/lib/types';
 
+// This type represents an item being saved, not the whole session list.
 export interface InspectedItem {
-    uid: string; // The UID of the extinguisher or hose
-    id: string; // The user-facing ID
+    uid: string;
+    id: string;
     qrCodeValue: string;
     date: string;
     notes: string;
@@ -19,20 +17,18 @@ export interface InspectedItem {
     updatedData?: Partial<ExtinguisherFormValues | HydrantFormValues>;
 }
 
+// Session now only tracks the current context, not the list of items.
 export interface InspectionSession {
     clientId: string;
     buildingId: string;
     startTime: string;
-    inspectedItems: InspectedItem[];
 }
 
 interface InspectionContextType {
     session: InspectionSession | null;
     startInspection: (clientId: string, buildingId: string) => void;
-    addItemToInspection: (item: InspectedItem) => void;
-    endInspection: () => Promise<void>;
-    clearSession: () => void;
-    isLoading: boolean;
+    endInspection: () => void; // Renamed for clarity in UI, but it just clears.
+    isLoading: boolean; // Kept for potential future use, but will be false now.
 }
 
 const InspectionContext = createContext<InspectionContextType | null>(null);
@@ -47,17 +43,22 @@ export const useInspectionSession = () => {
 
 const SESSION_STORAGE_KEY = 'inspectionSession';
 
-// A provider that will wrap the entire app or relevant parts
 export const GlobalInspectionProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<InspectionSession | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        // Load session from sessionStorage when the app loads
         try {
             const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
             if (storedSession) {
-                setSession(JSON.parse(storedSession));
+                const parsedSession = JSON.parse(storedSession);
+                // Make sure we don't load old sessions with inspectedItems
+                const newSession: InspectionSession = {
+                    clientId: parsedSession.clientId,
+                    buildingId: parsedSession.buildingId,
+                    startTime: parsedSession.startTime,
+                };
+                setSession(newSession);
             }
         } catch (error) {
             console.error("Failed to parse session from storage", error);
@@ -75,92 +76,34 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
     };
 
     const startInspection = useCallback((clientId: string, buildingId: string) => {
-        // If a session for a different building is active, clear it.
         if (session && session.buildingId !== buildingId) {
             console.warn("Starting new inspection, clearing previous session for another building.");
             updateSession(null); 
         }
 
-        // Start a new session if none exists for the current building
         if (!session || session.buildingId !== buildingId) {
             const newSession: InspectionSession = {
                 clientId,
                 buildingId,
                 startTime: new Date().toISOString(),
-                inspectedItems: [],
             };
             updateSession(newSession);
         }
-    }, [session]); // dependency on session
+    }, [session]);
 
-    const addItemToInspection = useCallback((item: InspectedItem) => {
+    // This function no longer calls the server. It just clears the local session.
+    const endInspection = useCallback(() => {
         if (!session) {
-             console.error("No active inspection session to add item to.");
-             return;
+            console.log("No active inspection session to end.");
+            return;
         };
-        
-        // Ensure uid is included in updatedData if it exists, for server action identification.
-        if (item.updatedData && Object.keys(item.updatedData).length > 0) {
-            // This is a partial update, no need to add uid here, the server action will handle it.
-        }
-
-        // Replace if item with same qrCodeValue already exists
-        const otherItems = session.inspectedItems.filter(i => i.qrCodeValue !== item.qrCodeValue);
-        const updatedItems = [...otherItems, item];
-        
-        updateSession({ ...session, inspectedItems: updatedItems });
-    }, [session]); // dependency on session
-
-    const endInspection = useCallback(async () => {
-        if (!session) {
-            throw new Error("Nenhuma sessão de inspeção ativa para finalizar.");
-        };
-        
-        setIsLoading(true);
-        try {
-            // Transform the session object to its abbreviated form to reduce payload size
-            const abbreviatedSession: AbbreviatedInspectionSession = {
-                cId: session.clientId,
-                bId: session.buildingId,
-                st: session.startTime,
-                it: session.inspectedItems.map(item => ({
-                    uid: item.uid,
-                    id: item.id,
-                    qv: item.qrCodeValue,
-                    dt: item.date,
-                    nt: item.notes,
-                    s: item.status,
-                    is: item.itemStatuses,
-                    ud: item.updatedData,
-                })),
-            };
-
-            // Call the server action with the optimized payload
-            await finalizeInspectionAction(abbreviatedSession);
-            
-            // Clear the session on success
-            updateSession(null);
-        } catch(e) {
-            console.error("Failed to save inspection batch", e);
-            throw e; // Re-throw to be caught by the UI component
-        } finally {
-            setIsLoading(false);
-        }
-
-    }, [session]); // dependency on session
-
-    const clearSession = useCallback(() => {
-        if (session) {
-        }
         updateSession(null);
     }, [session]);
 
     const value = {
         session,
         startInspection,
-        addItemToInspection,
         endInspection,
-        clearSession,
         isLoading,
     };
 
@@ -171,5 +114,4 @@ export const GlobalInspectionProvider = ({ children }: { children: React.ReactNo
     );
 };
 
-// Re-exporting the original InspectionProvider for compatibility with existing files that use it.
 export const InspectionProvider = GlobalInspectionProvider;
