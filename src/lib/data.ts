@@ -374,12 +374,12 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
     const { cId: clientId, bId: buildingId } = session;
 
     try {
-        const client = await getClientById(clientId);
-        if (!client) {
-            throw new Error(`Cliente com ID ${clientId} não encontrado.`);
-        }
-
         await adminDb.runTransaction(async (t) => {
+            const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(clientId);
+            const clientDoc = await t.get(clientRef);
+            if (!clientDoc.exists) throw new Error(`Cliente com ID ${clientId} não encontrado.`);
+            const client = clientFromDoc(clientDoc);
+
             const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
             const buildingDoc = await t.get(buildingRef);
 
@@ -388,11 +388,10 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
                 const legacyBuildingData = (client.buildings || []).find(b => b.id === buildingId);
                 if (legacyBuildingData) {
                     const newBuildingPayload: Partial<Building> = { ...legacyBuildingData, clientId: clientId };
+                    // Do not migrate equipment here, it will be handled per-item.
                     delete newBuildingPayload.extinguishers;
                     delete newBuildingPayload.hoses;
                     t.set(buildingRef, newBuildingPayload);
-                } else {
-                    throw new Error(`Prédio legado com ID ${buildingId} não encontrado.`);
                 }
             }
             
@@ -420,15 +419,15 @@ export async function finalizeInspection(session: AbbreviatedInspectionSession) 
                         const legacyArray = isExtinguisher ? legacyBuildingData.extinguishers : legacyBuildingData.hoses;
                         const legacyEquipData = (legacyArray || []).find((e: any) => e.uid === item.uid);
                         if (legacyEquipData) {
+                            // When migrating, set the full data, not just partial.
                             t.set(equipRef, legacyEquipData);
-                        } else {
-                             throw new Error(`Equipamento legado ${item.uid} não encontrado para migração.`);
                         }
                     }
                 }
                 
                 // Step 2b: Update equipment with inspection data
                 const updatePayload: { [key: string]: any } = { lastInspected: item.dt, ...(item.ud || {}) };
+                // Use `set` with `merge: true` to ensure we don't overwrite the whole doc.
                 t.set(equipRef, updatePayload, { merge: true });
 
                 const newInspRef = equipRef.collection(INSPECTIONS_SUBCOLLECTION).doc();
@@ -588,32 +587,32 @@ export async function restoreBackup(data: any) {
         throw new Error("Formato de backup inválido. O arquivo deve conter uma chave 'clients' com uma lista.");
     }
     
-    const writeBatch = adminDb.batch();
+    const operations: { ref: FirebaseFirestore.DocumentReference, data: any, options?: { merge: boolean } }[] = [];
 
     for (const client of data.clients) {
         if (!client.id) continue;
         const { buildings, ...clientData } = client;
         const clientRef = adminDb.collection(CLIENTS_COLLECTION).doc(client.id);
-        writeBatch.set(clientRef, clientData, { merge: true });
+        operations.push({ ref: clientRef, data: clientData, options: { merge: true } });
 
         if (Array.isArray(buildings)) {
             for (const building of buildings) {
                 if (!building.id) continue;
                 const { extinguishers, hoses, ...buildingData } = building;
                 const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(building.id);
-                writeBatch.set(buildingRef, buildingData, { merge: true });
+                operations.push({ ref: buildingRef, data: buildingData, options: { merge: true } });
                 
                 if (Array.isArray(extinguishers)) {
                     for (const ext of extinguishers) {
                         if (!ext.uid) continue;
                         const { inspections: extInspections, ...extData } = ext;
                         const extRef = buildingRef.collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid);
-                        writeBatch.set(extRef, extData, { merge: true });
+                        operations.push({ ref: extRef, data: extData, options: { merge: true } });
                         if(Array.isArray(extInspections)) {
                             for(const insp of extInspections) {
                                 if (!insp.id) continue;
                                 const inspRef = extRef.collection(INSPECTIONS_SUBCOLLECTION).doc(insp.id);
-                                writeBatch.set(inspRef, insp);
+                                operations.push({ ref: inspRef, data: insp, options: { merge: true } });
                             }
                         }
                     }
@@ -624,12 +623,12 @@ export async function restoreBackup(data: any) {
                         if (!hose.uid) continue;
                         const { inspections: hoseInspections, ...hoseData } = hose;
                         const hoseRef = buildingRef.collection(HOSES_SUBCOLLECTION).doc(hose.uid);
-                        writeBatch.set(hoseRef, hoseData, { merge: true });
+                        operations.push({ ref: hoseRef, data: hoseData, options: { merge: true } });
                          if(Array.isArray(hoseInspections)) {
                             for(const insp of hoseInspections) {
                                 if (!insp.id) continue;
                                 const inspRef = hoseRef.collection(INSPECTIONS_SUBCOLLECTION).doc(insp.id);
-                                writeBatch.set(inspRef, insp);
+                                operations.push({ ref: inspRef, data: insp, options: { merge: true } });
                             }
                         }
                     }
@@ -637,6 +636,19 @@ export async function restoreBackup(data: any) {
             }
         }
     }
-
-    await writeBatch.commit();
+    
+    // Process operations in batches of 450 (safely below the 500 limit)
+    const batchSize = 450;
+    for (let i = 0; i < operations.length; i += batchSize) {
+        const batch = adminDb.batch();
+        const chunk = operations.slice(i, i + batchSize);
+        for (const op of chunk) {
+            if (op.options) {
+                batch.set(op.ref, op.data, op.options);
+            } else {
+                batch.set(op.ref, op.data);
+            }
+        }
+        await batch.commit();
+    }
 }

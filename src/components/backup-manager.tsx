@@ -86,10 +86,10 @@ export function BackupManager({ clientId, isGlobal = false }: BackupManagerProps
         await restoreBackupAction(content);
         toast({
           title: 'Importação Concluída',
-          description: 'Os dados do backup foram carregados. A página será atualizada.',
+          description: 'Os dados do backup foram carregados. A página será atualizada em instantes.',
         });
-        // Full page reload to ensure all data is fresh
-        window.location.reload();
+        // Reload after a short delay to allow toast to show and data to propagate.
+        setTimeout(() => window.location.reload(), 2000);
       } catch (error: any) {
         console.error('Import failed:', error);
         toast({
