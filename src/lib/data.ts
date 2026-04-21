@@ -1,4 +1,3 @@
-
 'use server';
 
 import type { Extinguisher, Hydrant, Client, Building, Inspection } from '@/lib/types';
@@ -423,6 +422,21 @@ export async function saveInspectedItem(clientId: string, buildingId: string, it
     await buildingRef.set({ lastInspected: new Date().toISOString() }, { merge: true });
 }
 
+export async function getLatestInspectionForEquipment(buildingId: string, equipmentCollection: 'extinguishers' | 'hoses', equipmentUid: string): Promise<Inspection | null> {
+    const inspSnapshot = await adminDb
+        .collection(BUILDINGS_COLLECTION).doc(buildingId)
+        .collection(equipmentCollection).doc(equipmentUid)
+        .collection(INSPECTIONS_SUBCOLLECTION)
+        .orderBy('date', 'desc')
+        .limit(1)
+        .get();
+
+    if (inspSnapshot.empty) {
+        return null;
+    }
+    
+    return inspSnapshot.docs[0].data() as Inspection;
+}
 
 
 // --- Report Data Fetching Actions ---

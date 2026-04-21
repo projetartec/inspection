@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -11,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, CameraOff, Edit, Check, ChevronDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session.tsx';
-import { saveInspectedItemAction } from '@/lib/actions';
+import { saveInspectedItemAction, getLatestInspectionAction } from '@/lib/actions';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { getExtinguisherByUid, getHoseByUid } from '@/lib/data';
 import { extinguisherTypes, extinguisherWeights, hydrantDiameters, hydrantHoseLengths, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities, hydrantTypes } from '@/lib/types';
@@ -108,33 +107,43 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
         
         if (uid) {
             const isExtinguisher = uid.startsWith('fireguard-ext-');
+            const itemType = isExtinguisher ? 'extinguisher' : 'hose';
+
             item = isExtinguisher 
                 ? await getExtinguisherByUid(clientId, buildingId, uid) 
                 : await getHoseByUid(clientId, buildingId, uid);
-        }
+        
+            if (item) {
+                let inspectionToUse: Inspection | null | undefined = null;
+                const latestInspection = await getLatestInspectionAction(buildingId, itemType, item.uid);
+                inspectionToUse = latestInspection;
 
-        if (item) {
-          setScannedItem(item);
-          const lastInspection = item.inspections?.[item.inspections.length - 1];
-          setNotes(lastInspection?.notes || '');
-          setItemStatuses(lastInspection?.itemStatuses || {});
-          
-          if ('type' in item) { // It's an extinguisher
-            setEditableType(item.type);
-            setEditableWeight(item.weight);
-            setEditableExpiry(item.expiryDate);
-          } else { // It's a hose
-            setEditableHoseLocation(item.location);
-            setEditableHoseQuantity(item.quantity);
-            setEditableHoseType(item.hoseType);
-            setEditableHoseDiameter(item.diameter);
-            setEditableHoseLength(item.hoseLength);
-            setEditableHoseKeyQuantity(item.keyQuantity);
-            setEditableHoseNozzleQuantity(item.nozzleQuantity);
-            setEditableHoseTestDate(item.hydrostaticTestDate);
-          }
-        } else {
-          toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado.' });
+                if (!inspectionToUse) {
+                    const legacyLastInspection = item.inspections?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+                    inspectionToUse = legacyLastInspection;
+                }
+
+                setScannedItem(item);
+                setNotes(inspectionToUse?.notes || '');
+                setItemStatuses(inspectionToUse?.itemStatuses || {});
+                
+                if ('type' in item) { // It's an extinguisher
+                    setEditableType(item.type);
+                    setEditableWeight(item.weight);
+                    setEditableExpiry(item.expiryDate);
+                } else { // It's a hose
+                    setEditableHoseLocation(item.location);
+                    setEditableHoseQuantity(item.quantity);
+                    setEditableHoseType(item.hoseType);
+                    setEditableHoseDiameter(item.diameter);
+                    setEditableHoseLength(item.hoseLength);
+                    setEditableHoseKeyQuantity(item.keyQuantity);
+                    setEditableHoseNozzleQuantity(item.nozzleQuantity);
+                    setEditableHoseTestDate(item.hydrostaticTestDate);
+                }
+            } else {
+                toast({ variant: 'destructive', title: 'Erro', description: 'Equipamento não encontrado.' });
+            }
         }
       } catch (error) {
         console.error(error);

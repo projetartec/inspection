@@ -1,7 +1,6 @@
-
 'use server';
 
-import type { Extinguisher, Hydrant, Client, Building, ManualInspection } from '@/lib/types';
+import type { Extinguisher, Hydrant, Client, Building, ManualInspection, Inspection } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { ExtinguisherFormValues, HydrantFormValues, ClientFormValues, ExtinguisherFormSchema, HydrantFormSchema } from './schemas';
 import type { InspectedItem } from '@/hooks/use-inspection-session.tsx';
@@ -23,6 +22,7 @@ import {
     updateEquipmentOrder,
     getBackupData,
     restoreBackup,
+    getLatestInspectionForEquipment,
 } from './data';
 import { getClientById, getBuildingsByClient, getEquipmentForBuildings } from './data';
 
@@ -210,6 +210,17 @@ export async function saveInspectedItemAction(clientId: string, buildingId: stri
     }
 }
 
+export async function getLatestInspectionAction(buildingId: string, equipmentType: 'extinguisher' | 'hose', equipmentUid: string): Promise<Inspection | null> {
+    try {
+        const collectionName = equipmentType === 'extinguisher' ? 'extinguishers' : 'hoses';
+        const latestInspection = await getLatestInspectionForEquipment(buildingId, collectionName, equipmentUid);
+        return latestInspection;
+    } catch (error) {
+        console.error('Failed to get latest inspection:', error);
+        return null;
+    }
+}
+
 
 // --- Report Actions ---
 export async function getReportDataAction(clientId: string, buildingId: string) {
@@ -295,6 +306,16 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
     const buildingsWithEquipment = await Promise.all(buildingsData.map(async (b) => {
         const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
         const hoses = await getHosesByBuilding(clientId, b.id);
+        
+        for (const ext of extinguishers) {
+            const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(b.id).collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
+            ext.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
+        }
+        for (const hose of hoses) {
+            const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(b.id).collection(HOSES_SUBCOLLECTION).doc(hose.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
+            hose.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
+        }
+
         return { ...b, extinguishers, hoses };
     }));
 

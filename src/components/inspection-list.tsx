@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { CheckCircle2, Loader2, Edit, ChevronDown, Check } from 'lucide-react';
 import { useInspectionSession, type InspectedItem } from '@/hooks/use-inspection-session';
-import { saveInspectedItemAction } from '@/lib/actions';
+import { saveInspectedItemAction, getLatestInspectionAction } from '@/lib/actions';
 import type { Inspection, Extinguisher, Hydrant, ExtinguisherType, ExtinguisherWeight, HydrantDiameter, HydrantHoseLength, HydrantHoseType, HydrantKeyQuantity, HydrantNozzleQuantity, HydrantQuantity } from '@/lib/types';
 import { extinguisherTypes, extinguisherWeights, hydrantDiameters, hydrantHoseLengths, hydrantTypes, hydrantKeyQuantities, hydrantNozzleQuantities, hydrantQuantities } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -65,12 +64,28 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
   const { session } = useInspectionSession();
   const { toast } = useToast();
 
-  const handleOpenDialog = (item: Item) => {
+  const handleOpenDialog = async (item: Item) => {
     setSelectedItem(item);
+
+    let inspectionToUse: Inspection | null | undefined = null;
+    if (session) {
+      // Fetch the latest inspection from the server instead of relying on the prop
+      const latestInspection = await getLatestInspectionAction(
+        session.buildingId,
+        type,
+        item.uid
+      );
+      inspectionToUse = latestInspection;
+    }
     
-    const lastInspection = item.inspections?.[item.inspections.length - 1];
-    setNotes(lastInspection?.notes || '');
-    setItemStatuses(lastInspection?.itemStatuses || {});
+    // Fallback to legacy inspections if new one is not found
+    if (!inspectionToUse) {
+        const legacyLastInspection = item.inspections?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        inspectionToUse = legacyLastInspection;
+    }
+    
+    setNotes(inspectionToUse?.notes || '');
+    setItemStatuses(inspectionToUse?.itemStatuses || {});
 
     setIsDataAccordionOpen(false); // Reset accordion state
 
