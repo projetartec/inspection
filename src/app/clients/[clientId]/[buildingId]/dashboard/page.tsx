@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { getBuildingById, getExtinguishersByBuilding, getHosesByBuilding } from "@/lib/data";
-import { notFound, useParams, useRouter } from "next/navigation";
+import { notFound, useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertTriangle, Play, Eye, FileWarning } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -78,13 +77,25 @@ export default function DashboardPage() {
     const params = useParams() as { clientId: string, buildingId: string };
     const { clientId, buildingId } = params;
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const [buildingName, setBuildingName] = useState<string>('');
     const [stats, setStats] = useState<Stat[]>([]);
     const [manualInspections, setManualInspections] = useState<ManualInspection[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { session: inspectionSession, startInspection } = useInspectionSession();
+    const { session: inspectionSession, startInspection, endInspection } = useInspectionSession();
+
+    useEffect(() => {
+        // Check for the query param to force-end an inspection session
+        if (searchParams.get('inspection_ended') === 'true') {
+            if (inspectionSession) {
+                endInspection(); // Forcefully end inspection session state
+            }
+            // Clean the URL without reloading the page, removing the query param
+            router.replace(`/clients/${clientId}/${buildingId}/dashboard`);
+        }
+    }, [searchParams, inspectionSession, endInspection, router, clientId, buildingId]);
 
     useEffect(() => {
         async function fetchData() {

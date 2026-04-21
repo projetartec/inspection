@@ -32,21 +32,13 @@ export function MobileNav() {
 
   const handleEndInspection = () => {
     if (!session) return;
-
     const redirectUrl = `/clients/${session.clientId}/${session.buildingId}/dashboard`;
-
-    // Limpa o estado da sessão e o armazenamento local
     endInspection();
-
     toast({
       title: 'Sessão Encerrada',
       description: 'A inspeção foi concluída.',
     });
-
-    // Força uma navegação completa para o painel.
-    // Isso garante que a aplicação reinicie seu estado, leia a sessão
-    // agora vazia e exiba os botões corretos.
-    window.location.href = redirectUrl;
+    router.push(`${redirectUrl}?inspection_ended=true`);
   };
 
   const isInspectionActive = !!session && session.buildingId === buildingId;
