@@ -1,17 +1,29 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname, useParams, useRouter } from "next/navigation";
-import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Building, Flag, Loader2, FileSearch, LogOut } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { usePathname, useParams, useRouter } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Flame,
+  Droplets,
+  ScanLine,
+  Users,
+  ChevronLeft,
+  Building,
+  Flag,
+  Loader2,
+  FileSearch,
+  LogOut,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
-import { Button } from "./ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { logout } from "@/app/login/actions";
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { logout } from '@/app/login/actions';
 
 export function MobileNav() {
   const pathname = usePathname();
-  const params = useParams() as { clientId?: string, buildingId?: string };
+  const params = useParams() as { clientId?: string; buildingId?: string };
   const { clientId, buildingId } = params;
   const { session, endInspection } = useInspectionSession();
   const { toast } = useToast();
@@ -19,23 +31,19 @@ export function MobileNav() {
 
   const handleEndInspection = () => {
     if (!session) return;
-    try {
-        endInspection();
-        toast({
-            title: 'Sessão Encerrada',
-            description: 'Você pode iniciar uma nova inspeção a qualquer momento.',
-        });
-        router.push(`/clients/${session.clientId}/${session.buildingId}/dashboard`);
-    } catch (error: any) {
-        console.error(error);
-        toast({
-            variant: 'destructive',
-            title: 'Erro',
-            description: error.message || 'Não foi possível encerrar a sessão.',
-        });
-    }
+
+    const redirectUrl = `/clients/${session.clientId}/${session.buildingId}/dashboard`;
+
+    endInspection();
+    toast({
+      title: 'Sessão Encerrada',
+      description: 'Você pode iniciar uma nova inspeção a qualquer momento.',
+    });
+
+    // Adia a navegação para permitir que o estado seja atualizado primeiro
+    setTimeout(() => router.push(redirectUrl), 0);
   };
-  
+
   const isInspectionActive = !!session && session.buildingId === buildingId;
 
   // No nav on login page for mobile
@@ -43,55 +51,93 @@ export function MobileNav() {
     return null;
   }
 
-
   if (!clientId) {
     // Root page (client list)
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-            <nav className="grid grid-cols-2 items-center justify-around h-full">
-                <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === '/' ? "text-primary" : "text-muted-foreground")}>
-                    <Users className="h-6 w-6" />
-                    <span className="text-xs">Clientes</span>
-                </Link>
-                 <form action={logout} className="flex flex-col items-center justify-center w-full h-full">
-                    <button type="submit" className="flex flex-col items-center justify-center w-full h-full text-sm font-medium text-muted-foreground">
-                        <LogOut className="h-6 w-6" />
-                        <span className="text-xs">Sair</span>
-                    </button>
-                </form>
-            </nav>
-        </div>
-    )
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
+        <nav className="grid grid-cols-2 items-center justify-around h-full">
+          <Link
+            href="/"
+            className={cn(
+              'flex flex-col items-center justify-center w-full h-full text-sm font-medium',
+              pathname === '/' ? 'text-primary' : 'text-muted-foreground'
+            )}
+          >
+            <Users className="h-6 w-6" />
+            <span className="text-xs">Clientes</span>
+          </Link>
+          <form
+            action={logout}
+            className="flex flex-col items-center justify-center w-full h-full"
+          >
+            <button
+              type="submit"
+              className="flex flex-col items-center justify-center w-full h-full text-sm font-medium text-muted-foreground"
+            >
+              <LogOut className="h-6 w-6" />
+              <span className="text-xs">Sair</span>
+            </button>
+          </form>
+        </nav>
+      </div>
+    );
   }
 
   if (clientId && !buildingId) {
     // Building list page for a client
-     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-            <nav className="grid grid-cols-4 items-center justify-around h-full">
-                 <Link href="/" className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", "text-muted-foreground")}>
-                    <ChevronLeft className="h-6 w-6" />
-                    <span className="text-xs">Clientes</span>
-                </Link>
-                <Link href={`/clients/${clientId}`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname === `/clients/${clientId}` ? "text-primary" : "text-muted-foreground")}>
-                    <Building className="h-6 w-6" />
-                     <span className="text-xs">Prédios</span>
-                </Link>
-                <Link href={`/clients/${clientId}/consultation`} className={cn("flex flex-col items-center justify-center w-full h-full text-sm font-medium", pathname.includes('/consultation') ? "text-primary" : "text-muted-foreground")}>
-                    <FileSearch className="h-6 w-6" />
-                     <span className="text-xs">Consulta</span>
-                </Link>
-                 <form action={logout} className="flex flex-col items-center justify-center w-full h-full">
-                    <button type="submit" className="flex flex-col items-center justify-center w-full h-full text-sm font-medium text-muted-foreground">
-                        <LogOut className="h-6 w-6" />
-                        <span className="text-xs">Sair</span>
-                    </button>
-                </form>
-            </nav>
-        </div>
-    )
+    return (
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
+        <nav className="grid grid-cols-4 items-center justify-around h-full">
+          <Link
+            href="/"
+            className={cn(
+              'flex flex-col items-center justify-center w-full h-full text-sm font-medium',
+              'text-muted-foreground'
+            )}
+          >
+            <ChevronLeft className="h-6 w-6" />
+            <span className="text-xs">Clientes</span>
+          </Link>
+          <Link
+            href={`/clients/${clientId}`}
+            className={cn(
+              'flex flex-col items-center justify-center w-full h-full text-sm font-medium',
+              pathname === `/clients/${clientId}`
+                ? 'text-primary'
+                : 'text-muted-foreground'
+            )}
+          >
+            <Building className="h-6 w-6" />
+            <span className="text-xs">Prédios</span>
+          </Link>
+          <Link
+            href={`/clients/${clientId}/consultation`}
+            className={cn(
+              'flex flex-col items-center justify-center w-full h-full text-sm font-medium',
+              pathname.includes('/consultation')
+                ? 'text-primary'
+                : 'text-muted-foreground'
+            )}
+          >
+            <FileSearch className="h-6 w-6" />
+            <span className="text-xs">Consulta</span>
+          </Link>
+          <form
+            action={logout}
+            className="flex flex-col items-center justify-center w-full h-full"
+          >
+            <button
+              type="submit"
+              className="flex flex-col items-center justify-center w-full h-full text-sm font-medium text-muted-foreground"
+            >
+              <LogOut className="h-6 w-6" />
+              <span className="text-xs">Sair</span>
+            </button>
+          </form>
+        </nav>
+      </div>
+    );
   }
-
 
   const buildingBasePath = `/clients/${clientId}/${buildingId}`;
 
@@ -107,19 +153,26 @@ export function MobileNav() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t z-50">
-      <nav className={cn("grid items-center justify-around h-full", gridColsClass)}>
+      <nav className={cn('grid items-center justify-around h-full', gridColsClass)}>
         {menuItems.map((item) => {
-          const isActive = pathname.startsWith(item.href) && (item.href.length > (buildingBasePath.length - 2) || item.icon === FileSearch);
-           if(item.icon === FileSearch && pathname.includes('/consultation')) {
-               // Special case for consultation page
-           }
+          const isActive =
+            pathname.startsWith(item.href) &&
+            (item.href.length > buildingBasePath.length - 2 ||
+              item.icon === FileSearch);
+          if (item.icon === FileSearch && pathname.includes('/consultation')) {
+            // Special case for consultation page
+          }
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center",
-                 (isActive || (item.icon === FileSearch && pathname.includes('/consultation'))) ? "text-primary" : "text-muted-foreground"
+                'flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center',
+                isActive ||
+                  (item.icon === FileSearch &&
+                    pathname.includes('/consultation'))
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
               )}
             >
               <item.icon className="h-6 w-6" />
@@ -127,13 +180,13 @@ export function MobileNav() {
           );
         })}
         {isInspectionActive && (
-            <Button
-                variant="ghost"
-                className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center text-primary p-0"
-                onClick={handleEndInspection}
-            >
-                <Flag className="h-6 w-6" />
-            </Button>
+          <Button
+            variant="ghost"
+            className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center text-primary p-0"
+            onClick={handleEndInspection}
+          >
+            <Flag className="h-6 w-6" />
+          </Button>
         )}
       </nav>
     </div>
