@@ -165,7 +165,7 @@ export function InspectionList({ items, type, onUpdateItem }: InspectionListProp
     };
 
     try {
-        await saveInspectedItemAction(session.clientId, session.buildingId, itemForSave);
+        await saveInspectedItemAction(session.clientId, session.buildingId, itemForSave, selectedItem);
         
         const finalItemState: Item = {
             ...selectedItem,

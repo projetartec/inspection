@@ -270,7 +270,7 @@ export function QrScanner({ clientId, buildingId }: QrScannerProps) {
     }
     
     try {
-        await saveInspectedItemAction(session.clientId, session.buildingId, itemForSave);
+        await saveInspectedItemAction(session.clientId, session.buildingId, itemForSave, scannedItem ?? undefined);
         toast({
             title: 'Salvo!',
             description: `Item ${itemForSave.id} registrado com sucesso.`,

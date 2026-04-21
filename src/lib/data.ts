@@ -361,76 +361,68 @@ export async function updateEquipmentOrder(clientId: string, buildingId: string,
     console.log("Reordering in subcollections is not yet implemented.");
 }
 
-export async function saveInspectedItem(clientId: string, buildingId: string, item: InspectedItem) {
-    try {
+export async function saveInspectedItem(clientId: string, buildingId: string, item: InspectedItem, originalItem?: Extinguisher | Hydrant) {
+    const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
+
+    // Handle manual entries first, they are simpler and don't need a transaction for the item itself
+    if (item.uid === 'manual') {
+        await buildingRef.set({
+            manualInspections: FieldValue.arrayUnion({
+                id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                manualId: item.id,
+                date: item.date,
+                notes: item.notes,
+                status: item.status,
+                itemStatuses: item.itemStatuses
+            })
+        }, { merge: true });
+    } else {
+        // Handle regular equipment inspection
+        const isExtinguisher = item.qrCodeValue.startsWith('fireguard-ext-');
+        const collectionName = isExtinguisher ? EXTINGUISHERS_SUBCOLLECTION : HOSES_SUBCOLLECTION;
+        const equipRef = buildingRef.collection(collectionName).doc(item.uid);
+
         await adminDb.runTransaction(async (t) => {
-            const clientDoc = await t.get(adminDb.collection(CLIENTS_COLLECTION).doc(clientId));
-            if (!clientDoc.exists) throw new Error(`Cliente com ID ${clientId} não encontrado.`);
-            
-            const buildingRef = adminDb.collection(BUILDINGS_COLLECTION).doc(buildingId);
-            
-            if (item.uid === 'manual') {
-                t.update(buildingRef, {
-                    manualInspections: FieldValue.arrayUnion({
-                        id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                        manualId: item.id,
-                        date: item.date,
-                        notes: item.notes,
-                        status: item.status,
-                        itemStatuses: item.itemStatuses
-                    })
-                });
-            } else {
-                const isExtinguisher = item.qrCodeValue.startsWith('fireguard-ext-');
-                const collectionName = isExtinguisher ? EXTINGUISHERS_SUBCOLLECTION : HOSES_SUBCOLLECTION;
-                const equipRef = buildingRef.collection(collectionName).doc(item.uid);
+            const equipDoc = await t.get(equipRef);
 
-                const equipDoc = await t.get(equipRef);
-                if (!equipDoc.exists) {
-                    const client = clientFromDoc(clientDoc);
-                    const legacyBuildingData = (client.buildings || []).find(b => b.id === buildingId);
-                     if (legacyBuildingData) {
-                        const legacyArray = isExtinguisher ? legacyBuildingData.extinguishers : legacyBuildingData.hoses;
-                        const legacyEquipData = (legacyArray || []).find((e: any) => e.uid === item.uid);
-                        if (legacyEquipData) {
-                             t.set(equipRef, legacyEquipData);
-                        }
-                    }
+            if (!equipDoc.exists) {
+                if (!originalItem) {
+                    throw new Error(`Dados originais do equipamento ${item.id} não encontrados para migração.`);
                 }
-
-                const updatePayload: { [key: string]: any } = { lastInspected: item.date, ...(item.updatedData || {}) };
-                t.set(equipRef, updatePayload, { merge: true });
-
-                const newInspRef = equipRef.collection(INSPECTIONS_SUBCOLLECTION).doc();
-                t.set(newInspRef, {
-                    id: newInspRef.id,
-                    date: item.date,
-                    notes: item.notes,
-                    status: item.status,
-                    itemStatuses: item.itemStatuses
-                });
+                // Create the document with full data from the original item, removing the legacy inspections array
+                const { inspections, ...equipDataToSave } = originalItem;
+                t.set(equipRef, equipDataToSave);
             }
 
-            const buildingDoc = await t.get(buildingRef);
-            const buildingUpdatePayload = { lastInspected: new Date().toISOString() };
-            if (buildingDoc.exists) {
-                t.update(buildingRef, buildingUpdatePayload);
+            // Now, apply the updates from the current inspection
+            const updatePayload: { [key: string]: any } = { 
+                lastInspected: item.date, 
+                ...(item.updatedData || {}) 
+            };
+            // Use update for existing docs, or merge if we just created it in this transaction
+            if (equipDoc.exists) {
+                t.update(equipRef, updatePayload);
             } else {
-                 const client = clientFromDoc(clientDoc);
-                 const legacyBuildingData = (client.buildings || []).find(b => b.id === buildingId);
-                 if (legacyBuildingData) {
-                     const newBuildingPayload: Partial<Building> = { ...legacyBuildingData, clientId: clientId, ...buildingUpdatePayload };
-                     delete newBuildingPayload.extinguishers;
-                     delete newBuildingPayload.hoses;
-                     t.set(buildingRef, newBuildingPayload);
-                 }
+                t.set(equipRef, updatePayload, { merge: true });
             }
+
+            // And add the new inspection record to the subcollection
+            const newInspRef = equipRef.collection(INSPECTIONS_SUBCOLLECTION).doc();
+            t.set(newInspRef, {
+                id: newInspRef.id,
+                date: item.date,
+                notes: item.notes,
+                status: item.status,
+                itemStatuses: item.itemStatuses
+            });
         });
-    } catch (error) {
-        console.error("Erro na transação ao salvar item inspecionado:", error);
-        throw new Error('Falha ao salvar item. ' + (error instanceof Error ? error.message : String(error)));
     }
+
+    // Finally, update the building's lastInspected timestamp.
+    // This is a separate write to keep the transaction small and focused.
+    await buildingRef.set({ lastInspected: new Date().toISOString() }, { merge: true });
 }
+
 
 
 // --- Report Data Fetching Actions ---
@@ -454,8 +446,14 @@ async function getFullBuildingData(clientId: string, buildingId: string): Promis
 
 export async function getReportDataAction(clientId: string, buildingId: string) {
     const client = await getClientById(clientId);
-    const building = await getBuildingData(clientId, buildingId);
-    return { client, building, extinguishers: building.extinguishers, hoses: building.hoses };
+    const building = await getBuildingById(clientId, buildingId);
+    if (!client || !building) {
+         return { client: null, building: null, extinguishers: [], hoses: [] };
+    }
+    const extinguishers = await getExtinguishersByBuilding(clientId, buildingId);
+    const hoses = await getHosesByBuilding(clientId, buildingId);
+
+    return { client, building: {...building, extinguishers, hoses}, extinguishers, hoses };
 }
 
 export async function getClientReportDataAction(clientId: string) {
@@ -479,13 +477,20 @@ export async function getExpiryReportDataAction(clientId: string, buildingId: st
      const client = await getClientById(clientId);
     if (!client) return { client: null, buildings: [] };
     
-    let buildings: Building[] = [];
+    let buildingStubs: Building[] = [];
     if (buildingId) {
-        buildings.push(await getFullBuildingData(clientId, buildingId));
+        const building = await getBuildingById(clientId, buildingId);
+        if (building) buildingStubs.push(building);
     } else {
-        const buildingStubs = await getBuildingsByClient(clientId);
-        buildings = await Promise.all(buildingStubs.map(b => getFullBuildingData(clientId, b.id)));
+        buildingStubs = await getBuildingsByClient(clientId);
     }
+     const buildings = await Promise.all(buildingStubs.map(async (b) => {
+        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
+        const hoses = await getHosesByBuilding(clientId, b.id);
+        return { ...b, extinguishers, hoses };
+    }));
+
+
     return { client, buildings };
 }
 
@@ -502,14 +507,18 @@ export async function getDescriptiveReportDataAction(clientId: string, buildingI
     let buildings: Building[] = [];
 
     if (buildingId) {
-        const building = await getFullBuildingData(clientId, buildingId);
+        const building = await getBuildingById(clientId, buildingId);
         if(building) buildings.push(building);
     } else {
-        const buildingStubs = await getBuildingsByClient(clientId);
-        buildings = await Promise.all(buildingStubs.map(b => getFullBuildingData(clientId, b.id)));
+        buildings = await getBuildingsByClient(clientId);
     }
+     const buildingsWithEquipment = await Promise.all(buildings.map(async (b) => {
+        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
+        const hoses = await getHosesByBuilding(clientId, b.id);
+        return { ...b, extinguishers, hoses };
+    }));
     
-    return { client, buildings };
+    return { client, buildings: buildingsWithEquipment };
 }
 
 export async function getNonConformityReportDataAction(clientId: string, buildingId?: string) {
@@ -517,13 +526,29 @@ export async function getNonConformityReportDataAction(clientId: string, buildin
     let buildingsData: Building[] = [];
 
     if (buildingId) {
-        buildingsData.push(await getFullBuildingData(clientId, buildingId));
+        const b = await getBuildingById(clientId, buildingId);
+        if(b) buildingsData.push(b);
     } else {
-        const buildingStubs = await getBuildingsByClient(clientId);
-        buildingsData = await Promise.all(buildingStubs.map(b => getFullBuildingData(clientId, b.id)));
+        buildingsData = await getBuildingsByClient(clientId);
     }
+    
+    const buildingsWithEquipment = await Promise.all(buildingsData.map(async (b) => {
+        const extinguishers = await getExtinguishersByBuilding(clientId, b.id);
+        const hoses = await getHosesByBuilding(clientId, b.id);
+        
+        for (const ext of extinguishers) {
+            const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(b.id).collection(EXTINGUISHERS_SUBCOLLECTION).doc(ext.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
+            ext.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
+        }
+        for (const hose of hoses) {
+            const inspSnapshot = await adminDb.collection(BUILDINGS_COLLECTION).doc(b.id).collection(HOSES_SUBCOLLECTION).doc(hose.uid).collection(INSPECTIONS_SUBCOLLECTION).orderBy('date', 'asc').get();
+            hose.inspections = inspSnapshot.docs.map(d => d.data() as Inspection);
+        }
 
-    const buildingsWithNC = buildingsData.map(b => {
+        return { ...b, extinguishers, hoses };
+    }));
+
+    const buildingsWithNC = buildingsWithEquipment.map(b => {
         const ncExtinguishers = (b.extinguishers || []).filter(e => {
             if (!e.inspections || e.inspections.length === 0) return false;
             const lastInspection = e.inspections.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
