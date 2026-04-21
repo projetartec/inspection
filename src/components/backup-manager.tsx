@@ -214,39 +214,49 @@ export function BackupManager({ clientId, buildingId, displayMode }: BackupManag
   return (
     <div className="space-y-2">
         <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept=".json" className="hidden" />
-        <Button 
-            variant="outline" 
-            className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
-            onClick={handleExport}
-            disabled={isExporting}
-        >
-            {isExporting ? <Loader2 className="animate-spin" /> : <Download />}
-            <span className="group-data-[collapsible=icon]:hidden ml-2">Exportar Backup do Cliente</span>
-        </Button>
-         <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button 
-                    variant="outline" 
-                    className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
-                    disabled={isImporting}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    disabled={isLoading}
+                    className="justify-center w-full group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
+                    variant='outline'
                 >
-                    {isImporting ? <Loader2 className="animate-spin" /> : <Upload />}
-                    <span className="group-data-[collapsible=icon]:hidden ml-2">Carregar Backup</span>
+                    {isLoading ? (
+                        <Loader2 className="animate-spin h-4 w-4" />
+                    ) : (
+                        <DatabaseBackup className="h-4 w-4" />
+                    )}
+                    <span className="group-data-[collapsible=icon]:hidden ml-2">Backup</span>
+                    <ChevronDown className="h-4 w-4 ml-auto group-data-[collapsible=icon]:hidden" />
                 </Button>
-            </AlertDialogTrigger>
-             <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Esta ação irá carregar os dados do arquivo de backup. Dados existentes com o mesmo ID serão atualizados e novos dados serão adicionados. Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={triggerFileSelect}>Continuar</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onSelect={handleExport} disabled={isExporting}>
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  <span>Exportar</span>
+              </DropdownMenuItem>
+              <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                       <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={isImporting}>
+                          {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                          <span>Importar</span>
+                      </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          Esta ação irá carregar os dados do arquivo de backup. Dados existentes com o mesmo ID serão atualizados e novos dados serão adicionados. Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={triggerFileSelect}>Continuar</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
     </div>
   );
 
