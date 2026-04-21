@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -34,14 +35,18 @@ export function MobileNav() {
 
     const redirectUrl = `/clients/${session.clientId}/${session.buildingId}/dashboard`;
 
+    // Limpa o estado da sessão e o armazenamento local
     endInspection();
+
     toast({
       title: 'Sessão Encerrada',
-      description: 'Você pode iniciar uma nova inspeção a qualquer momento.',
+      description: 'A inspeção foi concluída.',
     });
 
-    // Adia a navegação para permitir que o estado seja atualizado primeiro
-    setTimeout(() => router.push(redirectUrl), 0);
+    // Força uma navegação completa para o painel.
+    // Isso garante que a aplicação reinicie seu estado, leia a sessão
+    // agora vazia e exiba os botões corretos.
+    window.location.href = redirectUrl;
   };
 
   const isInspectionActive = !!session && session.buildingId === buildingId;
