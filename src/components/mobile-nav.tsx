@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -7,7 +6,6 @@ import { LayoutDashboard, Flame, Droplets, ScanLine, Users, ChevronLeft, Buildin
 import { cn } from "@/lib/utils";
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from "./ui/button";
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { logout } from "@/app/login/actions";
 
@@ -17,14 +15,12 @@ export function MobileNav() {
   const { clientId, buildingId } = params;
   const { session, endInspection } = useInspectionSession();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleEndInspection = async () => {
+  const handleEndInspection = () => {
     if (!session) return;
-    setIsSubmitting(true);
     try {
-        endInspection(); // This now only clears the local session
+        endInspection();
         toast({
             title: 'Sessão Encerrada',
             description: 'Você pode iniciar uma nova inspeção a qualquer momento.',
@@ -37,8 +33,6 @@ export function MobileNav() {
             title: 'Erro',
             description: error.message || 'Não foi possível encerrar a sessão.',
         });
-    } finally {
-        setIsSubmitting(false);
     }
   };
   
@@ -137,9 +131,8 @@ export function MobileNav() {
                 variant="ghost"
                 className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-center text-primary p-0"
                 onClick={handleEndInspection}
-                disabled={isSubmitting}
             >
-                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Flag className="h-6 w-6" />}
+                <Flag className="h-6 w-6" />
             </Button>
         )}
       </nav>

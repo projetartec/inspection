@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -18,7 +17,6 @@ import {
 import { ReportGenerator } from "@/components/report-generator";
 import { useInspectionSession } from '@/hooks/use-inspection-session.tsx';
 import { Button } from "./ui/button";
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ClientReportGenerator } from "./client-report-generator";
 import Image from 'next/image';
@@ -33,15 +31,14 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
   const { session, endInspection } = useInspectionSession();
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isInspectionActive = !!session && session.buildingId === buildingId;
 
-  const handleEndInspection = async () => {
+  const handleEndInspection = () => {
     if (!session) return;
-    setIsSubmitting(true);
+    
     try {
-        endInspection(); // This now only clears the local session
+        endInspection();
         toast({
             title: 'Sessão Encerrada',
             description: 'Você pode iniciar uma nova inspeção a qualquer momento.',
@@ -54,8 +51,6 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
             title: 'Erro',
             description: error.message || 'Não foi possível encerrar a sessão.',
         });
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
@@ -220,9 +215,8 @@ export function MainNav({ consultationSummary }: { consultationSummary?: React.R
               variant="destructive"
               className="w-full justify-center group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0"
               onClick={handleEndInspection}
-              disabled={isSubmitting}
               >
-              {isSubmitting ? <Loader2 className="animate-spin" /> : <Flag />}
+              <Flag />
               <span className="group-data-[collapsible=icon]:hidden ml-2">Finalizar Inspeção</span>
             </Button>
         )}
